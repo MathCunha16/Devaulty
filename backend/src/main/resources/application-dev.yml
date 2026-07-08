@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:sqlite:./data/devaulty-dev.db
+    url: jdbc:sqlite:./data/devaulty-dev.db?foreign_keys=on
   jpa:
     show-sql: true
     properties:

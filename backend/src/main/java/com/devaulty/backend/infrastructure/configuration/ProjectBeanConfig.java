@@ -1,11 +1,7 @@
 package com.devaulty.backend.infrastructure.configuration;
 
-import com.devaulty.backend.application.impl.project.CreateProjectImpl;
-import com.devaulty.backend.application.impl.project.GetAllProjectsImpl;
-import com.devaulty.backend.application.impl.project.GetProjectByIdImpl;
-import com.devaulty.backend.application.port.in.project.CreateProjectUseCase;
-import com.devaulty.backend.application.port.in.project.GetAllProjectsUseCase;
-import com.devaulty.backend.application.port.in.project.GetProjectByIdUseCase;
+import com.devaulty.backend.application.impl.project.*;
+import com.devaulty.backend.application.port.in.project.*;
 import com.devaulty.backend.application.port.out.persistence.ProjectRepositoryPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,5 +22,25 @@ public class ProjectBeanConfig {
     @Bean
     public GetProjectByIdUseCase getProjectByIdUseCase(ProjectRepositoryPort projectRepository) {
         return new GetProjectByIdImpl(projectRepository);
+    }
+
+    @Bean
+    public ArchiveProjectUseCase archiveProjectUseCase(ProjectRepositoryPort projectRepository) {
+        return new ArchiveProjectImpl(projectRepository);
+    }
+
+    @Bean
+    public UnarchiveProjectUseCase unarchiveProjectUseCase(ProjectRepositoryPort projectRepository) {
+        return new UnarchiveProjectImpl(projectRepository);
+    }
+
+    @Bean
+    public DeleteProjectUseCase deleteProjectUseCase(ProjectRepositoryPort projectRepository) {
+        return new DeleteProjectImpl(projectRepository);
+    }
+
+    @Bean
+    public UpdateProjectUseCase updateProjectUseCase(ProjectRepositoryPort projectRepository) {
+        return new UpdateProjectImpl(projectRepository);
     }
 }

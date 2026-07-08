@@ -15,4 +15,6 @@ public interface ProjectRepositoryPort {
     Optional<Project> findById(UUID id);
 
     void deleteById(UUID id);
+
+    boolean existsById(UUID id);
 }

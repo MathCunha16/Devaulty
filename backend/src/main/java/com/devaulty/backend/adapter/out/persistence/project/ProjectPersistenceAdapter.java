@@ -45,4 +45,9 @@ public class ProjectPersistenceAdapter implements ProjectRepositoryPort {
     public void deleteById(UUID id) {
         projectRepository.deleteById(id);
     }
+
+    @Override
+    public boolean existsById(UUID id) {
+        return projectRepository.existsById(id);
+    }
 }
