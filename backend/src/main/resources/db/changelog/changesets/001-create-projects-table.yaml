@@ -1,0 +1,60 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-projects-table
+      author: Matheus-Cunha
+      changes:
+        - createTable:
+            tableName: projects
+            columns:
+              - column:
+                  name: id
+                  type: TEXT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: name
+                  type: TEXT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: description
+                  type: TEXT
+
+              - column:
+                  name: icon
+                  type: TEXT
+
+              - column:
+                  name: color
+                  type: TEXT
+
+              - column:
+                  name: archived
+                  type: INTEGER
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: created_at
+                  type: TEXT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: updated_at
+                  type: TEXT
+
+        - createIndex:
+            indexName: idx_projects_archived
+            tableName: projects
+            columns:
+              - column:
+                  name: archived
+      rollback:
+        - dropTable:
+            tableName: projects
+
