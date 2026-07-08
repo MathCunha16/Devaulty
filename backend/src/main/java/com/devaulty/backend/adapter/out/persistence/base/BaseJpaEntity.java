@@ -1,9 +1,9 @@
 package com.devaulty.backend.adapter.out.persistence.base;
 
+import com.devaulty.backend.adapter.out.persistence.converter.LocalDateTimeToStringConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.MappedSuperclass;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -11,11 +11,11 @@ import java.time.LocalDateTime;
 public class BaseJpaEntity {
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Convert(converter = LocalDateTimeToStringConverter.class)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
-    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Convert(converter = LocalDateTimeToStringConverter.class)
     private LocalDateTime updatedAt;
 
     public LocalDateTime getCreatedAt() {
