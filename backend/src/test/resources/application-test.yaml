@@ -1,15 +1,16 @@
 spring:
-  application:
-    name: backend
-  profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
-
   datasource:
+    url: jdbc:sqlite:file::memory:?cache=shared
     driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1
   jpa:
     database-platform: org.hibernate.community.dialect.SQLiteDialect
-    open-in-view: false
     hibernate:
       ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
   liquibase:
-    change-log: classpath:/db/changelog/db.changelog-master.yaml
+    enabled: true

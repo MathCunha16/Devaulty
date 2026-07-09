@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: jdbc:sqlite:./data/devaulty-dev.db?foreign_keys=on
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
