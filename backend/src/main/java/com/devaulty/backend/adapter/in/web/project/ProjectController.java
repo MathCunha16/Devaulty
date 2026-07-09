@@ -66,6 +66,7 @@ public class ProjectController implements ProjectApi {
     }
 
     @PatchMapping("/{id}")
+    @Override
     public ResponseEntity<ProjectViewResponse> update(@PathVariable UUID id,
                                                       @RequestBody @Valid CreateProjectRequest request)
     {
@@ -75,18 +76,21 @@ public class ProjectController implements ProjectApi {
     }
 
     @PatchMapping("/{id}/archive")
+    @Override
     public ResponseEntity<Void> archive(@PathVariable UUID id){
         archiveProjectUseCase.execute(id);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/unarchive")
+    @Override
     public ResponseEntity<Void> unarchive(@PathVariable UUID id){
         unarchiveProjectUseCase.execute(id);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")
+    @Override
     public ResponseEntity<Void> delete(@PathVariable UUID id){
         deleteProjectUseCase.execute(id);
         return ResponseEntity.noContent().build();
