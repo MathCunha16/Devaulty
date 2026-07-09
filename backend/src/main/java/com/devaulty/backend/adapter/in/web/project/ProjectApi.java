@@ -3,6 +3,7 @@ package com.devaulty.backend.adapter.in.web.project;
 import com.devaulty.backend.adapter.in.web.exception.ApiErrorResponse;
 import com.devaulty.backend.adapter.in.web.project.dto.CreateProjectRequest;
 import com.devaulty.backend.adapter.in.web.project.dto.ProjectViewResponse;
+import com.devaulty.backend.adapter.in.web.project.dto.UpdateProjectRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -150,7 +151,7 @@ public interface ProjectApi {
     @PatchMapping("/{id}")
     ResponseEntity<ProjectViewResponse> update(
             @PathVariable UUID id,
-            @RequestBody @Valid CreateProjectRequest request
+            @RequestBody @Valid UpdateProjectRequest request
     );
 
     @Operation(

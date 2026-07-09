@@ -2,6 +2,7 @@ package com.devaulty.backend.adapter.in.web.project;
 
 import com.devaulty.backend.infrastructure.BaseIntegrationTest;
 import com.devaulty.backend.adapter.in.web.project.dto.CreateProjectRequest;
+import com.devaulty.backend.adapter.in.web.project.dto.UpdateProjectRequest;
 import com.devaulty.backend.adapter.out.persistence.project.ProjectEntity;
 import com.devaulty.backend.adapter.out.persistence.project.SpringDataProjectRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,13 +63,12 @@ class ProjectControllerIT extends BaseIntegrationTest {
                 "#invalidColor"
         );
 
-        // Note: Currently, GlobalExceptionHandler catches all exceptions (including MethodArgumentNotValidException)
-        // and returns 500 Internal Server Error. Once a specific validation exception handler is created,
-        // this expectation should be updated to status().isBadRequest() (400).
         mockMvc.perform(post("/api/v1/projects")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation error"))
+                .andExpect(jsonPath("$.errors", hasSize(2)));
     }
 
     @Test
@@ -120,7 +120,7 @@ class ProjectControllerIT extends BaseIntegrationTest {
         project.setCreatedAt(LocalDateTime.now());
         projectRepository.save(project);
 
-        CreateProjectRequest request = new CreateProjectRequest(
+        UpdateProjectRequest request = new UpdateProjectRequest(
                 "New Name",
                 "New Desc",
                 "new-icon",
@@ -144,7 +144,7 @@ class ProjectControllerIT extends BaseIntegrationTest {
     @Test
     void updateProject_shouldReturnNotFound_whenDoesNotExist() throws Exception {
         UUID randomId = UUID.randomUUID();
-        CreateProjectRequest request = new CreateProjectRequest("Name", "Desc", "icon", "#fff");
+        UpdateProjectRequest request = new UpdateProjectRequest("Name", "Desc", "icon", "#fff");
 
         mockMvc.perform(patch("/api/v1/projects/{id}", randomId)
                         .contentType(MediaType.APPLICATION_JSON)

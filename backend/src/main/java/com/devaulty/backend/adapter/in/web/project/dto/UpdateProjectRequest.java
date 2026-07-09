@@ -1,11 +1,9 @@
 package com.devaulty.backend.adapter.in.web.project.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-public record CreateProjectRequest(
-        @NotBlank
+public record UpdateProjectRequest(
         @Size(min = 2, max = 255, message = "Name must be between 2 and 255 characters")
         String name,
 

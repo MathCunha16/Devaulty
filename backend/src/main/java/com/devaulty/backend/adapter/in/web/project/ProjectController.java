@@ -2,6 +2,7 @@ package com.devaulty.backend.adapter.in.web.project;
 
 import com.devaulty.backend.adapter.in.web.project.dto.CreateProjectRequest;
 import com.devaulty.backend.adapter.in.web.project.dto.ProjectViewResponse;
+import com.devaulty.backend.adapter.in.web.project.dto.UpdateProjectRequest;
 import com.devaulty.backend.adapter.in.web.util.UriLocationBuilderHelper;
 import com.devaulty.backend.application.port.in.project.*;
 import com.devaulty.backend.domain.model.Project;
@@ -68,9 +69,9 @@ public class ProjectController implements ProjectApi {
     @PatchMapping("/{id}")
     @Override
     public ResponseEntity<ProjectViewResponse> update(@PathVariable UUID id,
-                                                      @RequestBody @Valid CreateProjectRequest request)
+                                                      @RequestBody @Valid UpdateProjectRequest request)
     {
-        CreateProjectCommand command = webMapper.toCreateProjectCommand(request);
+        CreateProjectCommand command = webMapper.toUpdateProjectCommand(request);
         Project project = updateProjectUseCase.execute(id, command);
         return ResponseEntity.ok(webMapper.toViewResponse(project));
     }
