@@ -1,5 +1,6 @@
 package com.devaulty.backend.application.impl.snippet;
 
+import com.devaulty.backend.application.exception.ResourceNotFoundException;
 import com.devaulty.backend.application.port.in.snippet.DeleteSnippetUseCase;
 import com.devaulty.backend.application.port.out.persistence.ProjectRepositoryPort;
 import com.devaulty.backend.application.port.out.persistence.SnippetRepositoryPort;
@@ -20,6 +21,8 @@ public class DeleteSnippetImpl implements DeleteSnippetUseCase {
     @Override
     @Transactional
     public void execute(UUID projectId, UUID id) {
+        if(!projectRepositoryPort.existsById(projectId)) throw new ResourceNotFoundException("Project", projectId);
 
+        snippetRepositoryPort.deleteById(id);
     }
 }

@@ -1,11 +1,7 @@
 package com.devaulty.backend.infrastructure.configuration;
 
-import com.devaulty.backend.application.impl.snippet.CreateSnippetImpl;
-import com.devaulty.backend.application.impl.snippet.GetAllSnippetsByProjectImpl;
-import com.devaulty.backend.application.impl.snippet.GetSnippetByIdImpl;
-import com.devaulty.backend.application.port.in.snippet.CreateSnippetUseCase;
-import com.devaulty.backend.application.port.in.snippet.GetAllSnippetsByProjectUseCase;
-import com.devaulty.backend.application.port.in.snippet.GetSnippetByIdUseCase;
+import com.devaulty.backend.application.impl.snippet.*;
+import com.devaulty.backend.application.port.in.snippet.*;
 import com.devaulty.backend.application.port.out.persistence.ProjectRepositoryPort;
 import com.devaulty.backend.application.port.out.persistence.SnippetRepositoryPort;
 import org.springframework.context.annotation.Bean;
@@ -42,6 +38,28 @@ public class SnippetBeanConfig {
             ProjectRepositoryPort projectRepositoryPort
     ){
         return new GetSnippetByIdImpl(
+                snippetRepositoryPort,
+                projectRepositoryPort
+        );
+    }
+
+    @Bean
+    public UpdateSnippetUseCase updateSnippetUseCase(
+            SnippetRepositoryPort snippetRepositoryPort,
+            ProjectRepositoryPort projectRepositoryPort
+    ){
+        return new UpdateSnippetImpl(
+                snippetRepositoryPort,
+                projectRepositoryPort
+        );
+    }
+
+    @Bean
+    public DeleteSnippetUseCase deleteSnippetUseCase(
+            SnippetRepositoryPort snippetRepositoryPort,
+            ProjectRepositoryPort projectRepositoryPort
+    ){
+        return new DeleteSnippetImpl(
                 snippetRepositoryPort,
                 projectRepositoryPort
         );
