@@ -57,7 +57,7 @@ class ProjectControllerIT extends BaseIntegrationTest {
     void createProject_shouldReturnBadRequest_whenValidationFails() throws Exception {
         // Name too short (min 3)
         CreateProjectRequest request = new CreateProjectRequest(
-                "AB",
+                "A",
                 "Project description",
                 "folder",
                 "#invalidColor"
