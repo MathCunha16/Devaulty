@@ -23,6 +23,11 @@ public class DeleteSnippetImpl implements DeleteSnippetUseCase {
     public void execute(UUID projectId, UUID id) {
         if(!projectRepositoryPort.existsById(projectId)) throw new ResourceNotFoundException("Project", projectId);
 
+        if (snippetRepositoryPort.findById(id)
+                .filter(snippet -> projectId.equals(snippet.getProjectId()))
+                .isEmpty()) {
+            throw new ResourceNotFoundException("Snippet", id);
+        }
         snippetRepositoryPort.deleteById(id);
     }
 }
