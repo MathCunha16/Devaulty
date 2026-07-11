@@ -160,25 +160,7 @@ const mapLanguageToMonaco = (lang: SnippetLanguage): string => {
   }
 };
 
-// Allowed icons map
-const ICON_MAPPING: Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>> = {
-  Folder: Icons.Folder,
-  Terminal: Icons.Terminal,
-  Database: Icons.Database,
-  Globe: Icons.Globe,
-  Cpu: Icons.Cpu,
-  Activity: Icons.Activity,
-  BookOpen: Icons.BookOpen,
-  Code: Icons.Code,
-};
-
-// Helper to resolve project icon components securely via allowlist lookup
-const getIconComponent = (iconName?: string) => {
-  if (iconName && iconName in ICON_MAPPING) {
-    return ICON_MAPPING[iconName];
-  }
-  return Icons.Folder;
-};
+import { getIconComponent } from "../utils/icons";
 
 export const ProjectDetailView: React.FC = () => {
   const { projectId } = useParamsHelper();
