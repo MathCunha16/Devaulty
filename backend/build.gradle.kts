@@ -1,7 +1,9 @@
 plugins {
 	java
+	application
 	id("org.springframework.boot") version "4.1.0"
 	id("io.spring.dependency-management") version "1.1.7"
+	id("org.openjfx.javafxplugin") version "0.1.0"
 }
 
 val mapStructVersion = "1.6.3"
@@ -15,6 +17,10 @@ java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(21)
 	}
+}
+
+application {
+	mainClass.set("com.devaulty.backend.desktop.DevaultyDesktop")
 }
 
 repositories {
@@ -47,6 +53,19 @@ dependencies {
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+javafx {
+	version = "21.0.2"
+	modules = listOf("javafx.controls", "javafx.web")
+}
+
 tasks.withType<Test> {
 	useJUnitPlatform()
+}
+
+tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
+	mainClass.set("com.devaulty.backend.BackendApplication")
+}
+
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+	mainClass.set("com.devaulty.backend.BackendApplication")
 }
