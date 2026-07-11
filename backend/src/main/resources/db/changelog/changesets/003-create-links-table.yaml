@@ -1,0 +1,60 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-create-links-table
+      author: Matheus Cunha
+      changes:
+        - createTable:
+            tableName: links
+            columns:
+              - column:
+                  name: id
+                  type: TEXT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: project_id
+                  type: TEXT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_links_project
+                    references: projects(id)
+                    deleteCascade: true
+
+              - column:
+                  name: title
+                  type: TEXT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: url
+                  type: TEXT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: description
+                  type: TEXT
+
+              - column:
+                  name: created_at
+                  type: TEXT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: updated_at
+                  type: TEXT
+
+        - createIndex:
+            indexName: idx_links_project
+            tableName: links
+            columns:
+              - column:
+                  name: project_id
+      rollback:
+        - dropTable:
+            tableName: links
+
