@@ -11,11 +11,24 @@ import {
 import { ProjectForm } from "~features/projects/components/ProjectForm";
 import styles from "../routes/index.module.css";
 
-// Helper to resolve project icon components
+// Allowed icons map
+const ICON_MAPPING: Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>> = {
+  Folder: Icons.Folder,
+  Terminal: Icons.Terminal,
+  Database: Icons.Database,
+  Globe: Icons.Globe,
+  Cpu: Icons.Cpu,
+  Activity: Icons.Activity,
+  BookOpen: Icons.BookOpen,
+  Code: Icons.Code,
+};
+
+// Helper to resolve project icon components securely via allowlist lookup
 const getIconComponent = (iconName?: string) => {
-  if (!iconName) return Icons.Folder;
-  const IconComponent = (Icons as unknown as Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>>)[iconName];
-  return IconComponent || Icons.Folder;
+  if (iconName && iconName in ICON_MAPPING) {
+    return ICON_MAPPING[iconName];
+  }
+  return Icons.Folder;
 };
 
 export const DashboardView: React.FC = () => {
@@ -31,6 +44,8 @@ export const DashboardView: React.FC = () => {
   const projects = projectsData?.content || [];
   const activeProjects = projects.filter((p) => !p.archived);
   const archivedProjects = projects.filter((p) => p.archived);
+
+  const isMutationPending = archiveMutation.isPending || unarchiveMutation.isPending || deleteMutation.isPending;
 
   const handleArchive = async (id: string, name: string) => {
     try {
@@ -119,6 +134,7 @@ export const DashboardView: React.FC = () => {
                       className={styles.actionBtn}
                       onClick={() => setEditingProjectId(project.id)}
                       title="Edit Project"
+                      disabled={isMutationPending}
                     >
                       <Icons.Edit3 size={12} />
                     </button>
@@ -126,6 +142,7 @@ export const DashboardView: React.FC = () => {
                       className={styles.actionBtn}
                       onClick={() => handleArchive(project.id, project.name)}
                       title="Archive Project"
+                      disabled={isMutationPending}
                     >
                       <Icons.Archive size={12} />
                     </button>
@@ -133,6 +150,7 @@ export const DashboardView: React.FC = () => {
                       className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
                       onClick={() => handleDelete(project.id, project.name)}
                       title="Delete Project"
+                      disabled={isMutationPending}
                     >
                       <Icons.Trash2 size={12} />
                     </button>
@@ -151,7 +169,7 @@ export const DashboardView: React.FC = () => {
             );
           })}
 
-          <button className={styles.emptyCard} onClick={() => setIsCreateOpen(true)}>
+          <button className={styles.emptyCard} onClick={() => setIsCreateOpen(true)} disabled={isMutationPending}>
             <div className="w-10 h-10 rounded-full border border-dashed border-border flex items-center justify-center text-muted-foreground">
               <Icons.Plus size={18} />
             </div>
@@ -165,14 +183,20 @@ export const DashboardView: React.FC = () => {
 
       {archivedProjects.length > 0 && (
         <div className={styles.archiveSection}>
-          <div className={styles.archiveHeader} onClick={() => setShowArchived(!showArchived)}>
+          <button
+            type="button"
+            className={styles.archiveHeader}
+            style={{ background: "none", border: "none", width: "100%", padding: 0 }}
+            onClick={() => setShowArchived(!showArchived)}
+            aria-expanded={showArchived}
+          >
             <span className={styles.archiveToggleText}>
               {showArchived ? "Hide Archived Projects" : `Show Archived Projects (${archivedProjects.length})`}
             </span>
-            <button className={styles.actionBtn}>
+            <span className={styles.actionBtn}>
               {showArchived ? <Icons.EyeOff size={12} /> : <Icons.Eye size={12} />}
-            </button>
-          </div>
+            </span>
+          </button>
 
           {showArchived && (
             <div className={`${styles.projectsGrid} mt-4`}>
@@ -199,6 +223,7 @@ export const DashboardView: React.FC = () => {
                           className={styles.actionBtn}
                           onClick={() => handleUnarchive(project.id, project.name)}
                           title="Restore Project"
+                          disabled={isMutationPending}
                         >
                           <Icons.ArchiveRestore size={12} />
                         </button>
@@ -206,6 +231,7 @@ export const DashboardView: React.FC = () => {
                           className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
                           onClick={() => handleDelete(project.id, project.name)}
                           title="Delete Project"
+                          disabled={isMutationPending}
                         >
                           <Icons.Trash2 size={12} />
                         </button>
@@ -230,7 +256,9 @@ export const DashboardView: React.FC = () => {
       )}
 
       {/* Create Form Modal */}
-      <ProjectForm isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
+      {isCreateOpen && (
+        <ProjectForm isOpen={true} onClose={() => setIsCreateOpen(false)} />
+      )}
     </div>
   );
 };

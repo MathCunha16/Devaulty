@@ -9,11 +9,24 @@ import * as Icons from "lucide-react";
 import styles from "../routes/__root.module.css";
 import { LogoDevaulty } from "./LogoDevaulty";
 
-// Helper to resolve project icon components
+// Allowed icons map
+const ICON_MAPPING: Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>> = {
+  Folder: Icons.Folder,
+  Terminal: Icons.Terminal,
+  Database: Icons.Database,
+  Globe: Icons.Globe,
+  Cpu: Icons.Cpu,
+  Activity: Icons.Activity,
+  BookOpen: Icons.BookOpen,
+  Code: Icons.Code,
+};
+
+// Helper to resolve project icon components securely via allowlist lookup
 const getIconComponent = (iconName?: string) => {
-  if (!iconName) return Icons.Folder;
-  const IconComponent = (Icons as unknown as Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>>)[iconName];
-  return IconComponent || Icons.Folder;
+  if (iconName && iconName in ICON_MAPPING) {
+    return ICON_MAPPING[iconName];
+  }
+  return Icons.Folder;
 };
 
 const NavigationSidebar: React.FC = () => {
@@ -37,7 +50,7 @@ const NavigationSidebar: React.FC = () => {
           <span className={styles.navLabel}>System</span>
           <Link
             to="/"
-            activeProps={{ className: styles.navItemActive }}
+            activeProps={{ className: `${styles.navItem} ${styles.navItemActive}` }}
             inactiveProps={{ className: styles.navItem }}
           >
             <div className={styles.navIconText}>
@@ -71,7 +84,7 @@ const NavigationSidebar: React.FC = () => {
                   key={project.id}
                   to="/projects/$projectId"
                   params={{ projectId: project.id }}
-                  activeProps={{ className: styles.navItemActive }}
+                  activeProps={{ className: `${styles.navItem} ${styles.navItemActive}` }}
                   inactiveProps={{ className: styles.navItem }}
                 >
                   <div className={styles.navIconText}>
@@ -105,60 +118,69 @@ const NavigationSidebar: React.FC = () => {
         </button>
       </div>
 
-      <ProjectForm isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      {isModalOpen && (
+        <ProjectForm isOpen={true} onClose={() => setIsModalOpen(false)} />
+      )}
     </aside>
+  );
+};
+
+const RootLayoutInner: React.FC = () => {
+  const { theme } = useTheme();
+
+  return (
+    <div className={styles.appContainer}>
+      {/* Render loading suspense wrapper inside sidebar to load initial projects */}
+      <Suspense
+        fallback={
+          <aside className={styles.sidebar}>
+            <div className={styles.sidebarHeader}>
+              <div className={styles.appLogo}>
+                <LogoDevaulty height={52} />
+              </div>
+            </div>
+            <div className="flex-1 flex items-center justify-center p-4">
+              <Icons.Loader2 className="animate-spin text-muted-foreground" size={24} />
+            </div>
+          </aside>
+        }
+      >
+        <NavigationSidebar />
+      </Suspense>
+
+      <main className={styles.mainLayout}>
+        <div className={styles.contentWrapper}>
+          <Suspense
+            fallback={
+              <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+                <Icons.Loader2 className="animate-spin text-primary" size={32} />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
+        </div>
+
+        <footer className={styles.statusBar}>
+          <div className={styles.statusItem}>
+            <div className={styles.statusIndicator} />
+            <span>API LINK: http://localhost:8080/api/v1</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <span>PERSISTENCE: BACKEND SERVER</span>
+            <span>v1.0.0</span>
+          </div>
+        </footer>
+      </main>
+      <Toaster position="bottom-right" theme={theme} closeButton />
+    </div>
   );
 };
 
 export const RootLayout: React.FC = () => {
   return (
     <ThemeProvider>
-      <div className={styles.appContainer}>
-        {/* Render loading suspense wrapper inside sidebar to load initial projects */}
-        <Suspense
-          fallback={
-            <aside className={styles.sidebar}>
-              <div className={styles.sidebarHeader}>
-                <div className={styles.appLogo}>
-                  <div className={styles.logoDot} />
-                  DEVAULTY
-                </div>
-              </div>
-              <div className="flex-1 flex items-center justify-center p-4">
-                <Icons.Loader2 className="animate-spin text-muted-foreground" size={24} />
-              </div>
-            </aside>
-          }
-        >
-          <NavigationSidebar />
-        </Suspense>
-
-        <main className={styles.mainLayout}>
-          <div className={styles.contentWrapper}>
-            <Suspense
-              fallback={
-                <div className="absolute inset-0 flex items-center justify-center bg-background/50">
-                  <Icons.Loader2 className="animate-spin text-primary" size={32} />
-                </div>
-              }
-            >
-              <Outlet />
-            </Suspense>
-          </div>
-
-          <footer className={styles.statusBar}>
-            <div className={styles.statusItem}>
-              <div className={styles.statusIndicator} />
-              <span>API LINK: http://localhost:8080/api/v1</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <span>PERSISTENCE: BACKEND SERVER</span>
-              <span>v1.0.0</span>
-            </div>
-          </footer>
-        </main>
-      </div>
-      <Toaster position="bottom-right" theme="dark" closeButton />
+      <RootLayoutInner />
     </ThemeProvider>
   );
 };

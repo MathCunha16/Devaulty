@@ -8,41 +8,79 @@ import { useProjectQuery } from "~features/projects/hooks/useProjects";
 import {
   useSnippetsQuery,
   useCreateSnippetMutation,
+  useUpdateSnippetMutation,
   useDeleteSnippetMutation,
 } from "~features/snippets/hooks/useSnippets";
 import type { SnippetLanguage, SnippetType } from "~types/api";
 import styles from "../routes/projects.$projectId.module.css";
 
-// Preset list of popular languages for the editor select dropdown
-const POPULAR_LANGUAGES: SnippetLanguage[] = [
+// All 69 supported language entries covering the SnippetLanguage type
+const ALL_LANGUAGES: SnippetLanguage[] = [
   "PLAIN_TEXT",
+  "BASH",
+  "FISH",
+  "ZSH",
+  "SH",
+  "POWERSHELL",
+  "BATCH",
+  "JAVA",
+  "KOTLIN",
   "JAVASCRIPT",
   "TYPESCRIPT",
   "PYTHON",
   "GO",
   "RUST",
-  "JAVA",
-  "KOTLIN",
-  "CSHARP",
-  "CPP",
   "C",
-  "BASH",
-  "ZSH",
-  "SH",
-  "POWERSHELL",
+  "CPP",
+  "CSHARP",
+  "PHP",
+  "RUBY",
+  "SWIFT",
+  "DART",
+  "SCALA",
+  "LUA",
+  "PERL",
+  "R",
+  "ELIXIR",
+  "HASKELL",
+  "CLOJURE",
+  "GROOVY",
   "HTML",
   "CSS",
-  "SQL",
+  "SCSS",
+  "LESS",
+  "JSX",
+  "TSX",
+  "VUE",
+  "SVELTE",
   "JSON",
   "YAML",
   "XML",
+  "TOML",
+  "INI",
+  "ENV",
+  "CSV",
   "MARKDOWN",
+  "PROPERTIES",
   "DOCKERFILE",
   "DOCKER_COMPOSE",
   "NGINX",
+  "APACHE",
   "TERRAFORM",
+  "ANSIBLE",
+  "KUBERNETES_YAML",
+  "HELM",
+  "MAKEFILE",
+  "CMAKE",
   "GRADLE",
   "MAVEN_POM",
+  "SQL",
+  "PLSQL",
+  "GRAPHQL",
+  "MONGODB",
+  "GITHUB_ACTIONS",
+  "GITLAB_CI",
+  "JENKINSFILE",
   "REGEX",
   "DIFF",
   "LOG",
@@ -122,11 +160,24 @@ const mapLanguageToMonaco = (lang: SnippetLanguage): string => {
   }
 };
 
-// Helper to resolve project icon components
+// Allowed icons map
+const ICON_MAPPING: Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>> = {
+  Folder: Icons.Folder,
+  Terminal: Icons.Terminal,
+  Database: Icons.Database,
+  Globe: Icons.Globe,
+  Cpu: Icons.Cpu,
+  Activity: Icons.Activity,
+  BookOpen: Icons.BookOpen,
+  Code: Icons.Code,
+};
+
+// Helper to resolve project icon components securely via allowlist lookup
 const getIconComponent = (iconName?: string) => {
-  if (!iconName) return Icons.Folder;
-  const IconComponent = (Icons as unknown as Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>>)[iconName];
-  return IconComponent || Icons.Folder;
+  if (iconName && iconName in ICON_MAPPING) {
+    return ICON_MAPPING[iconName];
+  }
+  return Icons.Folder;
 };
 
 export const ProjectDetailView: React.FC = () => {
@@ -146,6 +197,9 @@ export const ProjectDetailView: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Initialize update mutation dynamically based on selected snippet id
+  const updateSnippetMutation = useUpdateSnippetMutation(projectId, selectedSnippetId || "");
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -223,6 +277,7 @@ export const ProjectDetailView: React.FC = () => {
   };
 
   const projectIcon = getIconComponent(project?.icon);
+  const isSubmitting = createSnippetMutation.isPending || updateSnippetMutation.isPending;
 
   return (
     <div className="flex flex-col gap-4 h-full">
@@ -249,7 +304,7 @@ export const ProjectDetailView: React.FC = () => {
       <div className={styles.pageLayout}>
         {/* Left Side: Snippets navigation list */}
         <div className={styles.leftPanel}>
-          <button className={styles.newSnippetBtn} onClick={handleOpenCreate}>
+          <button className={styles.newSnippetBtn} onClick={handleOpenCreate} disabled={isSubmitting}>
             <Icons.Plus size={14} />
             <span>Add Snippet</span>
           </button>
@@ -262,6 +317,7 @@ export const ProjectDetailView: React.FC = () => {
               className={styles.searchInput}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              disabled={isSubmitting}
             />
           </div>
 
@@ -269,18 +325,21 @@ export const ProjectDetailView: React.FC = () => {
             <button
               className={`${styles.filterTab} ${typeFilter === "ALL" ? styles.filterTabActive : ""}`}
               onClick={() => setTypeFilter("ALL")}
+              disabled={isSubmitting}
             >
               ALL
             </button>
             <button
               className={`${styles.filterTab} ${typeFilter === "CODE" ? styles.filterTabActive : ""}`}
               onClick={() => setTypeFilter("CODE")}
+              disabled={isSubmitting}
             >
               CODE
             </button>
             <button
               className={`${styles.filterTab} ${typeFilter === "COMMAND" ? styles.filterTabActive : ""}`}
               onClick={() => setTypeFilter("COMMAND")}
+              disabled={isSubmitting}
             >
               CMD
             </button>
@@ -303,6 +362,7 @@ export const ProjectDetailView: React.FC = () => {
                     setIsCreating(false);
                     setIsEditing(false);
                   }}
+                  disabled={isSubmitting}
                 >
                   <div className={styles.snippetItemHeader}>
                     <span className={styles.snippetItemTitle}>{s.title}</span>
@@ -345,13 +405,11 @@ export const ProjectDetailView: React.FC = () => {
                     toast.success("Snippet created successfully");
                     setSelectedSnippetId(res.id);
                   } else if (isEditing && selectedSnippetId) {
-                    const { snippetsApi } = await import("~features/snippets/api/snippetsApi");
-                    await snippetsApi.update(projectId, selectedSnippetId, payload);
+                    await updateSnippetMutation.mutateAsync(payload);
                     toast.success("Snippet updated successfully");
                   }
                   setIsCreating(false);
                   setIsEditing(false);
-                  window.dispatchEvent(new CustomEvent("snippet-saved"));
                 } catch (err) {
                   toast.error(err instanceof Error ? err.message : "Failed to save snippet");
                 }
@@ -371,18 +429,19 @@ export const ProjectDetailView: React.FC = () => {
                     placeholder="e.g., Get user list, Run database backup"
                     value={formTitle}
                     onChange={(e) => setFormTitle(e.target.value)}
+                    disabled={isSubmitting}
                     required
                   />
                 </div>
 
                 <div className={styles.formField}>
                   <label className={styles.formLabel}>Description</label>
-                  <input
-                    type="text"
-                    className={styles.formInput}
+                  <textarea
+                    className={styles.formTextarea}
                     placeholder="Provide a brief context or description..."
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
+                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -393,6 +452,7 @@ export const ProjectDetailView: React.FC = () => {
                       className={styles.formInput}
                       value={formSnippetType}
                       onChange={(e) => setFormSnippetType(e.target.value as SnippetType)}
+                      disabled={isSubmitting}
                     >
                       <option value="CODE">Code Snippet</option>
                       <option value="COMMAND">Terminal Command</option>
@@ -405,8 +465,9 @@ export const ProjectDetailView: React.FC = () => {
                       className={styles.formInput}
                       value={formLanguage}
                       onChange={(e) => setFormLanguage(e.target.value as SnippetLanguage)}
+                      disabled={isSubmitting}
                     >
-                      {POPULAR_LANGUAGES.map((lang) => (
+                      {ALL_LANGUAGES.map((lang) => (
                         <option key={lang} value={lang}>
                           {lang}
                         </option>
@@ -433,6 +494,7 @@ export const ProjectDetailView: React.FC = () => {
                       lineNumbers: "on",
                       scrollBeyondLastLine: false,
                       automaticLayout: true,
+                      readOnly: isSubmitting,
                       padding: { top: 8, bottom: 8 },
                     }}
                   />
@@ -447,10 +509,11 @@ export const ProjectDetailView: React.FC = () => {
                     setIsCreating(false);
                     setIsEditing(false);
                   }}
+                  disabled={isSubmitting}
                 >
                   Cancel
                 </button>
-                <button type="submit" className={styles.btnPrimary}>
+                <button type="submit" className={styles.btnPrimary} disabled={isSubmitting}>
                   Save
                 </button>
               </div>
@@ -473,7 +536,7 @@ export const ProjectDetailView: React.FC = () => {
                   </div>
 
                   <div className={styles.detailActions}>
-                    <button className={styles.btnIcon} onClick={handleOpenEdit} title="Edit Snippet">
+                    <button className={styles.btnIcon} onClick={handleOpenEdit} title="Edit Snippet" disabled={isSubmitting}>
                       <Icons.Edit3 size={14} />
                     </button>
                     <button
@@ -482,6 +545,7 @@ export const ProjectDetailView: React.FC = () => {
                         handleDeleteSnippet(selectedSnippet.id, selectedSnippet.title)
                       }
                       title="Delete Snippet"
+                      disabled={isSubmitting}
                     >
                       <Icons.Trash2 size={14} />
                     </button>
@@ -496,6 +560,7 @@ export const ProjectDetailView: React.FC = () => {
                     <button
                       className={styles.copyButton}
                       onClick={() => handleCopy(selectedSnippet.content, selectedSnippet.id)}
+                      disabled={isSubmitting}
                     >
                       {copiedId === selectedSnippet.id ? (
                         <>
@@ -558,22 +623,6 @@ const useParamsHelper = () => {
   return match.params;
 };
 
-// Query Client hook retriever
-import { useQueryClient } from "@tanstack/react-query";
-const useQueryClientHelper = () => {
-  return useQueryClient();
-};
-
 export const ProjectDetailRouteComponent: React.FC = () => {
-  const queryClient = useQueryClientHelper();
-  const { projectId } = useParamsHelper();
-  React.useEffect(() => {
-    const handleSave = () => {
-      queryClient.invalidateQueries({ queryKey: ["projects", projectId, "snippets"] });
-    };
-    window.addEventListener("snippet-saved", handleSave);
-    return () => window.removeEventListener("snippet-saved", handleSave);
-  }, [projectId, queryClient]);
-
   return <ProjectDetailView />;
 };

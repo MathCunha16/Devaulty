@@ -128,6 +128,8 @@ const ProjectFormInner: React.FC<ProjectFormInnerProps> = ({
                   style={{ backgroundColor: col }}
                   onClick={() => setColor(col)}
                   disabled={isSubmitting}
+                  aria-label={`Select color ${col}`}
+                  aria-pressed={color === col}
                 />
               ))}
             </div>
