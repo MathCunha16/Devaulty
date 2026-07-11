@@ -295,4 +295,19 @@ class LinkControllerIT extends BaseIntegrationTest {
         mockMvc.perform(delete("/api/v1/projects/{projectId}/links/{linkId}", savedProject.getId(), nonExistentLinkId))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void deleteLink_shouldReturnNotFound_whenLinkDoesNotBelongToProject() throws Exception {
+        ProjectEntity otherProject = new ProjectEntity(UUID.randomUUID(), "Other", "Desc", "folder", "`#000`", false);
+        otherProject.setCreatedAt(LocalDateTime.now());
+        projectRepository.save(otherProject);
+
+        UUID linkId = UUID.randomUUID();
+        LinkEntity link = new LinkEntity(linkId, otherProject, "Other Link", "https://other.com", "Desc");
+        link.setCreatedAt(LocalDateTime.now());
+        linkRepository.save(link);
+
+        mockMvc.perform(delete("/api/v1/projects/{projectId}/links/{linkId}", savedProject.getId(), linkId))
+                .andExpect(status().isNotFound());
+    }
 }
