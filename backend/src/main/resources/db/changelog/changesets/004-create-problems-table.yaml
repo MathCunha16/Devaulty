@@ -1,0 +1,70 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-create-problems-table
+      author: Matheus Cunha
+      changes:
+        - createTable:
+            tableName: problems
+            columns:
+              - column:
+                  name: id
+                  type: TEXT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: project_id
+                  type: TEXT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_problems_project
+                    references: projects(id)
+                    deleteCascade: true
+
+              - column:
+                  name: title
+                  type: TEXT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: error_description
+                  type: TEXT
+
+              - column:
+                  name: solution
+                  type: TEXT
+
+              - column:
+                  name: status
+                  type: TEXT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: severity
+                  type: TEXT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: created_at
+                  type: TEXT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: updated_at
+                  type: TEXT
+
+        - createIndex:
+            indexName: idx_problems_project
+            tableName: problems
+            columns:
+              - column:
+                  name: project_id
+
+      rollback:
+        - dropTable:
+            tableName: problems
