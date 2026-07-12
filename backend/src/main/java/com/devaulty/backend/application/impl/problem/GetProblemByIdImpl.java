@@ -23,7 +23,7 @@ public class GetProblemByIdImpl implements GetProblemByIdUseCase {
     @Transactional(readOnly = true)
     public Problem execute(UUID projectId, UUID id) {
 
-        if (!projectRepositoryPort.existsById(projectId)) throw new ResourceNotFoundException("Project", id);
+        if (!projectRepositoryPort.existsById(projectId)) throw new ResourceNotFoundException("Project", projectId);
 
         Problem problem = problemRepositoryPort.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Problem", id));
