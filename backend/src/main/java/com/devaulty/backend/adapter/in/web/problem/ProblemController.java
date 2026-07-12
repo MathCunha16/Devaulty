@@ -36,6 +36,7 @@ public class ProblemController implements ProblemApi{
         this.uriLocationBuilderHelper = uriLocationBuilderHelper;
     }
 
+    @Override
     @PostMapping
     public ResponseEntity<ProblemViewResponse> create(
             @PathVariable UUID projectId,
@@ -47,6 +48,7 @@ public class ProblemController implements ProblemApi{
         return ResponseEntity.created(location).body(mapper.toViewResponse(problem));
     }
 
+    @Override
     @GetMapping
     public ResponseEntity<Page<ProblemSummaryResponse>> getAllByProject(
             @PathVariable UUID projectId,
@@ -57,6 +59,7 @@ public class ProblemController implements ProblemApi{
         return ResponseEntity.ok(problems.map(mapper::toSummaryResponse));
     }
 
+    @Override
     @GetMapping("/{problemId}")
     public ResponseEntity<ProblemViewResponse> getById(
             @PathVariable UUID projectId,
@@ -66,6 +69,7 @@ public class ProblemController implements ProblemApi{
         return ResponseEntity.ok(mapper.toViewResponse(problem));
     }
 
+    @Override
     @PatchMapping("/{problemId}")
     public ResponseEntity<ProblemViewResponse> update(
             @PathVariable UUID projectId,
@@ -77,6 +81,7 @@ public class ProblemController implements ProblemApi{
         return ResponseEntity.ok(mapper.toViewResponse(problem));
     }
 
+    @Override
     @PatchMapping("/{problemId}/status")
     public ResponseEntity<ProblemViewResponse> updateStatus(
             @PathVariable UUID projectId,
@@ -88,6 +93,7 @@ public class ProblemController implements ProblemApi{
         return ResponseEntity.ok(mapper.toViewResponse(problem));
     }
 
+    @Override
     @DeleteMapping("/{problemId}")
     public ResponseEntity<Void> delete(
             @PathVariable UUID projectId,
