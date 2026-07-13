@@ -41,6 +41,7 @@ public class NoteController implements NoteApi{
         this.uriLocationBuilderHelper = uriLocationBuilderHelper;
     }
 
+    @Override
     @PostMapping
     public ResponseEntity<NoteViewResponse> create(
             @PathVariable UUID projectId,
@@ -53,6 +54,7 @@ public class NoteController implements NoteApi{
         return ResponseEntity.created(location).body(mapper.toViewResponse(note));
     }
 
+    @Override
     @GetMapping
     public ResponseEntity<Page<NoteSummaryResponse>> getAllByProject(
             @PathVariable UUID projectId,
@@ -63,6 +65,7 @@ public class NoteController implements NoteApi{
         return ResponseEntity.ok(notes.map(mapper::toSummaryResponse));
     }
 
+    @Override
     @GetMapping("/{noteID}")
     public ResponseEntity<NoteViewResponse> getById(
             @PathVariable UUID projectId,
@@ -73,6 +76,7 @@ public class NoteController implements NoteApi{
         return ResponseEntity.ok(mapper.toViewResponse(note));
     }
 
+    @Override
     @PatchMapping("/{noteId}")
     public ResponseEntity<NoteViewResponse> update(
             @PathVariable UUID projectId,
@@ -84,6 +88,7 @@ public class NoteController implements NoteApi{
         return ResponseEntity.ok(mapper.toViewResponse(note));
     }
 
+    @Override
     @PatchMapping("/{noteId}/archive")
     public ResponseEntity<Void> archive(
             @PathVariable UUID projectId,
@@ -93,6 +98,7 @@ public class NoteController implements NoteApi{
         return ResponseEntity.noContent().build();
     }
 
+    @Override
     @PatchMapping("/{noteId}/unarchive")
     public ResponseEntity<Void> unarchive(
             @PathVariable UUID projectId,
@@ -102,6 +108,7 @@ public class NoteController implements NoteApi{
         return ResponseEntity.noContent().build();
     }
 
+    @Override
     @DeleteMapping("/{noteId}")
     public ResponseEntity<Void> delete(
             @PathVariable UUID projectId,

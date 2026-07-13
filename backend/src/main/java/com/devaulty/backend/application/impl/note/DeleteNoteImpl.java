@@ -19,7 +19,7 @@ public class DeleteNoteImpl implements DeleteNoteUseCase {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public void execute(UUID projectId, UUID id) {
         if(!projectRepositoryPort.existsById(projectId)) throw new ResourceNotFoundException("Project", projectId);
 

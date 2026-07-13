@@ -38,5 +38,6 @@ public class UnarchiveNoteImpl implements UnarchiveNoteUseCase {
         note.setArchived(false);
         note.setUpdatedAt(LocalDateTime.now());
 
+        noteRepositoryPort.save(note);
     }
 }
