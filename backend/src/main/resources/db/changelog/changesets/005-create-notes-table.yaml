@@ -1,0 +1,61 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-create-notes-table
+      author: Matheus Cunha
+      changes:
+        - createTable:
+            tableName: notes
+            columns:
+              - column:
+                  name: id
+                  type: TEXT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: project_id
+                  type: TEXT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_notes_project
+                    references: projects(id)
+                    deleteCascade: true
+
+              - column:
+                  name: title
+                  type: TEXT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: content
+                  type: TEXT
+
+              - column:
+                  name: archived
+                  type: INTEGER
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: created_at
+                  type: TEXT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: updated_at
+                  type: TEXT
+
+        - createIndex:
+            indexName: idx_notes_project
+            tableName: notes
+            columns:
+              - column:
+                  name: project_id
+
+      rollback:
+        - dropTable:
+            tableName: notes
