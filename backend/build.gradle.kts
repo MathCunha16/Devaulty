@@ -8,7 +8,7 @@ plugins {
 
 val mapStructVersion = "1.6.3"
 val swaggerOpenAPIVersion = "3.0.3"
-val dotEnvVersion = "5.1.0"
+val bouncyCastleVersion = "1.84"
 
 group = "com.devaulty"
 version = "0.0.1-SNAPSHOT"
@@ -35,10 +35,9 @@ dependencies {
 	implementation("org.springframework.security:spring-security-crypto")
 	implementation("org.mapstruct:mapstruct:${mapStructVersion}")
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:${swaggerOpenAPIVersion}")
-	implementation(platform("me.paulschwarz:spring-dotenv-bom:${dotEnvVersion}"))
+	implementation("org.bouncycastle:bcprov-jdk18on:${bouncyCastleVersion}")
 
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
-	developmentOnly("me.paulschwarz:springboot4-dotenv:${dotEnvVersion}")
 
 	runtimeOnly("org.xerial:sqlite-jdbc")
 	runtimeOnly("org.hibernate.orm:hibernate-community-dialects")
@@ -50,6 +49,7 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-liquibase-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 005-create-notes-table
+      id: 006-create-notes-table
       author: Matheus Cunha
       changes:
         - createTable:

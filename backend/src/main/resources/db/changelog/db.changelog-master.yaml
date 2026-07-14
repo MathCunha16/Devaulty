@@ -1,15 +1,21 @@
 databaseChangeLog:
   - include:
-      file: db/changelog/changesets/001-create-projects-table.yaml
+      file: db/changelog/changesets/001-create-app-settings-table.yaml
 
   - include:
-      file: db/changelog/changesets/002-create-snippets-table.yaml
+      file: db/changelog/changesets/002-create-projects-table.yaml
 
   - include:
-      file: db/changelog/changesets/003-create-links-table.yaml
+      file: db/changelog/changesets/003-create-snippets-table.yaml
 
   - include:
-      file: db/changelog/changesets/004-create-problems-table.yaml
+      file: db/changelog/changesets/004-create-links-table.yaml
 
   - include:
-      file: db/changelog/changesets/005-create-notes-table.yaml
+      file: db/changelog/changesets/005-create-problems-table.yaml
+
+  - include:
+      file: db/changelog/changesets/006-create-notes-table.yaml
+
+  - include:
+      file: db/changelog/changesets/007-create-credentials-table.yaml
