@@ -1,6 +1,7 @@
 package com.devaulty.backend.adapter.out.persistence.credential;
 
 import com.devaulty.backend.adapter.out.persistence.project.SpringDataProjectRepository;
+import com.devaulty.backend.application.port.in.credential.CredentialSummary;
 import com.devaulty.backend.application.port.out.persistence.CredentialRepositoryPort;
 import com.devaulty.backend.domain.model.Credential;
 import org.springframework.data.domain.Page;
@@ -40,10 +41,9 @@ public class CredentialPersistenceAdapter implements CredentialRepositoryPort {
     }
 
     @Override
-    public Page<Credential> findAllByProject(UUID projectId, int page, int size) {
+    public Page<CredentialSummary> findAllByProject(UUID projectId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<CredentialEntity> entities = credentialRepository.findAllByProject_Id(projectId, pageable);
-        return entities.map(credentialMapper::toDomain);
+        return credentialRepository.findAllSummaryByProjectId(projectId, pageable);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.devaulty.backend.application.port.out.persistence;
 
+import com.devaulty.backend.application.port.in.credential.CredentialSummary;
 import com.devaulty.backend.domain.model.Credential;
 import org.springframework.data.domain.Page;
 
@@ -12,7 +13,7 @@ public interface CredentialRepositoryPort {
 
     Optional<Credential> findById(UUID id);
 
-    Page<Credential> findAllByProject(UUID projectId, int page, int size);
+    Page<CredentialSummary> findAllByProject(UUID projectId, int page, int size);
 
     void deleteById(UUID id);
 }

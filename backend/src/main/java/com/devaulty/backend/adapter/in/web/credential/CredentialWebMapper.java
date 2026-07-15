@@ -3,10 +3,13 @@ package com.devaulty.backend.adapter.in.web.credential;
 import com.devaulty.backend.adapter.in.web.credential.dto.CreateCredentialRequest;
 import com.devaulty.backend.adapter.in.web.credential.dto.CredentialSummaryResponse;
 import com.devaulty.backend.adapter.in.web.credential.dto.CredentialViewResponse;
+import com.devaulty.backend.adapter.in.web.credential.dto.UpdateCredentialRequest;
 import com.devaulty.backend.application.exception.JsonProcessingException;
 import com.devaulty.backend.application.port.in.credential.CreateCredentialCommand;
+import com.devaulty.backend.application.port.in.credential.CredentialSummary;
 import com.devaulty.backend.application.port.in.credential.DecryptedCredential;
-import com.devaulty.backend.domain.model.Credential;
+import com.devaulty.backend.application.port.in.credential.UpdateCredentialCommand;
+import com.devaulty.backend.domain.model.enums.CredentialSecretType;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -27,29 +30,20 @@ public abstract class CredentialWebMapper {
     @Mapping(source = "decryptedPayload", target = "decryptedPayload", qualifiedByName = "jsonToMap")
     public abstract CredentialViewResponse toViewResponse(DecryptedCredential credential);
 
-    public abstract CredentialSummaryResponse toSummaryResponse(Credential credential);
+    public abstract CredentialSummaryResponse toSummaryResponse(CredentialSummary credential);
 
     public CreateCredentialCommand toCreateCredentialCommand(CreateCredentialRequest request, UUID projectId) {
-
-        Object secretStructure = switch (request.secretType()) {
-            case LOGIN -> Map.of(
-                    "username", request.username() != null ? String.valueOf(request.username()) : "",
-                    "password", request.password() != null ? String.valueOf(request.password()) : ""
-            );
-
-            case API_KEY -> Map.of(
-                    "apiKey", request.apiKey() != null ? String.valueOf(request.apiKey()) : ""
-            );
-
-            case RAW_TEXT -> Map.of(
-                    "rawText", request.rawTextContent() != null ? String.valueOf(request.rawTextContent()) : ""
-            );
-        };
-
         char[] serializedPayload = null;
         try {
-            String json = jsonMapper.writeValueAsString(secretStructure);
-            serializedPayload = json.toCharArray();
+            if (request.secretType() != null) {
+                serializedPayload = serializeSecretStructure(
+                        request.secretType(),
+                        request.username(),
+                        request.password(),
+                        request.apiKey(),
+                        request.rawTextContent()
+                );
+            }
 
             return new CreateCredentialCommand(
                     projectId,
@@ -59,17 +53,40 @@ public abstract class CredentialWebMapper {
                     request.notes(),
                     request.relatedUrl()
             );
-
         } catch (Exception e) {
             throw new JsonProcessingException("Error trying to structure credential secrets.", e);
         } finally {
-            // Clears the raw secret fields from memory
-            if (request.username() != null) Arrays.fill(request.username(), '\0');
-            if (request.password() != null) Arrays.fill(request.password(), '\0');
-            if (request.apiKey() != null) Arrays.fill(request.apiKey(), '\0');
-            if (request.rawTextContent() != null) Arrays.fill(request.rawTextContent(), '\0');
+            wipeSensitiveFields(request.username(), request.password(), request.apiKey(), request.rawTextContent());
         }
+    }
 
+    public UpdateCredentialCommand toUpdateCredentialCommand(UpdateCredentialRequest request, UUID projectId, UUID id) {
+        char[] serializedPayload = null;
+        try {
+            if (request.secretType() != null) {
+                serializedPayload = serializeSecretStructure(
+                        request.secretType(),
+                        request.username(),
+                        request.password(),
+                        request.apiKey(),
+                        request.rawTextContent()
+                );
+            }
+
+            return new UpdateCredentialCommand(
+                    id,
+                    projectId,
+                    request.title(),
+                    request.secretType(),
+                    serializedPayload,
+                    request.notes(),
+                    request.relatedUrl()
+            );
+        } catch (Exception e) {
+            throw new JsonProcessingException("Error trying to structure credential secrets.", e);
+        } finally {
+            wipeSensitiveFields(request.username(), request.password(), request.apiKey(), request.rawTextContent());
+        }
     }
 
     @Named("jsonToMap")
@@ -86,4 +103,30 @@ public abstract class CredentialWebMapper {
             Arrays.fill(decryptedBytes, (byte) 0);
         }
     }
+
+    // --- REUSABLE PRIVATE METHODS ---
+
+    private char[] serializeSecretStructure(CredentialSecretType type, char[] username, char[] password, char[] apiKey, char[] rawText) {
+        Object secretStructure = switch (type) {
+            case LOGIN -> Map.of(
+                    "username", username != null ? String.valueOf(username) : "",
+                    "password", password != null ? String.valueOf(password) : ""
+            );
+            case API_KEY -> Map.of(
+                    "apiKey", apiKey != null ? String.valueOf(apiKey) : ""
+            );
+            case RAW_TEXT -> Map.of(
+                    "rawText", rawText != null ? String.valueOf(rawText) : ""
+            );
+        };
+        return jsonMapper.writeValueAsString(secretStructure).toCharArray();
+    }
+
+    private void wipeSensitiveFields(char[] username, char[] password, char[] apiKey, char[] rawText) {
+        if (username != null) Arrays.fill(username, '\0');
+        if (password != null) Arrays.fill(password, '\0');
+        if (apiKey != null) Arrays.fill(apiKey, '\0');
+        if (rawText != null) Arrays.fill(rawText, '\0');
+    }
+
 }

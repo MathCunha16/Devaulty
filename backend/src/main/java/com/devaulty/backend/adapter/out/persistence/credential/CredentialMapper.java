@@ -12,5 +12,4 @@ public interface CredentialMapper {
 
     @Mapping( target = "projectId", source = "project.id")
     Credential toDomain(CredentialEntity credentialEntity);
-
 }
