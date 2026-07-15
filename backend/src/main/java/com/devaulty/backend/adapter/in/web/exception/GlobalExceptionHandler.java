@@ -1,7 +1,6 @@
 package com.devaulty.backend.adapter.in.web.exception;
 
-import com.devaulty.backend.application.exception.BusinessRuleException;
-import com.devaulty.backend.application.exception.ResourceNotFoundException;
+import com.devaulty.backend.application.exception.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -26,6 +25,41 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessRuleException.class)
     public ResponseEntity<ApiErrorResponse> handleBusinessRuleException(BusinessRuleException exception){
         return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
+    @ExceptionHandler(CryptoException.class)
+    public ResponseEntity<ApiErrorResponse> handleCryptoException(CryptoException exception){
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiErrorResponse> handleIllegalArgumentException(IllegalArgumentException exception){
+        return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
+    @ExceptionHandler(InvalidMasterPasswordException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidMasterPasswordException(InvalidMasterPasswordException exception){
+        return buildResponse(HttpStatus.UNAUTHORIZED, exception.getMessage());
+    }
+
+    @ExceptionHandler(JsonProcessingException.class)
+    public ResponseEntity<ApiErrorResponse> handleJsonProcessingException(JsonProcessingException exception){
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
+    }
+
+    @ExceptionHandler(MasterPasswordAlreadyConfiguredException.class)
+    public ResponseEntity<ApiErrorResponse> handleMasterPasswordAlreadyConfiguredException(MasterPasswordAlreadyConfiguredException exception){
+        return buildResponse(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    @ExceptionHandler(MasterPasswordNotConfiguredException.class)
+    public ResponseEntity<ApiErrorResponse> handleMasterPasswordNotConfiguredException(MasterPasswordNotConfiguredException exception){
+        return buildResponse(HttpStatus.FORBIDDEN, exception.getMessage());
+    }
+
+    @ExceptionHandler(VaultLockedException.class)
+    public ResponseEntity<ApiErrorResponse> handleVaultLockedException(VaultLockedException exception){
+        return buildResponse(HttpStatus.LOCKED, exception.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

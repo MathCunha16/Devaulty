@@ -36,6 +36,7 @@ public class CredentialController implements CredentialApi{
         this.uriLocationBuilderHelper = uriLocationBuilderHelper;
     }
 
+    @Override
     @PostMapping
     public ResponseEntity<CredentialViewResponse> create(
             @PathVariable UUID projectId,
@@ -47,6 +48,7 @@ public class CredentialController implements CredentialApi{
         return ResponseEntity.created(location).body(mapper.toViewResponse(decryptedCredential));
     }
 
+    @Override
     @GetMapping
     public ResponseEntity<Page<CredentialSummaryResponse>> getAllByProject(
             @PathVariable UUID projectId,
@@ -57,6 +59,7 @@ public class CredentialController implements CredentialApi{
         return ResponseEntity.ok(summary.map(mapper::toSummaryResponse));
     }
 
+    @Override
     @GetMapping("/{credentialId}")
     public ResponseEntity<CredentialViewResponse> getById(
             @PathVariable UUID projectId,
@@ -66,6 +69,7 @@ public class CredentialController implements CredentialApi{
         return ResponseEntity.ok(mapper.toViewResponse(credential));
     }
 
+    @Override
     @PatchMapping("/{credentialId}")
     public ResponseEntity<CredentialViewResponse> update(
             @PathVariable UUID projectId,
@@ -77,6 +81,7 @@ public class CredentialController implements CredentialApi{
         return ResponseEntity.ok(mapper.toViewResponse(credential));
     }
 
+    @Override
     @DeleteMapping("/{credentialId}")
     public ResponseEntity<Void> delete(
             @PathVariable UUID projectId,

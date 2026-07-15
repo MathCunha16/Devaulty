@@ -13,7 +13,7 @@ import java.util.Arrays;
 
 @RestController
 @RequestMapping("/ap1/v1/security")
-public class SecurityController {
+public class SecurityController implements SecurityApi{
 
     private final SetupMasterPasswordUseCase setupMasterPasswordUseCase;
     private final CheckMasterPasswordSetupUseCase checkMasterPasswordSetupUseCase;
@@ -27,6 +27,7 @@ public class SecurityController {
         this.unlockVaultUseCase = unlockVaultUseCase;
     }
 
+    @Override
     @PostMapping("/master-password")
     public ResponseEntity<Void> setupMasterPassword(@RequestBody @Valid MasterPasswordRequest request) {
         setupMasterPasswordUseCase.execute(request.masterPassword());
@@ -34,11 +35,13 @@ public class SecurityController {
         return ResponseEntity.noContent().build();
     }
 
+    @Override
     @GetMapping("/master-password/required-status")
     public ResponseEntity<Boolean> checkMasterPasswordSetup(){
         return ResponseEntity.ok(checkMasterPasswordSetupUseCase.isSetupRequired());
     }
 
+    @Override
     @PostMapping("/vault/unlock")
     public ResponseEntity<Boolean> unlockVault(@RequestBody @Valid MasterPasswordRequest request){
         boolean result = unlockVaultUseCase.execute(request.masterPassword());
@@ -46,6 +49,7 @@ public class SecurityController {
         return ResponseEntity.ok(result);
     }
 
+    @Override
     @PostMapping("/vault/lock")
     public ResponseEntity<Void> lockVault(){
         lockVaultUseCase.execute();
