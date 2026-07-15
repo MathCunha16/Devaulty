@@ -5,6 +5,7 @@ import com.devaulty.backend.application.exception.ResourceNotFoundException;
 import com.devaulty.backend.application.exception.VaultLockedException;
 import com.devaulty.backend.application.port.in.credential.CreateCredentialCommand;
 import com.devaulty.backend.application.port.in.credential.CreateCredentialUseCase;
+import com.devaulty.backend.application.port.in.credential.DecryptedCredential;
 import com.devaulty.backend.application.port.in.security.CheckMasterPasswordSetupUseCase;
 import com.devaulty.backend.application.port.out.persistence.CredentialRepositoryPort;
 import com.devaulty.backend.application.port.out.persistence.ProjectRepositoryPort;
@@ -38,15 +39,31 @@ public class CreateCredentialImpl implements CreateCredentialUseCase {
         this.checkMasterPasswordSetupUseCase = checkMasterPasswordSetupUseCase;
     }
 
+    /**
+     * Creates a new credential, encrypting its payload with the active master key.
+     *
+     * <p><b>⚠ MEMORY OWNERSHIP:</b> the returned {@link DecryptedCredential#decryptedPayload()}
+     * is NOT zeroed here — ownership passes to the caller. Whoever consumes it MUST
+     * wipe it after use:
+     * <pre>{@code Arrays.fill(decryptedCredential.decryptedPayload(), (byte) 0);}</pre>
+     * See {@code docs/security/memory-hygiene.md} for the full rule.
+     *
+     * @param command plaintext payload ({@code char[]}); this method zeroes it —
+     *                caller does not need to.
+     * @return credential with decrypted payload; caller owns and must zero
+     *         {@code decryptedPayload} after use.
+     */
+
     @Override
     @Transactional
-    public Credential execute(CreateCredentialCommand command) {
+    public DecryptedCredential execute(CreateCredentialCommand command) {
 
         // 1. Basic validations
         if (!projectRepositoryPort.existsById(command.projectId())) throw new ResourceNotFoundException("Project", command.projectId());
         if (checkMasterPasswordSetupUseCase.isSetupRequired()) throw new MasterPasswordNotConfiguredException();
 
         byte[] payloadBytes = null;
+        byte[] decryptedBytes = null;
 
         try {
             // 2. Gets the key of the active on RAM
@@ -74,15 +91,36 @@ public class CreateCredentialImpl implements CreateCredentialUseCase {
             credential.setRelatedUrl(command.relatedUrl());
             credential.setCreatedAt(LocalDateTime.now());
 
-            return credentialRepositoryPort.save(credential);
+            Credential savedCredential = credentialRepositoryPort.save(credential);
+
+            // 6. Decrypts the payload
+            decryptedBytes = cryptoPort.decrypt(
+                    savedCredential.getPayloadEncrypted(),
+                    savedCredential.getEncryptionIv(),
+                    savedCredential.getEncryptionAuthTag(),
+                    key)
+            ;
+
+            // 7. Returns the decrypted credentials
+            return new DecryptedCredential(
+                    savedCredential.getId(),
+                    savedCredential.getProjectId(),
+                    savedCredential.getTitle(),
+                    savedCredential.getSecretType(),
+                    decryptedBytes,
+                    savedCredential.getNotes(),
+                    savedCredential.getRelatedUrl(),
+                    savedCredential.getCreatedAt(),
+                    savedCredential.getUpdatedAt()
+            );
 
         } finally {
-            // 6. Clears the payload from memory
-            if(payloadBytes != null) {
-                Arrays.fill(payloadBytes, (byte) 0);
-            }
+            // 8. Clears the payload from memory
+            // decryptedBytes is NOT cleared here — its ownership was transferred
+            // to the returned DecryptedCredential, and it will be cleared by
+            // whoever consumes it (CredentialWebMapper.jsonToMap).
+            if(payloadBytes != null) Arrays.fill(payloadBytes, (byte) 0);
             Arrays.fill(command.payload(), '\0');
         }
-
     }
 }

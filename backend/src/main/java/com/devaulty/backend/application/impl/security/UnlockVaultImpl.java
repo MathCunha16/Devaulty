@@ -1,5 +1,6 @@
 package com.devaulty.backend.application.impl.security;
 
+import com.devaulty.backend.application.exception.InvalidMasterPasswordException;
 import com.devaulty.backend.application.port.out.security.MasterKeySessionPort;
 import com.devaulty.backend.application.exception.MasterPasswordNotConfiguredException;
 import com.devaulty.backend.application.port.in.security.UnlockVaultUseCase;
@@ -56,7 +57,7 @@ public class UnlockVaultImpl implements UnlockVaultUseCase {
                 return true;
             }
 
-            return false;
+            throw  new InvalidMasterPasswordException("Invalid MasterPassword!");
 
         } finally {
             // CRITICAL PROTECTION: Overwrites the input char array immediately after the use case completes
