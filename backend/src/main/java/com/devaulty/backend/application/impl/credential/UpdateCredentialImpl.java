@@ -21,6 +21,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.UUID;
 
 public class UpdateCredentialImpl implements UpdateCredentialUseCase {
 
@@ -57,7 +58,7 @@ public class UpdateCredentialImpl implements UpdateCredentialUseCase {
     @Override
     @Transactional
     public DecryptedCredential execute(UpdateCredentialCommand command) {
-
+        java.nio.ByteBuffer buffer = null;
         byte[] payloadBytes = null;
         byte[] decryptedBytes = null;
 
@@ -65,8 +66,8 @@ public class UpdateCredentialImpl implements UpdateCredentialUseCase {
 
             SecretKey key = masterKeySessionPort.getKey();
 
-            if (key == null) throw new VaultLockedException();
             if (checkMasterPasswordSetupUseCase.isSetupRequired()) throw new MasterPasswordNotConfiguredException();
+            if (key == null) throw new VaultLockedException();
             if (!projectRepositoryPort.existsById(command.projectId()))
                 throw new ResourceNotFoundException("Project", command.projectId());
 
@@ -78,13 +79,14 @@ public class UpdateCredentialImpl implements UpdateCredentialUseCase {
             if (command.secretType() != null) credential.setSecretType(command.secretType());
             if (command.notes() != null) credential.setNotes(command.notes());
             if (command.relatedUrl() != null) credential.setRelatedUrl(command.relatedUrl());
+            byte[] aad = computeAad(command.projectId(), command.id());
             if (command.payload() != null) {
 
-                ByteBuffer buffer = StandardCharsets.UTF_8.encode(CharBuffer.wrap(command.payload()));
+                buffer = StandardCharsets.UTF_8.encode(CharBuffer.wrap(command.payload()));
                 payloadBytes = new byte[buffer.remaining()];
                 buffer.get(payloadBytes);
 
-                CryptoResultDto cryptoResult = cryptoPort.encrypt(payloadBytes, key);
+                CryptoResultDto cryptoResult = cryptoPort.encrypt(payloadBytes, key, aad);
 
                 credential.setPayloadEncrypted(cryptoResult.cipherText());
                 credential.setEncryptionIv(cryptoResult.iv());
@@ -98,7 +100,8 @@ public class UpdateCredentialImpl implements UpdateCredentialUseCase {
                     credential.getPayloadEncrypted(),
                     credential.getEncryptionIv(),
                     credential.getEncryptionAuthTag(),
-                    key
+                    key,
+                    aad
             );
 
             return new DecryptedCredential(
@@ -117,8 +120,20 @@ public class UpdateCredentialImpl implements UpdateCredentialUseCase {
             // decryptedBytes is NOT cleared here — its ownership was transferred
             // to the returned DecryptedCredential, and it will be cleared by
             // whoever consumes it (CredentialWebMapper.jsonToMap).
+            if (buffer != null && buffer.hasArray()) {
+                Arrays.fill(buffer.array(), (byte) 0);
+            }
             if(payloadBytes != null) Arrays.fill(payloadBytes, (byte) 0);
             if(command.payload() != null) Arrays.fill(command.payload(), '\0');
         }
+    }
+
+    private byte[] computeAad(UUID projectId, UUID credentialId) {
+        ByteBuffer buffer = ByteBuffer.allocate(32);
+        buffer.putLong(projectId.getMostSignificantBits());
+        buffer.putLong(projectId.getLeastSignificantBits());
+        buffer.putLong(credentialId.getMostSignificantBits());
+        buffer.putLong(credentialId.getLeastSignificantBits());
+        return buffer.array();
     }
 }

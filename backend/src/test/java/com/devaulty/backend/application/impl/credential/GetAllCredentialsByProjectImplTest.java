@@ -88,6 +88,7 @@ class GetAllCredentialsByProjectImplTest {
         // Arrange
         UUID projectId = UUID.randomUUID();
 
+        when(checkMasterPasswordSetupUseCase.isSetupRequired()).thenReturn(false);
         when(masterKeySessionPort.getKey()).thenReturn(null);
 
         // Act & Assert
@@ -96,7 +97,7 @@ class GetAllCredentialsByProjectImplTest {
         });
 
         verify(masterKeySessionPort, times(1)).getKey();
-        verify(checkMasterPasswordSetupUseCase, never()).isSetupRequired();
+        verify(checkMasterPasswordSetupUseCase, times(1)).isSetupRequired();
         verify(projectRepository, never()).existsById(any());
         verify(credentialRepository, never()).findAllByProject(any(), anyInt(), anyInt());
     }
@@ -105,9 +106,7 @@ class GetAllCredentialsByProjectImplTest {
     void shouldThrowMasterPasswordNotConfiguredExceptionWhenSetupIsRequired() {
         // Arrange
         UUID projectId = UUID.randomUUID();
-        SecretKey mockKey = mock(SecretKey.class);
 
-        when(masterKeySessionPort.getKey()).thenReturn(mockKey);
         when(checkMasterPasswordSetupUseCase.isSetupRequired()).thenReturn(true);
 
         // Act & Assert
@@ -115,7 +114,7 @@ class GetAllCredentialsByProjectImplTest {
             getAllCredentialsUseCase.execute(projectId, 0, 10);
         });
 
-        verify(masterKeySessionPort, times(1)).getKey();
+        verify(masterKeySessionPort, never()).getKey();
         verify(checkMasterPasswordSetupUseCase, times(1)).isSetupRequired();
         verify(projectRepository, never()).existsById(any());
         verify(credentialRepository, never()).findAllByProject(any(), anyInt(), anyInt());

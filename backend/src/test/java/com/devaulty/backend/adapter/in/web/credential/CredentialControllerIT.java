@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
@@ -101,6 +102,24 @@ class CredentialControllerIT extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.createdAt").isNotEmpty());
 
         assertEquals(1, credentialRepository.count());
+
+        // Reload the entity to assert at-rest protection and context-binding AAD decryption
+        CredentialEntity reloaded = credentialRepository.findAll().getFirst();
+        assertNotNull(reloaded.getPayloadEncrypted());
+        assertFalse(new String(reloaded.getPayloadEncrypted()).contains("dbuser"));
+        assertFalse(new String(reloaded.getPayloadEncrypted()).contains("dbpassword"));
+
+        byte[] decrypted = cryptoPort.decrypt(
+                reloaded.getPayloadEncrypted(),
+                reloaded.getEncryptionIv(),
+                reloaded.getEncryptionAuthTag(),
+                mockSecretKey,
+                computeAad(savedProject.getId(), reloaded.getId())
+        );
+
+        String decryptedStr = new String(decrypted);
+        assertTrue(decryptedStr.contains("dbuser"));
+        assertTrue(decryptedStr.contains("dbpassword"));
     }
 
     @Test
@@ -278,7 +297,7 @@ class CredentialControllerIT extends BaseIntegrationTest {
     void getCredentialById_shouldReturnDecryptedCredential() throws Exception {
         UUID credentialId = UUID.randomUUID();
         byte[] payload = "{\"username\":\"admin\",\"password\":\"secret\"}".getBytes();
-        CryptoResultDto cryptoResult = cryptoPort.encrypt(payload, mockSecretKey);
+        CryptoResultDto cryptoResult = cryptoPort.encrypt(payload, mockSecretKey, computeAad(savedProject.getId(), credentialId));
 
         CredentialEntity entity = new CredentialEntity(
                 credentialId,
@@ -320,7 +339,7 @@ class CredentialControllerIT extends BaseIntegrationTest {
 
         UUID credentialId = UUID.randomUUID();
         byte[] payload = "{\"apiKey\":\"secret_key\"}".getBytes();
-        CryptoResultDto cryptoResult = cryptoPort.encrypt(payload, mockSecretKey);
+        CryptoResultDto cryptoResult = cryptoPort.encrypt(payload, mockSecretKey, computeAad(otherProject.getId(), credentialId));
 
         CredentialEntity entity = new CredentialEntity(
                 credentialId,
@@ -346,7 +365,7 @@ class CredentialControllerIT extends BaseIntegrationTest {
     void updateCredential_shouldUpdateTitleAndMetadataOnly_whenNoPayloadProvided() throws Exception {
         UUID credentialId = UUID.randomUUID();
         byte[] payload = "{\"apiKey\":\"orig_key\"}".getBytes();
-        CryptoResultDto cryptoResult = cryptoPort.encrypt(payload, mockSecretKey);
+        CryptoResultDto cryptoResult = cryptoPort.encrypt(payload, mockSecretKey, computeAad(savedProject.getId(), credentialId));
 
         CredentialEntity entity = new CredentialEntity(
                 credentialId,
@@ -379,13 +398,22 @@ class CredentialControllerIT extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.notes").value("New notes"))
                 .andExpect(jsonPath("$.relatedUrl").value("http://new"))
                 .andExpect(jsonPath("$.updatedAt").isNotEmpty());
+
+        // Reload to assert metadata updated but ciphertext preserved unchanged!
+        CredentialEntity reloaded = credentialRepository.findById(credentialId).orElseThrow();
+        assertEquals("New Title", reloaded.getTitle());
+        assertEquals("New notes", reloaded.getNotes());
+        assertEquals("http://new", reloaded.getRelatedUrl());
+        assertArrayEquals(cryptoResult.cipherText(), reloaded.getPayloadEncrypted());
+        assertArrayEquals(cryptoResult.iv(), reloaded.getEncryptionIv());
+        assertArrayEquals(cryptoResult.authTag(), reloaded.getEncryptionAuthTag());
     }
 
     @Test
     void updateCredential_shouldUpdatePayloadAndReencrypt_whenNewPayloadProvided() throws Exception {
         UUID credentialId = UUID.randomUUID();
         byte[] payload = "{\"apiKey\":\"orig_key\"}".getBytes();
-        CryptoResultDto cryptoResult = cryptoPort.encrypt(payload, mockSecretKey);
+        CryptoResultDto cryptoResult = cryptoPort.encrypt(payload, mockSecretKey, computeAad(savedProject.getId(), credentialId));
 
         CredentialEntity entity = new CredentialEntity(
                 credentialId,
@@ -414,6 +442,22 @@ class CredentialControllerIT extends BaseIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.secretType").value("RAW_TEXT"))
                 .andExpect(jsonPath("$.decryptedPayload.rawText").value("new raw text content"));
+
+        // Reload to assert ciphertext, IV, and tag changed, and decrypts successfully to new payload using AAD
+        CredentialEntity reloaded = credentialRepository.findById(credentialId).orElseThrow();
+        assertEquals(CredentialSecretType.RAW_TEXT, reloaded.getSecretType());
+        assertFalse(Arrays.equals(cryptoResult.cipherText(), reloaded.getPayloadEncrypted()));
+        assertFalse(Arrays.equals(cryptoResult.iv(), reloaded.getEncryptionIv()));
+        assertFalse(Arrays.equals(cryptoResult.authTag(), reloaded.getEncryptionAuthTag()));
+
+        byte[] decrypted = cryptoPort.decrypt(
+                reloaded.getPayloadEncrypted(),
+                reloaded.getEncryptionIv(),
+                reloaded.getEncryptionAuthTag(),
+                mockSecretKey,
+                computeAad(savedProject.getId(), credentialId)
+        );
+        assertEquals("{\"rawText\":\"new raw text content\"}", new String(decrypted));
     }
 
     @Test
@@ -446,5 +490,14 @@ class CredentialControllerIT extends BaseIntegrationTest {
         mockMvc.perform(delete("/ap1/v1/projects/{projectId}/credentials/{credentialId}", savedProject.getId(), nonExistentId))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Credential not found with identifier " + nonExistentId));
+    }
+
+    private byte[] computeAad(UUID projectId, UUID credentialId) {
+        java.nio.ByteBuffer buffer = java.nio.ByteBuffer.allocate(32);
+        buffer.putLong(projectId.getMostSignificantBits());
+        buffer.putLong(projectId.getLeastSignificantBits());
+        buffer.putLong(credentialId.getMostSignificantBits());
+        buffer.putLong(credentialId.getLeastSignificantBits());
+        return buffer.array();
     }
 }

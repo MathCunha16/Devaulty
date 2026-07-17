@@ -45,6 +45,14 @@ class SecurityControllerIT extends BaseIntegrationTest {
 
         assertTrue(appSettingRepository.existsById("master_password_hash"));
         assertTrue(appSettingRepository.existsById("master_password_salt"));
+
+        AppSettingEntity hashEntity = appSettingRepository.findById("master_password_hash").orElseThrow();
+        AppSettingEntity saltEntity = appSettingRepository.findById("master_password_salt").orElseThrow();
+
+        assertFalse(hashEntity.getValue().isEmpty());
+        assertFalse(saltEntity.getValue().isEmpty());
+        assertNotEquals("mySuperSecretPassword123", hashEntity.getValue());
+
         assertTrue(masterKeySessionPort.hasKey());
     }
 
@@ -71,6 +79,7 @@ class SecurityControllerIT extends BaseIntegrationTest {
     @Test
     void setupMasterPassword_shouldReturnConflict_whenAlreadyConfigured() throws Exception {
         appSettingRepository.save(new AppSettingEntity("master_password_hash", "mockHash"));
+        appSettingRepository.save(new AppSettingEntity("master_password_salt", "mockSalt"));
 
         String json = """
                 {
@@ -95,6 +104,7 @@ class SecurityControllerIT extends BaseIntegrationTest {
     @Test
     void checkMasterPasswordSetup_shouldReturnFalse_whenAlreadyConfigured() throws Exception {
         appSettingRepository.save(new AppSettingEntity("master_password_hash", "mockHash"));
+        appSettingRepository.save(new AppSettingEntity("master_password_salt", "mockSalt"));
 
         mockMvc.perform(get("/ap1/v1/security/master-password/required-status"))
                 .andExpect(status().isOk())

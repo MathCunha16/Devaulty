@@ -71,7 +71,7 @@ class GetCredentialByIdImplTest {
         when(checkMasterPasswordSetupUseCase.isSetupRequired()).thenReturn(false);
         when(projectRepository.existsById(projectId)).thenReturn(true);
         when(credentialRepository.findById(credentialId)).thenReturn(Optional.of(credential));
-        when(cryptoPort.decrypt(encryptedPayload, iv, authTag, mockKey)).thenReturn(decryptedPayload);
+        when(cryptoPort.decrypt(eq(encryptedPayload), eq(iv), eq(authTag), eq(mockKey), any(byte[].class))).thenReturn(decryptedPayload);
 
         // Act
         DecryptedCredential result = getCredentialByIdUseCase.execute(projectId, credentialId);
@@ -88,7 +88,7 @@ class GetCredentialByIdImplTest {
         verify(checkMasterPasswordSetupUseCase, times(1)).isSetupRequired();
         verify(projectRepository, times(1)).existsById(projectId);
         verify(credentialRepository, times(1)).findById(credentialId);
-        verify(cryptoPort, times(1)).decrypt(encryptedPayload, iv, authTag, mockKey);
+        verify(cryptoPort, times(1)).decrypt(eq(encryptedPayload), eq(iv), eq(authTag), eq(mockKey), any(byte[].class));
     }
 
     @Test
@@ -97,6 +97,7 @@ class GetCredentialByIdImplTest {
         UUID projectId = UUID.randomUUID();
         UUID credentialId = UUID.randomUUID();
 
+        when(checkMasterPasswordSetupUseCase.isSetupRequired()).thenReturn(false);
         when(masterKeySessionPort.getKey()).thenReturn(null);
 
         // Act & Assert
@@ -105,7 +106,7 @@ class GetCredentialByIdImplTest {
         });
 
         verify(masterKeySessionPort, times(1)).getKey();
-        verify(checkMasterPasswordSetupUseCase, never()).isSetupRequired();
+        verify(checkMasterPasswordSetupUseCase, times(1)).isSetupRequired();
         verify(projectRepository, never()).existsById(any());
         verify(credentialRepository, never()).findById(any());
     }
@@ -180,13 +181,12 @@ class GetCredentialByIdImplTest {
     void shouldThrowResourceNotFoundExceptionWhenCredentialDoesNotBelongToProject() {
         // Arrange
         UUID projectId = UUID.randomUUID();
-        UUID otherProjectId = UUID.randomUUID();
         UUID credentialId = UUID.randomUUID();
         SecretKey mockKey = mock(SecretKey.class);
 
         Credential credential = new Credential();
         credential.setId(credentialId);
-        credential.setProjectId(otherProjectId);
+        credential.setProjectId(UUID.randomUUID()); // Different project ID
 
         when(masterKeySessionPort.getKey()).thenReturn(mockKey);
         when(checkMasterPasswordSetupUseCase.isSetupRequired()).thenReturn(false);
@@ -202,6 +202,6 @@ class GetCredentialByIdImplTest {
         verify(checkMasterPasswordSetupUseCase, times(1)).isSetupRequired();
         verify(projectRepository, times(1)).existsById(projectId);
         verify(credentialRepository, times(1)).findById(credentialId);
-        verify(cryptoPort, never()).decrypt(any(), any(), any(), any());
+        verify(cryptoPort, never()).decrypt(any(), any(), any(), any(), any());
     }
 }

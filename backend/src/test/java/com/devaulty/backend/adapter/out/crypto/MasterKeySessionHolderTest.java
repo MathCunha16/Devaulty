@@ -78,6 +78,30 @@ class MasterKeySessionHolderTest {
     }
 
     @Test
+    void setKey_shouldClearPreviousKeyBytes_whenNewKeyIsSet() {
+        // Arrange
+        byte[] keyBytes1 = new byte[]{1, 2, 3, 4};
+        SecretKey secretKey1 = new SecretKeySpec(keyBytes1, "AES");
+        sessionHolder.setKey(secretKey1);
+
+        byte[] rawKeyBytesInHolder1 = (byte[]) ReflectionTestUtils.getField(sessionHolder, "rawKeyBytes");
+        assertNotNull(rawKeyBytesInHolder1);
+        assertEquals(1, rawKeyBytesInHolder1[0]);
+
+        byte[] keyBytes2 = new byte[]{5, 6, 7, 8};
+        SecretKey secretKey2 = new SecretKeySpec(keyBytes2, "AES");
+
+        // Act
+        sessionHolder.setKey(secretKey2);
+
+        // Assert
+        // Verify the original raw bytes of the first key were securely zeroed out!
+        for (byte b : rawKeyBytesInHolder1) {
+            assertEquals(0, b);
+        }
+    }
+
+    @Test
     void getSecondsRemaining_shouldReturnZero_whenNoKeyIsPresent() {
         Long remaining = sessionHolder.getSecondsRemaining(Duration.ofMinutes(15));
         assertEquals(0L, remaining);

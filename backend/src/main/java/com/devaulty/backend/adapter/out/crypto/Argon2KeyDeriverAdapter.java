@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -41,13 +42,16 @@ public class Argon2KeyDeriverAdapter implements KeyDerivationPort {
         gen.init(builder.build());
         byte[] keyBytes = new byte[32];
 
-        byte[] passwordBytes = StandardCharsets.UTF_8.encode(CharBuffer.wrap(password)).array();
+        ByteBuffer buffer = StandardCharsets.UTF_8.encode(CharBuffer.wrap(password));
+        byte[] passwordBytes = new byte[buffer.remaining()];
+        buffer.get(passwordBytes);
 
         try {
             gen.generateBytes(passwordBytes, keyBytes, 0, keyBytes.length);
             return new SecretKeySpec(keyBytes, "AES");
         } finally {
             Arrays.fill(passwordBytes, (byte) 0);
+            Arrays.fill(keyBytes, (byte) 0);
         }
     }
 }

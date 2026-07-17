@@ -14,6 +14,7 @@ import com.devaulty.backend.domain.model.Credential;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.crypto.SecretKey;
+import java.nio.ByteBuffer;
 import java.util.UUID;
 
 public class GetCredentialByIdImpl implements GetCredentialByIdUseCase {
@@ -53,19 +54,21 @@ public class GetCredentialByIdImpl implements GetCredentialByIdUseCase {
 
         SecretKey key = masterKeySessionPort.getKey();
 
-        if (key == null) throw new VaultLockedException();
         if (checkMasterPasswordSetupUseCase.isSetupRequired()) throw new MasterPasswordNotConfiguredException();
+        if (key == null) throw new VaultLockedException();
         if (!projectRepositoryPort.existsById(projectId)) throw new ResourceNotFoundException("Project", projectId);
 
         Credential credential = credentialRepositoryPort.findById(id)
                 .filter(c -> projectId.equals(c.getProjectId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Credential", id));
 
+        byte[] aad = computeAad(projectId, id);
         byte [] decryptedPayloadBytes = cryptoPort.decrypt(
                 credential.getPayloadEncrypted(),
                 credential.getEncryptionIv(),
                 credential.getEncryptionAuthTag(),
-                key
+                key,
+                aad
         );
 
         return new DecryptedCredential(
@@ -79,5 +82,14 @@ public class GetCredentialByIdImpl implements GetCredentialByIdUseCase {
                 credential.getCreatedAt(),
                 credential.getUpdatedAt()
         );
+    }
+
+    private byte[] computeAad(UUID projectId, UUID credentialId) {
+        ByteBuffer buffer = ByteBuffer.allocate(32);
+        buffer.putLong(projectId.getMostSignificantBits());
+        buffer.putLong(projectId.getLeastSignificantBits());
+        buffer.putLong(credentialId.getMostSignificantBits());
+        buffer.putLong(credentialId.getLeastSignificantBits());
+        return buffer.array();
     }
 }

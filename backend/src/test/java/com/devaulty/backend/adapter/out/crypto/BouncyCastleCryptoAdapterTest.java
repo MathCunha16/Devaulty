@@ -16,12 +16,14 @@ class BouncyCastleCryptoAdapterTest {
 
     private BouncyCastleCryptoAdapter cryptoAdapter;
     private SecretKey secretKey;
+    private byte[] aad;
 
     @BeforeEach
     void setUp() {
         cryptoAdapter = new BouncyCastleCryptoAdapter();
         // Generate a 256-bit AES key (32 bytes)
         secretKey = new SecretKeySpec(new byte[32], "AES");
+        aad = new byte[]{1, 2, 3, 4};
     }
 
     @Test
@@ -30,7 +32,7 @@ class BouncyCastleCryptoAdapterTest {
         byte[] originalData = "My sensitive secret data here!".getBytes(StandardCharsets.UTF_8);
 
         // Act - Encrypt
-        CryptoResultDto encryptResult = cryptoAdapter.encrypt(originalData, secretKey);
+        CryptoResultDto encryptResult = cryptoAdapter.encrypt(originalData, secretKey, aad);
 
         // Assert Encryption metadata
         assertNotNull(encryptResult);
@@ -45,7 +47,8 @@ class BouncyCastleCryptoAdapterTest {
                 encryptResult.cipherText(),
                 encryptResult.iv(),
                 encryptResult.authTag(),
-                secretKey
+                secretKey,
+                aad
         );
 
         // Assert decrypted payload match
@@ -57,7 +60,7 @@ class BouncyCastleCryptoAdapterTest {
     void shouldThrowInvalidMasterPasswordException_whenAuthTagIsCorrupted() {
         // Arrange
         byte[] originalData = "Sensitive information".getBytes(StandardCharsets.UTF_8);
-        CryptoResultDto encryptResult = cryptoAdapter.encrypt(originalData, secretKey);
+        CryptoResultDto encryptResult = cryptoAdapter.encrypt(originalData, secretKey, aad);
 
         // Corrupt the auth tag
         byte[] corruptedAuthTag = encryptResult.authTag().clone();
@@ -71,7 +74,8 @@ class BouncyCastleCryptoAdapterTest {
                     cipherText,
                     iv,
                     corruptedAuthTag,
-                    secretKey
+                    secretKey,
+                    aad
             );
         });
     }
@@ -80,7 +84,7 @@ class BouncyCastleCryptoAdapterTest {
     void shouldThrowInvalidMasterPasswordException_whenCipherTextIsCorrupted() {
         // Arrange
         byte[] originalData = "Sensitive information".getBytes(StandardCharsets.UTF_8);
-        CryptoResultDto encryptResult = cryptoAdapter.encrypt(originalData, secretKey);
+        CryptoResultDto encryptResult = cryptoAdapter.encrypt(originalData, secretKey, aad);
 
         // Corrupt the ciphertext
         byte[] corruptedCipherText = encryptResult.cipherText().clone();
@@ -94,7 +98,8 @@ class BouncyCastleCryptoAdapterTest {
                     corruptedCipherText,
                     iv,
                     authTag,
-                    secretKey
+                    secretKey,
+                    aad
             );
         });
     }
@@ -103,7 +108,7 @@ class BouncyCastleCryptoAdapterTest {
     void shouldThrowInvalidMasterPasswordException_whenIvLengthIsInvalid() {
         // Arrange
         byte[] originalData = "Sensitive information".getBytes(StandardCharsets.UTF_8);
-        CryptoResultDto encryptResult = cryptoAdapter.encrypt(originalData, secretKey);
+        CryptoResultDto encryptResult = cryptoAdapter.encrypt(originalData, secretKey, aad);
 
         byte[] invalidIv = new byte[5]; // Standard GCM IV should be 12 bytes typically
 
@@ -115,7 +120,31 @@ class BouncyCastleCryptoAdapterTest {
                     cipherText,
                     invalidIv,
                     authTag,
-                    secretKey
+                    secretKey,
+                    aad
+            );
+        });
+    }
+
+    @Test
+    void shouldThrowInvalidMasterPasswordException_whenAadIsDifferent() {
+        // Arrange
+        byte[] originalData = "Sensitive information".getBytes(StandardCharsets.UTF_8);
+        CryptoResultDto encryptResult = cryptoAdapter.encrypt(originalData, secretKey, aad);
+
+        byte[] differentAad = new byte[]{9, 9, 9, 9};
+
+        // Act & Assert
+        byte[] cipherText = encryptResult.cipherText();
+        byte[] iv = encryptResult.iv();
+        byte[] authTag = encryptResult.authTag();
+        assertThrows(InvalidMasterPasswordException.class, () -> {
+            cryptoAdapter.decrypt(
+                    cipherText,
+                    iv,
+                    authTag,
+                    secretKey,
+                    differentAad
             );
         });
     }
@@ -125,7 +154,7 @@ class BouncyCastleCryptoAdapterTest {
         byte[] originalData = "data".getBytes();
 
         assertThrows(CryptoException.class, () -> {
-            cryptoAdapter.encrypt(originalData, null);
+            cryptoAdapter.encrypt(originalData, null, aad);
         });
     }
 }

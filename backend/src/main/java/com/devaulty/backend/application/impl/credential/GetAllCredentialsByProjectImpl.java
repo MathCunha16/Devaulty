@@ -33,8 +33,8 @@ public class GetAllCredentialsByProjectImpl implements GetAllCredentialsByProjec
     public Page<CredentialSummary> execute(UUID projectId, int page, int size) {
 
         // Basic validations
-        if (masterKeySessionPort.getKey() == null) throw new VaultLockedException();
         if (checkMasterPasswordSetupUseCase.isSetupRequired()) throw new MasterPasswordNotConfiguredException();
+        if (masterKeySessionPort.getKey() == null) throw new VaultLockedException();
         if (!projectRepositoryPort.existsById(projectId)) throw new ResourceNotFoundException("Project", projectId);
 
         return credentialRepositoryPort.findAllByProject(projectId, page, size);

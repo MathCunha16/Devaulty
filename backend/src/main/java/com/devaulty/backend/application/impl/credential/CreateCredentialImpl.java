@@ -57,6 +57,7 @@ public class CreateCredentialImpl implements CreateCredentialUseCase {
     @Override
     @Transactional
     public DecryptedCredential execute(CreateCredentialCommand command) {
+        java.nio.ByteBuffer buffer = null;
         byte[] payloadBytes = null;
         byte[] decryptedBytes = null;
 
@@ -69,17 +70,21 @@ public class CreateCredentialImpl implements CreateCredentialUseCase {
             SecretKey key = masterKeySessionPort.getKey();
             if (key == null) throw new VaultLockedException();
 
+            // Generate UUID and compute AAD before encryption
+            UUID credentialId = UUID.randomUUID();
+            byte[] aad = computeAad(command.projectId(), credentialId);
+
             // 3. Converts the payload into a byte array
-            ByteBuffer buffer = StandardCharsets.UTF_8.encode(CharBuffer.wrap(command.payload()));
+            buffer = StandardCharsets.UTF_8.encode(CharBuffer.wrap(command.payload()));
             payloadBytes = new byte[buffer.remaining()];
             buffer.get(payloadBytes);
 
-            // 4. Encrypts the payload using the key and the Bouncy Castle
-            CryptoResultDto cryptoResult = cryptoPort.encrypt(payloadBytes, key);
+            // 4. Encrypts the payload using the key, Bouncy Castle, and AAD
+            CryptoResultDto cryptoResult = cryptoPort.encrypt(payloadBytes, key, aad);
 
             // 5. Persists the encrypted payload into the database
             Credential credential = new Credential();
-            credential.setId(UUID.randomUUID());
+            credential.setId(credentialId);
             credential.setProjectId(command.projectId());
             credential.setTitle(command.title());
             credential.setSecretType(command.secretType());
@@ -97,7 +102,8 @@ public class CreateCredentialImpl implements CreateCredentialUseCase {
                     savedCredential.getPayloadEncrypted(),
                     savedCredential.getEncryptionIv(),
                     savedCredential.getEncryptionAuthTag(),
-                    key)
+                    key,
+                    aad)
             ;
 
             // 7. Returns the decrypted credentials
@@ -118,8 +124,20 @@ public class CreateCredentialImpl implements CreateCredentialUseCase {
             // decryptedBytes is NOT cleared here — its ownership was transferred
             // to the returned DecryptedCredential, and it will be cleared by
             // whoever consumes it (CredentialWebMapper.jsonToMap).
+            if (buffer != null && buffer.hasArray()) {
+                Arrays.fill(buffer.array(), (byte) 0);
+            }
             if(payloadBytes != null) Arrays.fill(payloadBytes, (byte) 0);
             Arrays.fill(command.payload(), '\0');
         }
+    }
+
+    private byte[] computeAad(UUID projectId, UUID credentialId) {
+        ByteBuffer buffer = ByteBuffer.allocate(32);
+        buffer.putLong(projectId.getMostSignificantBits());
+        buffer.putLong(projectId.getLeastSignificantBits());
+        buffer.putLong(credentialId.getMostSignificantBits());
+        buffer.putLong(credentialId.getLeastSignificantBits());
+        return buffer.array();
     }
 }

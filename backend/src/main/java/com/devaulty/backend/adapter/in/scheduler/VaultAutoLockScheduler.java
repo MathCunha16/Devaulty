@@ -22,14 +22,12 @@ public class VaultAutoLockScheduler {
     }
 
     @Scheduled(fixedDelay = 10000) // Runs every 10 seconds
-    public void purgeExpiredSession(){
-
-        if(!masterKeySessionPort.hasKey()){ // if no master key is set, do nothing
+    public void purgeExpiredSession() {
+        if (!masterKeySessionPort.hasKey()) {
             return;
         }
 
-        if (masterKeySessionPort.getSecondsRemaining(inactivityTimeout) <= 0) {
-            masterKeySessionPort.clear();
+        if (masterKeySessionPort.getOrClearIfExpired(inactivityTimeout) == null) {
             logger.info("Inactivity Timeout reached. Vault locked.");
         }
     }

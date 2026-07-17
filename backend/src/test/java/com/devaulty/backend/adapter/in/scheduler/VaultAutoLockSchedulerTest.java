@@ -30,52 +30,34 @@ class VaultAutoLockSchedulerTest {
 
         // Assert
         verify(masterKeySessionPort, times(1)).hasKey();
-        verify(masterKeySessionPort, never()).getSecondsRemaining(any());
-        verify(masterKeySessionPort, never()).clear();
+        verify(masterKeySessionPort, never()).getOrClearIfExpired(any());
     }
 
     @Test
     void purgeExpiredSession_shouldDoNothing_whenSessionIsValid() {
         // Arrange
         when(masterKeySessionPort.hasKey()).thenReturn(true);
-        when(masterKeySessionPort.getSecondsRemaining(any(Duration.class))).thenReturn(100L);
+        when(masterKeySessionPort.getOrClearIfExpired(any(Duration.class))).thenReturn(mock(javax.crypto.SecretKey.class));
 
         // Act
         scheduler.purgeExpiredSession();
 
         // Assert
         verify(masterKeySessionPort, times(1)).hasKey();
-        verify(masterKeySessionPort, times(1)).getSecondsRemaining(Duration.ofMinutes(15));
-        verify(masterKeySessionPort, never()).clear();
+        verify(masterKeySessionPort, times(1)).getOrClearIfExpired(Duration.ofMinutes(15));
     }
 
     @Test
     void purgeExpiredSession_shouldClearSession_whenSessionIsExpired() {
         // Arrange
         when(masterKeySessionPort.hasKey()).thenReturn(true);
-        when(masterKeySessionPort.getSecondsRemaining(any(Duration.class))).thenReturn(0L);
+        when(masterKeySessionPort.getOrClearIfExpired(any(Duration.class))).thenReturn(null);
 
         // Act
         scheduler.purgeExpiredSession();
 
         // Assert
         verify(masterKeySessionPort, times(1)).hasKey();
-        verify(masterKeySessionPort, times(1)).getSecondsRemaining(Duration.ofMinutes(15));
-        verify(masterKeySessionPort, times(1)).clear();
-    }
-
-    @Test
-    void purgeExpiredSession_shouldClearSession_whenSessionIsExpiredNegative() {
-        // Arrange
-        when(masterKeySessionPort.hasKey()).thenReturn(true);
-        when(masterKeySessionPort.getSecondsRemaining(any(Duration.class))).thenReturn(-5L);
-
-        // Act
-        scheduler.purgeExpiredSession();
-
-        // Assert
-        verify(masterKeySessionPort, times(1)).hasKey();
-        verify(masterKeySessionPort, times(1)).getSecondsRemaining(Duration.ofMinutes(15));
-        verify(masterKeySessionPort, times(1)).clear();
+        verify(masterKeySessionPort, times(1)).getOrClearIfExpired(Duration.ofMinutes(15));
     }
 }

@@ -30,8 +30,8 @@ public class DeleteCredentialImpl implements DeleteCredentialUseCase {
     @Transactional
     public void execute(UUID projectId, UUID id) {
 
-        if (masterKeySessionPort.getKey() == null) throw new VaultLockedException();
         if (checkMasterPasswordSetupUseCase.isSetupRequired()) throw new MasterPasswordNotConfiguredException();
+        if (masterKeySessionPort.getKey() == null) throw new VaultLockedException();
         if (!projectRepositoryPort.existsById(projectId)) throw new ResourceNotFoundException("Project", projectId);
 
         if(credentialRepositoryPort.findById(id)

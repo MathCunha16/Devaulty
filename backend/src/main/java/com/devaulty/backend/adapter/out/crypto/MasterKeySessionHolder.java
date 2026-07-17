@@ -15,29 +15,37 @@ public class MasterKeySessionHolder implements MasterKeySessionPort {
     private byte[] rawKeyBytes = null;
     private volatile Instant lastActivityAt;
 
+    private static final Duration DEFAULT_TIMEOUT = Duration.ofMinutes(15);
+
     public synchronized void setKey(SecretKey key) {
+        if (this.rawKeyBytes != null) {
+            Arrays.fill(this.rawKeyBytes, (byte) 0);
+            this.rawKeyBytes = null;
+        }
         this.masterKey = key;
         if (key != null && key.getEncoded() != null) {
             this.rawKeyBytes = key.getEncoded();
         }
-        touch();
+        if (key != null) {
+            this.lastActivityAt = Instant.now();
+        } else {
+            this.lastActivityAt = null;
+        }
     }
-
 
     /**
      * Retrieves the active master key and automatically resets the inactivity timer.
      *
-     * <p><b>⚠ SIDE EFFECT:</b> Calling this method triggers a {@link #touch()}
-     * only if the vault is unlocked (a key is present), sliding the session
-     * expiration window forward.</p>
-     *
-     * <p>To simply check if the vault is unlocked without resetting the timer,
-     * use {@link #hasKey()} instead.</p>
-     *
-     * @return the active {@link SecretKey}, or {@code null} if the vault is locked.
+     * <p><b>⚠ SIDE EFFECT:</b> Calling this method triggers a {@link #touch()},
+     * sliding the session expiration window forward.</p>
      */
+
     public synchronized SecretKey getKey() {
-        if(hasKey()){
+        if (hasKey()) {
+            if (isExpired(DEFAULT_TIMEOUT)) {
+                clear();
+                return null;
+            }
             touch();
         }
         return this.masterKey;
@@ -49,7 +57,7 @@ public class MasterKeySessionHolder implements MasterKeySessionPort {
 
     public synchronized void clear() {
         if (rawKeyBytes != null) {
-            // Fills the array with zeros, securely destroying the key bits in RAM!
+            // Best-effort reference clearing; does not clear internal immutable copies in SecretKey
             Arrays.fill(rawKeyBytes, (byte) 0);
         }
         this.masterKey = null;
@@ -57,8 +65,23 @@ public class MasterKeySessionHolder implements MasterKeySessionPort {
         this.lastActivityAt = null;
     }
 
-    public synchronized void touch(){
-        this.lastActivityAt = Instant.now();
+    public synchronized void touch() {
+        if (hasKey()) {
+            if (isExpired(DEFAULT_TIMEOUT)) {
+                clear();
+                return;
+            }
+            this.lastActivityAt = Instant.now();
+        }
+    }
+
+    public synchronized SecretKey getOrClearIfExpired(Duration timeout) {
+        if (hasKey() && isExpired(timeout)) {
+                clear();
+                return null;
+            }
+
+        return this.masterKey;
     }
 
     public synchronized Long getSecondsRemaining(Duration timeout) {
@@ -70,6 +93,14 @@ public class MasterKeySessionHolder implements MasterKeySessionPort {
 
         // Return 0 if time is expired
         return Math.max(0L, remaining);
+    }
+
+    private boolean isExpired(Duration timeout) {
+        if (lastActivityAt == null) {
+            return true;
+        }
+        long elapsedSeconds = Duration.between(lastActivityAt, Instant.now()).toSeconds();
+        return elapsedSeconds >= timeout.toSeconds();
     }
 
 }

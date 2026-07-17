@@ -71,7 +71,7 @@ class CreateCredentialImplTest {
         when(checkMasterPasswordSetupUseCase.isSetupRequired()).thenReturn(false);
         when(masterKeySessionPort.getKey()).thenReturn(mockSecretKey);
         
-        when(cryptoPort.encrypt(any(byte[].class), eq(mockSecretKey)))
+        when(cryptoPort.encrypt(any(byte[].class), eq(mockSecretKey), any(byte[].class)))
                 .thenReturn(new CryptoResultDto(mockEncryptedPayload, mockIv, mockAuthTag));
 
         when(credentialRepository.save(any(Credential.class))).thenAnswer(invocation -> {
@@ -80,7 +80,7 @@ class CreateCredentialImplTest {
             return c;
         });
 
-        when(cryptoPort.decrypt(mockEncryptedPayload, mockIv, mockAuthTag, mockSecretKey))
+        when(cryptoPort.decrypt(eq(mockEncryptedPayload), eq(mockIv), eq(mockAuthTag), eq(mockSecretKey), any(byte[].class)))
                 .thenReturn(mockDecryptedPayload);
 
         // Act
@@ -98,14 +98,16 @@ class CreateCredentialImplTest {
         assertNotNull(result.createdAt());
 
         // The method should zero out the command payload
-        assertEquals('\0', command.payload()[0]);
+        for (char c : command.payload()) {
+            assertEquals('\0', c);
+        }
 
         verify(projectRepository, times(1)).existsById(projectId);
         verify(checkMasterPasswordSetupUseCase, times(1)).isSetupRequired();
         verify(masterKeySessionPort, times(1)).getKey();
-        verify(cryptoPort, times(1)).encrypt(any(byte[].class), eq(mockSecretKey));
+        verify(cryptoPort, times(1)).encrypt(any(byte[].class), eq(mockSecretKey), any(byte[].class));
         verify(credentialRepository, times(1)).save(any(Credential.class));
-        verify(cryptoPort, times(1)).decrypt(mockEncryptedPayload, mockIv, mockAuthTag, mockSecretKey);
+        verify(cryptoPort, times(1)).decrypt(eq(mockEncryptedPayload), eq(mockIv), eq(mockAuthTag), eq(mockSecretKey), any(byte[].class));
     }
 
     @Test

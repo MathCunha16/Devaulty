@@ -88,10 +88,10 @@ class UpdateCredentialImplTest {
         when(checkMasterPasswordSetupUseCase.isSetupRequired()).thenReturn(false);
         when(projectRepository.existsById(projectId)).thenReturn(true);
         when(credentialRepository.findById(credentialId)).thenReturn(Optional.of(credential));
-        when(cryptoPort.encrypt(any(byte[].class), eq(mockKey)))
+        when(cryptoPort.encrypt(any(byte[].class), eq(mockKey), any(byte[].class)))
                 .thenReturn(new CryptoResultDto(newEncrypted, newIv, newAuthTag));
         when(credentialRepository.save(any(Credential.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(cryptoPort.decrypt(newEncrypted, newIv, newAuthTag, mockKey)).thenReturn(decryptedPayload);
+        when(cryptoPort.decrypt(eq(newEncrypted), eq(newIv), eq(newAuthTag), eq(mockKey), any(byte[].class))).thenReturn(decryptedPayload);
 
         // Act
         DecryptedCredential result = updateCredentialUseCase.execute(command);
@@ -106,15 +106,17 @@ class UpdateCredentialImplTest {
         assertNotNull(result.updatedAt());
 
         // Payload zeroed out in command
-        assertEquals('\0', command.payload()[0]);
+        for (char c : command.payload()) {
+            assertEquals('\0', c);
+        }
 
         verify(masterKeySessionPort, times(1)).getKey();
         verify(checkMasterPasswordSetupUseCase, times(1)).isSetupRequired();
         verify(projectRepository, times(1)).existsById(projectId);
         verify(credentialRepository, times(1)).findById(credentialId);
-        verify(cryptoPort, times(1)).encrypt(any(byte[].class), eq(mockKey));
+        verify(cryptoPort, times(1)).encrypt(any(byte[].class), eq(mockKey), any(byte[].class));
         verify(credentialRepository, times(1)).save(credential);
-        verify(cryptoPort, times(1)).decrypt(newEncrypted, newIv, newAuthTag, mockKey);
+        verify(cryptoPort, times(1)).decrypt(eq(newEncrypted), eq(newIv), eq(newAuthTag), eq(mockKey), any(byte[].class));
     }
 
     @Test
@@ -153,7 +155,7 @@ class UpdateCredentialImplTest {
         when(projectRepository.existsById(projectId)).thenReturn(true);
         when(credentialRepository.findById(credentialId)).thenReturn(Optional.of(credential));
         when(credentialRepository.save(any(Credential.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(cryptoPort.decrypt(oldEncryptedPayload, oldIv, oldAuthTag, mockKey)).thenReturn(decryptedPayload);
+        when(cryptoPort.decrypt(eq(oldEncryptedPayload), eq(oldIv), eq(oldAuthTag), eq(mockKey), any(byte[].class))).thenReturn(decryptedPayload);
 
         // Act
         DecryptedCredential result = updateCredentialUseCase.execute(command);
@@ -169,9 +171,9 @@ class UpdateCredentialImplTest {
         verify(checkMasterPasswordSetupUseCase, times(1)).isSetupRequired();
         verify(projectRepository, times(1)).existsById(projectId);
         verify(credentialRepository, times(1)).findById(credentialId);
-        verify(cryptoPort, never()).encrypt(any(), any());
+        verify(cryptoPort, never()).encrypt(any(), any(), any());
         verify(credentialRepository, times(1)).save(credential);
-        verify(cryptoPort, times(1)).decrypt(oldEncryptedPayload, oldIv, oldAuthTag, mockKey);
+        verify(cryptoPort, times(1)).decrypt(eq(oldEncryptedPayload), eq(oldIv), eq(oldAuthTag), eq(mockKey), any(byte[].class));
     }
 
     @Test
@@ -181,6 +183,7 @@ class UpdateCredentialImplTest {
         UUID credentialId = UUID.randomUUID();
         UpdateCredentialCommand command = new UpdateCredentialCommand(credentialId, projectId, null, null, null, null, null);
 
+        when(checkMasterPasswordSetupUseCase.isSetupRequired()).thenReturn(false);
         when(masterKeySessionPort.getKey()).thenReturn(null);
 
         // Act & Assert
@@ -189,7 +192,7 @@ class UpdateCredentialImplTest {
         });
 
         verify(masterKeySessionPort, times(1)).getKey();
-        verify(checkMasterPasswordSetupUseCase, never()).isSetupRequired();
+        verify(checkMasterPasswordSetupUseCase, times(1)).isSetupRequired();
         verify(projectRepository, never()).existsById(any());
         verify(credentialRepository, never()).findById(any());
     }

@@ -6,7 +6,7 @@ import javax.crypto.SecretKey;
 
 public interface CryptoPort {
 
-    CryptoResultDto encrypt(byte[] plainData, SecretKey secretKey);
+    CryptoResultDto encrypt(byte[] plainData, SecretKey secretKey, byte[] aad);
 
-    byte[] decrypt(byte[] cipherText, byte[] iv, byte[] authTag, SecretKey secretKey);
+    byte[] decrypt(byte[] cipherText, byte[] iv, byte[] authTag, SecretKey secretKey, byte[] aad);
 }

@@ -72,6 +72,7 @@ class DeleteCredentialImplTest {
         UUID projectId = UUID.randomUUID();
         UUID credentialId = UUID.randomUUID();
 
+        when(checkMasterPasswordSetupUseCase.isSetupRequired()).thenReturn(false);
         when(masterKeySessionPort.getKey()).thenReturn(null);
 
         // Act & Assert
@@ -80,7 +81,7 @@ class DeleteCredentialImplTest {
         });
 
         verify(masterKeySessionPort, times(1)).getKey();
-        verify(checkMasterPasswordSetupUseCase, never()).isSetupRequired();
+        verify(checkMasterPasswordSetupUseCase, times(1)).isSetupRequired();
         verify(projectRepository, never()).existsById(any());
         verify(credentialRepository, never()).findById(any());
         verify(credentialRepository, never()).deleteById(any());
@@ -91,9 +92,7 @@ class DeleteCredentialImplTest {
         // Arrange
         UUID projectId = UUID.randomUUID();
         UUID credentialId = UUID.randomUUID();
-        SecretKey mockKey = mock(SecretKey.class);
 
-        when(masterKeySessionPort.getKey()).thenReturn(mockKey);
         when(checkMasterPasswordSetupUseCase.isSetupRequired()).thenReturn(true);
 
         // Act & Assert
@@ -101,7 +100,7 @@ class DeleteCredentialImplTest {
             deleteCredentialUseCase.execute(projectId, credentialId);
         });
 
-        verify(masterKeySessionPort, times(1)).getKey();
+        verify(masterKeySessionPort, never()).getKey();
         verify(checkMasterPasswordSetupUseCase, times(1)).isSetupRequired();
         verify(projectRepository, never()).existsById(any());
         verify(credentialRepository, never()).findById(any());

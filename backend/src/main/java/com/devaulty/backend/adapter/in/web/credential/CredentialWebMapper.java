@@ -4,6 +4,7 @@ import com.devaulty.backend.adapter.in.web.credential.dto.CreateCredentialReques
 import com.devaulty.backend.adapter.in.web.credential.dto.CredentialSummaryResponse;
 import com.devaulty.backend.adapter.in.web.credential.dto.CredentialViewResponse;
 import com.devaulty.backend.adapter.in.web.credential.dto.UpdateCredentialRequest;
+import com.devaulty.backend.application.exception.BusinessRuleException;
 import com.devaulty.backend.application.exception.JsonProcessingException;
 import com.devaulty.backend.application.port.in.credential.CreateCredentialCommand;
 import com.devaulty.backend.application.port.in.credential.CredentialSummary;
@@ -35,15 +36,27 @@ public abstract class CredentialWebMapper {
     public CreateCredentialCommand toCreateCredentialCommand(CreateCredentialRequest request, UUID projectId) {
         char[] serializedPayload = null;
         try {
-            if (request.secretType() != null) {
-                serializedPayload = serializeSecretStructure(
-                        request.secretType(),
-                        request.username(),
-                        request.password(),
-                        request.apiKey(),
-                        request.rawTextContent()
-                );
+            if (request.secretType() == null) {
+                throw new BusinessRuleException("secretType is required");
             }
+
+            boolean isValid = switch (request.secretType()) {
+                case LOGIN -> request.password() != null && request.password().length > 0;
+                case API_KEY -> request.apiKey() != null && request.apiKey().length > 0;
+                case RAW_TEXT -> request.rawTextContent() != null && request.rawTextContent().length > 0;
+            };
+
+            if (!isValid) {
+                throw new BusinessRuleException("Required secret fields are missing for the selected secret type: " + request.secretType());
+            }
+
+            serializedPayload = serializeSecretStructure(
+                    request.secretType(),
+                    request.username(),
+                    request.password(),
+                    request.apiKey(),
+                    request.rawTextContent()
+            );
 
             return new CreateCredentialCommand(
                     projectId,
@@ -53,6 +66,8 @@ public abstract class CredentialWebMapper {
                     request.notes(),
                     request.relatedUrl()
             );
+        } catch (BusinessRuleException e) {
+            throw e;
         } catch (Exception e) {
             throw new JsonProcessingException("Error trying to structure credential secrets.", e);
         } finally {
@@ -64,6 +79,16 @@ public abstract class CredentialWebMapper {
         char[] serializedPayload = null;
         try {
             if (request.secretType() != null) {
+                boolean isValid = switch (request.secretType()) {
+                    case LOGIN -> request.password() != null && request.password().length > 0;
+                    case API_KEY -> request.apiKey() != null && request.apiKey().length > 0;
+                    case RAW_TEXT -> request.rawTextContent() != null && request.rawTextContent().length > 0;
+                };
+
+                if (!isValid) {
+                    throw new BusinessRuleException("Required secret fields are missing for the selected secret type: " + request.secretType());
+                }
+
                 serializedPayload = serializeSecretStructure(
                         request.secretType(),
                         request.username(),
@@ -71,6 +96,14 @@ public abstract class CredentialWebMapper {
                         request.apiKey(),
                         request.rawTextContent()
                 );
+            } else {
+                boolean hasAnySecretField = (request.username() != null && request.username().length > 0)
+                        || (request.password() != null && request.password().length > 0)
+                        || (request.apiKey() != null && request.apiKey().length > 0)
+                        || (request.rawTextContent() != null && request.rawTextContent().length > 0);
+                if (hasAnySecretField) {
+                    throw new BusinessRuleException("secretType is required when secret fields are provided");
+                }
             }
 
             return new UpdateCredentialCommand(
@@ -82,6 +115,8 @@ public abstract class CredentialWebMapper {
                     request.notes(),
                     request.relatedUrl()
             );
+        } catch (BusinessRuleException e) {
+            throw e;
         } catch (Exception e) {
             throw new JsonProcessingException("Error trying to structure credential secrets.", e);
         } finally {

@@ -10,4 +10,5 @@ public interface MasterKeySessionPort {
     void clear();
     void touch();
     Long getSecondsRemaining(Duration timeout);
+    SecretKey getOrClearIfExpired(Duration timeout);
 }

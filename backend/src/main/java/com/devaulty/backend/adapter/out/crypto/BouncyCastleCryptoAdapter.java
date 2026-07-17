@@ -31,7 +31,7 @@ public class BouncyCastleCryptoAdapter implements CryptoPort {
     }
 
     @Override
-    public CryptoResultDto encrypt(byte[] plainData, SecretKey secretKey) {
+    public CryptoResultDto encrypt(byte[] plainData, SecretKey secretKey, byte[] aad) {
         try {
             // 1. Generates a unique random 12-byte IV for THIS encryption operation
             byte[] iv = new byte[IV_BYTE_LENGTH];
@@ -41,6 +41,9 @@ public class BouncyCastleCryptoAdapter implements CryptoPort {
             Cipher cipher = Cipher.getInstance(ALGORITHM, "BC");
             GCMParameterSpec parameterSpec = new GCMParameterSpec(TAG_BIT_LENGTH, iv);
             cipher.init(Cipher.ENCRYPT_MODE, secretKey, parameterSpec);
+            if (aad != null && aad.length > 0) {
+                cipher.updateAAD(aad);
+            }
 
             // 3. Encrypts the plaintext
             byte[] cipherTextWithTag = cipher.doFinal(plainData);
@@ -58,7 +61,7 @@ public class BouncyCastleCryptoAdapter implements CryptoPort {
     }
 
     @Override
-    public byte[] decrypt(byte[] cipherText, byte[] iv, byte[] authTag, SecretKey secretKey) {
+    public byte[] decrypt(byte[] cipherText, byte[] iv, byte[] authTag, SecretKey secretKey, byte[] aad) {
         try {
             // 1. Recombines the ciphertext and authentication tag into a single byte array
             byte[] cipherTextWithTag = new byte[cipherText.length + authTag.length];
@@ -69,6 +72,9 @@ public class BouncyCastleCryptoAdapter implements CryptoPort {
             Cipher cipher = Cipher.getInstance(ALGORITHM, "BC");
             GCMParameterSpec parameterSpec = new GCMParameterSpec(TAG_BIT_LENGTH, iv);
             cipher.init(Cipher.DECRYPT_MODE, secretKey, parameterSpec);
+            if (aad != null && aad.length > 0) {
+                cipher.updateAAD(aad);
+            }
 
             // 3. Performs the reverse operation and verifies the authentication tag
             return cipher.doFinal(cipherTextWithTag);

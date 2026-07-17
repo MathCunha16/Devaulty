@@ -44,8 +44,9 @@ public class CredentialController implements CredentialApi{
     ){
         CreateCredentialCommand command = mapper.toCreateCredentialCommand(request, projectId);
         DecryptedCredential decryptedCredential = createCredentialUseCase.execute(command);
+        CredentialViewResponse response = mapper.toViewResponse(decryptedCredential);
         URI location = uriLocationBuilderHelper.buildLocationUri(decryptedCredential.id());
-        return ResponseEntity.created(location).body(mapper.toViewResponse(decryptedCredential));
+        return ResponseEntity.created(location).body(response);
     }
 
     @Override

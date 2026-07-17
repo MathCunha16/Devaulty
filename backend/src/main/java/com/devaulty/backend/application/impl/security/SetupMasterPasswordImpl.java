@@ -8,6 +8,8 @@ import com.devaulty.backend.application.port.out.security.KeyDerivationPort;
 import com.devaulty.backend.domain.model.AppSetting;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import javax.crypto.SecretKey;
 import java.nio.CharBuffer;
@@ -54,7 +56,19 @@ public class SetupMasterPasswordImpl implements SetupMasterPasswordUseCase {
 
             // 4. Derives the AES-GCM key once and populates the memory session holder immediately
             SecretKey secretKey = keyDerivationPort.deriveKey(password, saltBytes);
-            sessionHolder.setKey(secretKey);
+            Arrays.fill(saltBytes, (byte) 0);
+
+            // 5. Publishes the key only after the transaction commits successfully if active, otherwise publishes immediately
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        sessionHolder.setKey(secretKey);
+                    }
+                });
+            } else {
+                sessionHolder.setKey(secretKey);
+            }
 
         } finally {
             // CRITICAL PROTECTION: Overwrites the input char array immediately after the use case completes
