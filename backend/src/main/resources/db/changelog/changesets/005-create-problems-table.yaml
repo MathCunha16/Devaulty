@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 004-create-problems-table
+      id: 005-create-problems-table
       author: Matheus Cunha
       changes:
         - createTable:

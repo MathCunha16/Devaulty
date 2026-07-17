@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 003-create-links-table
+      id: 004-create-links-table
       author: Matheus Cunha
       changes:
         - createTable:

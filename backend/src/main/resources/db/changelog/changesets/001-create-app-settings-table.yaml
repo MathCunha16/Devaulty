@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-app-settings-table
+      author: Matheus Cunha
+      changes:
+        - createTable:
+            tableName: app_settings
+            columns:
+
+              - column:
+                  name: key
+                  type: TEXT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: value
+                  type: TEXT
+                  constraints:
+                    nullable: false
+
+        - insert:
+            tableName: app_settings
+            columns:
+              - column: { name: "key", value: "crypto_version" }
+              - column: { name: "value", value: "1" }
+      rollback:
+        - dropTable:
+            tableName: app_settings

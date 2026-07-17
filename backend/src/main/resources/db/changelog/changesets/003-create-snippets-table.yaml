@@ -1,10 +1,10 @@
 databaseChangeLog:
   - changeSet:
-      id: 001-create-projects-table
-      author: Matheus-Cunha
+      id: 003-create-snippets-table
+      author: Matheus Cunha
       changes:
         - createTable:
-            tableName: projects
+            tableName: snippets
             columns:
               - column:
                   name: id
@@ -14,7 +14,16 @@ databaseChangeLog:
                     nullable: false
 
               - column:
-                  name: name
+                  name: project_id
+                  type: TEXT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_snippets_project
+                    references: projects(id)
+                    deleteCascade: true
+
+              - column:
+                  name: title
                   type: TEXT
                   constraints:
                     nullable: false
@@ -24,17 +33,18 @@ databaseChangeLog:
                   type: TEXT
 
               - column:
-                  name: icon
+                  name: content
+                  type: TEXT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: language
                   type: TEXT
 
               - column:
-                  name: color
+                  name: snippet_type
                   type: TEXT
-
-              - column:
-                  name: archived
-                  type: INTEGER
-                  defaultValueNumeric: 0
                   constraints:
                     nullable: false
 
@@ -49,12 +59,12 @@ databaseChangeLog:
                   type: TEXT
 
         - createIndex:
-            indexName: idx_projects_archived
-            tableName: projects
+            indexName: idx_snippets_project
+            tableName: snippets
             columns:
               - column:
-                  name: archived
+                  name: project_id
+
       rollback:
         - dropTable:
-            tableName: projects
-
+            tableName: snippets
