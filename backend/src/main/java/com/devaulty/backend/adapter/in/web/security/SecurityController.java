@@ -1,10 +1,7 @@
 package com.devaulty.backend.adapter.in.web.security;
 
 import com.devaulty.backend.adapter.in.web.security.dto.MasterPasswordRequest;
-import com.devaulty.backend.application.port.in.security.CheckMasterPasswordSetupUseCase;
-import com.devaulty.backend.application.port.in.security.LockVaultUseCase;
-import com.devaulty.backend.application.port.in.security.SetupMasterPasswordUseCase;
-import com.devaulty.backend.application.port.in.security.UnlockVaultUseCase;
+import com.devaulty.backend.application.port.in.security.*;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,12 +16,14 @@ public class SecurityController implements SecurityApi{
     private final CheckMasterPasswordSetupUseCase checkMasterPasswordSetupUseCase;
     private final LockVaultUseCase lockVaultUseCase;
     private final UnlockVaultUseCase unlockVaultUseCase;
+    private final GetSessionStatusUseCase getSessionStatusUseCase;
 
-    public SecurityController(SetupMasterPasswordUseCase setupMasterPasswordUseCase, CheckMasterPasswordSetupUseCase checkMasterPasswordSetupUseCase, LockVaultUseCase lockVaultUseCase, UnlockVaultUseCase unlockVaultUseCase) {
+    public SecurityController(SetupMasterPasswordUseCase setupMasterPasswordUseCase, CheckMasterPasswordSetupUseCase checkMasterPasswordSetupUseCase, LockVaultUseCase lockVaultUseCase, UnlockVaultUseCase unlockVaultUseCase, GetSessionStatusUseCase getSessionStatusUseCase) {
         this.setupMasterPasswordUseCase = setupMasterPasswordUseCase;
         this.checkMasterPasswordSetupUseCase = checkMasterPasswordSetupUseCase;
         this.lockVaultUseCase = lockVaultUseCase;
         this.unlockVaultUseCase = unlockVaultUseCase;
+        this.getSessionStatusUseCase = getSessionStatusUseCase;
     }
 
     @Override
@@ -39,6 +38,12 @@ public class SecurityController implements SecurityApi{
     @GetMapping("/master-password/required-status")
     public ResponseEntity<Boolean> checkMasterPasswordSetup(){
         return ResponseEntity.ok(checkMasterPasswordSetupUseCase.isSetupRequired());
+    }
+
+    @Override
+    @GetMapping("/vault/status")
+    public ResponseEntity<SessionStatus> getSessionStatus(){
+        return ResponseEntity.ok(getSessionStatusUseCase.execute());
     }
 
     @Override

@@ -1,14 +1,8 @@
 package com.devaulty.backend.infrastructure.configuration;
 
+import com.devaulty.backend.application.impl.security.*;
+import com.devaulty.backend.application.port.in.security.*;
 import com.devaulty.backend.application.port.out.security.MasterKeySessionPort;
-import com.devaulty.backend.application.impl.security.CheckMasterPasswordSetupImpl;
-import com.devaulty.backend.application.impl.security.LockVaultImpl;
-import com.devaulty.backend.application.impl.security.SetupMasterPasswordImpl;
-import com.devaulty.backend.application.impl.security.UnlockVaultImpl;
-import com.devaulty.backend.application.port.in.security.CheckMasterPasswordSetupUseCase;
-import com.devaulty.backend.application.port.in.security.LockVaultUseCase;
-import com.devaulty.backend.application.port.in.security.SetupMasterPasswordUseCase;
-import com.devaulty.backend.application.port.in.security.UnlockVaultUseCase;
 import com.devaulty.backend.application.port.out.persistence.AppSettingRepositoryPort;
 import com.devaulty.backend.application.port.out.security.KeyDerivationPort;
 import org.springframework.context.annotation.Bean;
@@ -50,6 +44,15 @@ public class SecurityBeanConfig {
                 appSettingRepositoryPort,
                 sessionHolder,
                 keyDerivationPort
+        );
+    }
+
+    @Bean
+    public GetSessionStatusUseCase getSessionStatusUseCase(
+            MasterKeySessionPort sessionHolder
+    ){
+        return new GetSessionStatusImpl(
+                sessionHolder
         );
     }
 }

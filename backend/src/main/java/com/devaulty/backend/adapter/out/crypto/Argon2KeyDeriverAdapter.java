@@ -1,6 +1,7 @@
 package com.devaulty.backend.adapter.out.crypto;
 
 import com.devaulty.backend.application.port.out.security.KeyDerivationPort;
+import com.devaulty.backend.application.port.out.security.MasterKeySessionPort;
 import org.bouncycastle.crypto.generators.Argon2BytesGenerator;
 import org.bouncycastle.crypto.params.Argon2Parameters;
 import org.springframework.stereotype.Component;
@@ -20,7 +21,7 @@ public class Argon2KeyDeriverAdapter implements KeyDerivationPort {
      * This method configures Argon2id with 3 iterations, 64MB of memory, and 2 parallel threads
      * to significantly elevate the computational cost of brute-force and hardware-accelerated (GPU/ASIC) attacks.
      * The resulting key bytes are safely encapsulated into a {@link SecretKey} and dispatched to the
-     * {@link MasterKeySessionHolder} to back subsequent cryptographic operations without repetitive key re-derivation.
+     * {@link MasterKeySessionPort} to back subsequent cryptographic operations without repetitive key re-derivation.
      * </p>
      *
      * @param password the plain-text master password provided by the user

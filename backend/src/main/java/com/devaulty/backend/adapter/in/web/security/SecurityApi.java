@@ -2,6 +2,7 @@ package com.devaulty.backend.adapter.in.web.security;
 
 import com.devaulty.backend.adapter.in.web.exception.ApiErrorResponse;
 import com.devaulty.backend.adapter.in.web.security.dto.MasterPasswordRequest;
+import com.devaulty.backend.application.port.in.security.SessionStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -92,6 +93,31 @@ public interface SecurityApi {
     })
     @GetMapping("/master-password/required-status")
     ResponseEntity<Boolean> checkMasterPasswordSetup();
+
+    @Operation(
+        summary = "Get vault session status",
+        description = "Retrieves the status of the cryptographic vault session (active status and remaining seconds)."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Session status retrieved successfully",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = SessionStatus.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Internal server error occurred",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiErrorResponse.class)
+            )
+        )
+    })
+    @GetMapping("/vault/status")
+    ResponseEntity<SessionStatus> getSessionStatus();
 
     @Operation(
         summary = "Unlock the vault",
