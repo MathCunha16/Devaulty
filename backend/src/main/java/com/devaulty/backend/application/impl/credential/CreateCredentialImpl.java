@@ -57,15 +57,14 @@ public class CreateCredentialImpl implements CreateCredentialUseCase {
     @Override
     @Transactional
     public DecryptedCredential execute(CreateCredentialCommand command) {
-
-        // 1. Basic validations
-        if (!projectRepositoryPort.existsById(command.projectId())) throw new ResourceNotFoundException("Project", command.projectId());
-        if (checkMasterPasswordSetupUseCase.isSetupRequired()) throw new MasterPasswordNotConfiguredException();
-
         byte[] payloadBytes = null;
         byte[] decryptedBytes = null;
 
         try {
+            // 1. Basic validations
+            if (!projectRepositoryPort.existsById(command.projectId())) throw new ResourceNotFoundException("Project", command.projectId());
+            if (checkMasterPasswordSetupUseCase.isSetupRequired()) throw new MasterPasswordNotConfiguredException();
+
             // 2. Gets the key of the active on RAM
             SecretKey key = masterKeySessionPort.getKey();
             if (key == null) throw new VaultLockedException();

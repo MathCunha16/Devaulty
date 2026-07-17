@@ -27,8 +27,9 @@ public class MasterKeySessionHolder implements MasterKeySessionPort {
     /**
      * Retrieves the active master key and automatically resets the inactivity timer.
      *
-     * <p><b>⚠ SIDE EFFECT:</b> Calling this method triggers a {@link #touch()}, sliding
-     * the session expiration window forward.</p>
+     * <p><b>⚠ SIDE EFFECT:</b> Calling this method triggers a {@link #touch()}
+     * only if the vault is unlocked (a key is present), sliding the session
+     * expiration window forward.</p>
      *
      * <p>To simply check if the vault is unlocked without resetting the timer,
      * use {@link #hasKey()} instead.</p>
@@ -36,7 +37,9 @@ public class MasterKeySessionHolder implements MasterKeySessionPort {
      * @return the active {@link SecretKey}, or {@code null} if the vault is locked.
      */
     public synchronized SecretKey getKey() {
-        touch();
+        if(hasKey()){
+            touch();
+        }
         return this.masterKey;
     }
 

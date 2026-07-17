@@ -36,11 +36,11 @@ public class SetupMasterPasswordImpl implements SetupMasterPasswordUseCase {
     @Override
     @Transactional
     public void execute(char[] password) {
-        // Prevents overwriting if already configured
-        if(appSettingRepositoryPort.existsByKey(MASTER_PASSWORD_HASH_KEY)) throw new MasterPasswordAlreadyConfiguredException();
-
-        // 1. Generates a strong, random 16-byte global application salt
         try {
+            // Prevents overwriting if already configured
+            if(appSettingRepositoryPort.existsByKey(MASTER_PASSWORD_HASH_KEY)) throw new MasterPasswordAlreadyConfiguredException();
+
+            // 1. Generates a strong, random 16-byte global application salt
             byte[] saltBytes = new byte[16];
             new SecureRandom().nextBytes(saltBytes);
             String saltBase64 = Base64.getEncoder().encodeToString(saltBytes);

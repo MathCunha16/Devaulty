@@ -57,21 +57,23 @@ public class UpdateCredentialImpl implements UpdateCredentialUseCase {
     @Override
     @Transactional
     public DecryptedCredential execute(UpdateCredentialCommand command) {
-        SecretKey key = masterKeySessionPort.getKey();
-
-        if (key == null) throw new VaultLockedException();
-        if (checkMasterPasswordSetupUseCase.isSetupRequired()) throw new MasterPasswordNotConfiguredException();
-        if (!projectRepositoryPort.existsById(command.projectId()))
-            throw new ResourceNotFoundException("Project", command.projectId());
-
-        Credential credential = credentialRepositoryPort.findById(command.id())
-                .filter(c -> command.projectId().equals(c.getProjectId()))
-                .orElseThrow(() -> new ResourceNotFoundException("Credential", command.id()));
 
         byte[] payloadBytes = null;
         byte[] decryptedBytes = null;
 
         try {
+
+            SecretKey key = masterKeySessionPort.getKey();
+
+            if (key == null) throw new VaultLockedException();
+            if (checkMasterPasswordSetupUseCase.isSetupRequired()) throw new MasterPasswordNotConfiguredException();
+            if (!projectRepositoryPort.existsById(command.projectId()))
+                throw new ResourceNotFoundException("Project", command.projectId());
+
+            Credential credential = credentialRepositoryPort.findById(command.id())
+                    .filter(c -> command.projectId().equals(c.getProjectId()))
+                    .orElseThrow(() -> new ResourceNotFoundException("Credential", command.id()));
+
             if (command.title() != null) credential.setTitle(command.title());
             if (command.secretType() != null) credential.setSecretType(command.secretType());
             if (command.notes() != null) credential.setNotes(command.notes());
