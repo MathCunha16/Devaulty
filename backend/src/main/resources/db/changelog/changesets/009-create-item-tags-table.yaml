@@ -1,0 +1,44 @@
+databaseChangeLog:
+  - changeSet:
+      id: 009-create-item-tags-table
+      author: Matheus Cunha
+      changes:
+        - createTable:
+            tableName: item_tags
+            columns:
+              - column:
+                  name: tag_id
+                  type: TEXT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                    foreignKeyName: fk_item_tags_tag
+                    references: tags(id)
+                    deleteCascade: true
+
+              - column:
+                  name: item_type
+                  type: TEXT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+              - column:
+                  name: item_id
+                  type: TEXT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+
+        - createIndex:
+            indexName: idx_item_tags_item
+            tableName: item_tags
+            columns:
+              - column:
+                  name: item_type
+              - column:
+                  name: item_id
+
+      rollback:
+        - dropTable:
+            tableName: item_tags
