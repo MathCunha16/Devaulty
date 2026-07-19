@@ -4,25 +4,56 @@ import com.devaulty.backend.application.exception.ResourceNotFoundException;
 import com.devaulty.backend.application.port.in.tag.item.RemoveTagFromItemUseCase;
 import com.devaulty.backend.application.port.out.persistence.ItemTagRepositoryPort;
 import com.devaulty.backend.application.port.out.persistence.ProjectRepositoryPort;
+import com.devaulty.backend.application.port.out.persistence.ProjectScopedRepositoryPort;
+import com.devaulty.backend.application.port.out.persistence.TagRepositoryPort;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 public class RemoveTagFromItemImpl implements RemoveTagFromItemUseCase {
 
     private final ItemTagRepositoryPort itemTagRepositoryPort;
     private final ProjectRepositoryPort projectRepositoryPort;
+    private final TagRepositoryPort tagRepositoryPort;
+    private final List<ProjectScopedRepositoryPort> projectScopedRepositories;
 
-    public RemoveTagFromItemImpl(ItemTagRepositoryPort itemTagRepositoryPort, ProjectRepositoryPort projectRepositoryPort) {
+    public RemoveTagFromItemImpl(ItemTagRepositoryPort itemTagRepositoryPort,
+                                 ProjectRepositoryPort projectRepositoryPort,
+                                 TagRepositoryPort tagRepositoryPort,
+                                 List<ProjectScopedRepositoryPort> projectScopedRepositories) {
         this.itemTagRepositoryPort = itemTagRepositoryPort;
         this.projectRepositoryPort = projectRepositoryPort;
+        this.tagRepositoryPort = tagRepositoryPort;
+        this.projectScopedRepositories = projectScopedRepositories;
     }
 
     @Override
     @Transactional
     public void execute(UUID projectId, String itemType, UUID itemId, UUID tagId) {
-        if(!projectRepositoryPort.existsById(projectId)) throw new ResourceNotFoundException("Project", projectId);
+        if (!projectRepositoryPort.existsById(projectId)) {
+            throw new ResourceNotFoundException("Project", projectId);
+        }
 
-        itemTagRepositoryPort.disassembleTagFromItem(tagId, itemType, itemId);
+        if (!tagRepositoryPort.existsByIdAndProjectId(tagId, projectId)) {
+            throw new ResourceNotFoundException("Tag", tagId);
+        }
+
+        validateItemOwnership(itemType, projectId, itemId);
+
+        itemTagRepositoryPort.disassembleTagFromItem(projectId, tagId, itemType, itemId);
+    }
+
+    private void validateItemOwnership(String itemType, UUID projectId, UUID itemId) {
+        boolean exists = projectScopedRepositories.stream()
+                .filter(repo -> repo.getSupportedType().equalsIgnoreCase(itemType))
+                .findFirst()
+                .map(repo -> repo.existsByIdAndProjectId(itemId, projectId))
+                .orElseThrow(() -> new IllegalArgumentException("Unsupported item type: " + itemType));
+
+        if (!exists) {
+            String resourceName = itemType.substring(0, 1).toUpperCase() + itemType.substring(1).toLowerCase();
+            throw new ResourceNotFoundException(resourceName, itemId);
+        }
     }
 }

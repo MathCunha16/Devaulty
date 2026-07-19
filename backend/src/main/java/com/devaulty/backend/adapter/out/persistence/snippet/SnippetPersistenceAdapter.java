@@ -55,4 +55,9 @@ public class SnippetPersistenceAdapter implements SnippetRepositoryPort {
     public boolean existsByIdAndProjectId(UUID id, UUID projectId) {
         return snippetRepository.existsByIdAndProject_Id(id, projectId);
     }
+
+    @Override
+    public String getSupportedType() {
+        return "snippet";
+    }
 }

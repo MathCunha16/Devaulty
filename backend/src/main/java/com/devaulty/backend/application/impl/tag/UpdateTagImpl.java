@@ -1,5 +1,6 @@
 package com.devaulty.backend.application.impl.tag;
 
+import com.devaulty.backend.application.exception.ResourceAlreadyExistsException;
 import com.devaulty.backend.application.exception.ResourceNotFoundException;
 import com.devaulty.backend.application.port.in.tag.UpdateTagCommand;
 import com.devaulty.backend.application.port.in.tag.UpdateTagUseCase;
@@ -31,7 +32,16 @@ public class UpdateTagImpl implements UpdateTagUseCase {
                 .filter(t -> command.projectId().equals(t.getProjectId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Tag", command.id()));
 
-        if (command.name() != null) tag.setName(command.name());
+
+        if (command.name() != null) {
+
+            String sanitizedName = command.name().trim();
+            if (tagRepositoryPort.existsByNameAndProjectId(command.projectId(), sanitizedName) && !tag.getName().equals(sanitizedName)) {
+                throw new ResourceAlreadyExistsException("Tag", sanitizedName);
+            }
+            tag.setName(sanitizedName);
+
+        }
         if (command.color() != null) tag.setColor(command.color());
         tag.setUpdatedAt(LocalDateTime.now());
 

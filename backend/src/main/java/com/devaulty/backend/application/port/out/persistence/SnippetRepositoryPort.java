@@ -6,7 +6,7 @@ import org.springframework.data.domain.Page;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface SnippetRepositoryPort {
+public interface SnippetRepositoryPort extends ProjectScopedRepositoryPort {
     Snippet save(Snippet snippet);
 
     Optional<Snippet> findById(UUID id);

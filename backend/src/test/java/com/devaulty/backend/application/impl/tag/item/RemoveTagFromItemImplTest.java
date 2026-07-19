@@ -3,12 +3,15 @@ package com.devaulty.backend.application.impl.tag.item;
 import com.devaulty.backend.application.exception.ResourceNotFoundException;
 import com.devaulty.backend.application.port.out.persistence.ItemTagRepositoryPort;
 import com.devaulty.backend.application.port.out.persistence.ProjectRepositoryPort;
+import com.devaulty.backend.application.port.out.persistence.ProjectScopedRepositoryPort;
+import com.devaulty.backend.application.port.out.persistence.TagRepositoryPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,8 +26,23 @@ class RemoveTagFromItemImplTest {
     @Mock
     private ProjectRepositoryPort projectRepository;
 
-    @InjectMocks
+    @Mock
+    private TagRepositoryPort tagRepository;
+
+    @Mock
+    private ProjectScopedRepositoryPort snippetRepository;
+
     private RemoveTagFromItemImpl removeTagFromItemUseCase;
+
+    @BeforeEach
+    void setUp() {
+        removeTagFromItemUseCase = new RemoveTagFromItemImpl(
+                itemTagRepository,
+                projectRepository,
+                tagRepository,
+                Collections.singletonList(snippetRepository)
+        );
+    }
 
     @Test
     void shouldRemoveTagFromItemSuccessfully() {
@@ -35,13 +53,18 @@ class RemoveTagFromItemImplTest {
         String itemType = "snippet";
 
         when(projectRepository.existsById(projectId)).thenReturn(true);
+        when(tagRepository.existsByIdAndProjectId(tagId, projectId)).thenReturn(true);
+        when(snippetRepository.getSupportedType()).thenReturn(itemType);
+        when(snippetRepository.existsByIdAndProjectId(itemId, projectId)).thenReturn(true);
 
         // Act
         removeTagFromItemUseCase.execute(projectId, itemType, itemId, tagId);
 
         // Assert
         verify(projectRepository, times(1)).existsById(projectId);
-        verify(itemTagRepository, times(1)).disassembleTagFromItem(tagId, itemType, itemId);
+        verify(tagRepository, times(1)).existsByIdAndProjectId(tagId, projectId);
+        verify(snippetRepository, times(1)).existsByIdAndProjectId(itemId, projectId);
+        verify(itemTagRepository, times(1)).disassembleTagFromItem(projectId, tagId, itemType, itemId);
     }
 
     @Test
@@ -60,6 +83,53 @@ class RemoveTagFromItemImplTest {
         });
 
         verify(projectRepository, times(1)).existsById(projectId);
-        verify(itemTagRepository, never()).disassembleTagFromItem(any(), any(), any());
+        verify(tagRepository, never()).existsByIdAndProjectId(any(), any());
+        verify(itemTagRepository, never()).disassembleTagFromItem(any(), any(), any(), any());
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenTagDoesNotExistInProject() {
+        // Arrange
+        UUID projectId = UUID.randomUUID();
+        UUID tagId = UUID.randomUUID();
+        UUID itemId = UUID.randomUUID();
+        String itemType = "snippet";
+
+        when(projectRepository.existsById(projectId)).thenReturn(true);
+        when(tagRepository.existsByIdAndProjectId(tagId, projectId)).thenReturn(false);
+
+        // Act & Assert
+        assertThrows(ResourceNotFoundException.class, () -> {
+            removeTagFromItemUseCase.execute(projectId, itemType, itemId, tagId);
+        });
+
+        verify(projectRepository, times(1)).existsById(projectId);
+        verify(tagRepository, times(1)).existsByIdAndProjectId(tagId, projectId);
+        verify(snippetRepository, never()).existsByIdAndProjectId(any(), any());
+        verify(itemTagRepository, never()).disassembleTagFromItem(any(), any(), any(), any());
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenItemDoesNotExistInProject() {
+        // Arrange
+        UUID projectId = UUID.randomUUID();
+        UUID tagId = UUID.randomUUID();
+        UUID itemId = UUID.randomUUID();
+        String itemType = "snippet";
+
+        when(projectRepository.existsById(projectId)).thenReturn(true);
+        when(tagRepository.existsByIdAndProjectId(tagId, projectId)).thenReturn(true);
+        when(snippetRepository.getSupportedType()).thenReturn(itemType);
+        when(snippetRepository.existsByIdAndProjectId(itemId, projectId)).thenReturn(false);
+
+        // Act & Assert
+        assertThrows(ResourceNotFoundException.class, () -> {
+            removeTagFromItemUseCase.execute(projectId, itemType, itemId, tagId);
+        });
+
+        verify(projectRepository, times(1)).existsById(projectId);
+        verify(tagRepository, times(1)).existsByIdAndProjectId(tagId, projectId);
+        verify(snippetRepository, times(1)).existsByIdAndProjectId(itemId, projectId);
+        verify(itemTagRepository, never()).disassembleTagFromItem(any(), any(), any(), any());
     }
 }

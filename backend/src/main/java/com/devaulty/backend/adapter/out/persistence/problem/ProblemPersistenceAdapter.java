@@ -56,4 +56,9 @@ public class ProblemPersistenceAdapter implements ProblemRepositoryPort {
         return problemRepository.existsByIdAndProject_Id(id, projectId);
     }
 
+    @Override
+    public String getSupportedType() {
+        return "problem";
+    }
+
 }

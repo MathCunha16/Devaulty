@@ -32,9 +32,8 @@ public class ItemTagPersistenceAdapter implements ItemTagRepositoryPort {
     }
 
     @Override
-    public void disassembleTagFromItem(UUID tagId, String itemType, UUID itemId) {
-        ItemTagId id = new ItemTagId(tagId, itemType, itemId);
-        itemTagRepository.deleteById(id);
+    public void disassembleTagFromItem(UUID projectId, UUID tagId, String itemType, UUID itemId) {
+        itemTagRepository.deleteByTagIdAndItemTypeAndItemIdAndProjectId(tagId, itemType, itemId, projectId);
     }
 
     @Override
@@ -43,21 +42,20 @@ public class ItemTagPersistenceAdapter implements ItemTagRepositoryPort {
     }
 
     @Override
-    public List<Tag> findTagsForItem(String itemType, UUID itemId) {
-        List<ItemTagEntity> entities = itemTagRepository.findByItemTypeAndItemId(itemType, itemId);
+    public List<Tag> findTagsForItem(String itemType, UUID projectId, UUID itemId) {
+        List<ItemTagEntity> entities = itemTagRepository.findByItemTypeAndItemIdAndProjectId(itemType, itemId, projectId);
         return entities.stream()
                 .map(itemTagEntity -> tagMapper.toDomain(itemTagEntity.getTag()))
                 .toList();
     }
 
     @Override
-    public Map<UUID, List<Tag>> findTagsForItems(String itemType, List<UUID> itemIds) {
-        return itemTagRepository.findByItemTypeAndItemIdIn(itemType, itemIds)
+    public Map<UUID, List<Tag>> findTagsForItems(String itemType, UUID projectId, List<UUID> itemIds) {
+        return itemTagRepository.findByItemTypeAndItemIdInAndProjectId(itemType, itemIds, projectId)
                 .stream()
                 .collect(Collectors.groupingBy(
                         ItemTagEntity::getItemId,
                         Collectors.mapping(e -> tagMapper.toDomain(e.getTag()), Collectors.toList())
                 ));
     }
-
 }

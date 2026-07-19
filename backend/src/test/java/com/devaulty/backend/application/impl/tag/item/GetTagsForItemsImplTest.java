@@ -3,10 +3,11 @@ package com.devaulty.backend.application.impl.tag.item;
 import com.devaulty.backend.application.exception.ResourceNotFoundException;
 import com.devaulty.backend.application.port.out.persistence.ItemTagRepositoryPort;
 import com.devaulty.backend.application.port.out.persistence.ProjectRepositoryPort;
+import com.devaulty.backend.application.port.out.persistence.ProjectScopedRepositoryPort;
 import com.devaulty.backend.domain.model.Tag;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -28,11 +29,22 @@ class GetTagsForItemsImplTest {
     @Mock
     private ProjectRepositoryPort projectRepository;
 
-    @InjectMocks
+    @Mock
+    private ProjectScopedRepositoryPort snippetRepository;
+
     private GetTagsForItemsImpl getTagsForItemsUseCase;
 
+    @BeforeEach
+    void setUp() {
+        getTagsForItemsUseCase = new GetTagsForItemsImpl(
+                itemTagRepository,
+                projectRepository,
+                Collections.singletonList(snippetRepository)
+        );
+    }
+
     @Test
-    void shouldReturnTagsForItems() {
+    void shouldReturnTagsForItems_whenProjectAndItemsExist() {
         // Arrange
         UUID projectId = UUID.randomUUID();
         UUID itemId = UUID.randomUUID();
@@ -48,7 +60,9 @@ class GetTagsForItemsImplTest {
         expectedMap.put(itemId, tagsList);
 
         when(projectRepository.existsById(projectId)).thenReturn(true);
-        when(itemTagRepository.findTagsForItems(itemType, itemIds)).thenReturn(expectedMap);
+        when(snippetRepository.getSupportedType()).thenReturn(itemType);
+        when(snippetRepository.existsByIdAndProjectId(itemId, projectId)).thenReturn(true);
+        when(itemTagRepository.findTagsForItems(itemType, projectId, itemIds)).thenReturn(expectedMap);
 
         // Act
         Map<UUID, List<Tag>> result = getTagsForItemsUseCase.execute(itemType, projectId, itemIds);
@@ -61,7 +75,8 @@ class GetTagsForItemsImplTest {
         assertEquals("docker", result.get(itemId).getFirst().getName());
 
         verify(projectRepository, times(1)).existsById(projectId);
-        verify(itemTagRepository, times(1)).findTagsForItems(itemType, itemIds);
+        verify(snippetRepository, times(1)).existsByIdAndProjectId(itemId, projectId);
+        verify(itemTagRepository, times(1)).findTagsForItems(itemType, projectId, itemIds);
     }
 
     @Test
@@ -80,6 +95,28 @@ class GetTagsForItemsImplTest {
         });
 
         verify(projectRepository, times(1)).existsById(projectId);
-        verify(itemTagRepository, never()).findTagsForItems(any(), any());
+        verify(itemTagRepository, never()).findTagsForItems(any(), any(), any());
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenAnyItemDoesNotExistOrDoesNotBelongToProject() {
+        // Arrange
+        UUID projectId = UUID.randomUUID();
+        UUID itemId = UUID.randomUUID();
+        List<UUID> itemIds = Collections.singletonList(itemId);
+        String itemType = "snippet";
+
+        when(projectRepository.existsById(projectId)).thenReturn(true);
+        when(snippetRepository.getSupportedType()).thenReturn(itemType);
+        when(snippetRepository.existsByIdAndProjectId(itemId, projectId)).thenReturn(false);
+
+        // Act & Assert
+        assertThrows(ResourceNotFoundException.class, () -> {
+            getTagsForItemsUseCase.execute(itemType, projectId, itemIds);
+        });
+
+        verify(projectRepository, times(1)).existsById(projectId);
+        verify(snippetRepository, times(1)).existsByIdAndProjectId(itemId, projectId);
+        verify(itemTagRepository, never()).findTagsForItems(any(), any(), any());
     }
 }

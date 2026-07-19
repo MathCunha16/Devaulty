@@ -58,7 +58,7 @@ class TagControllerIT extends BaseIntegrationTest {
     void createTag_shouldReturnCreated() throws Exception {
         CreateTagRequest request = new CreateTagRequest("java", "#3A3A3A");
 
-        mockMvc.perform(post("/ap1/v1/projects/{projectId}/tags", savedProject.getId())
+        mockMvc.perform(post("/api/v1/projects/{projectId}/tags", savedProject.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -75,7 +75,7 @@ class TagControllerIT extends BaseIntegrationTest {
         // Name blank, invalid hex color
         CreateTagRequest request = new CreateTagRequest("   ", "not-a-color");
 
-        mockMvc.perform(post("/ap1/v1/projects/{projectId}/tags", savedProject.getId())
+        mockMvc.perform(post("/api/v1/projects/{projectId}/tags", savedProject.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -88,18 +88,17 @@ class TagControllerIT extends BaseIntegrationTest {
         createAndSaveTag("docker", "#111");
         createAndSaveTag("spring", "#222");
 
-        mockMvc.perform(get("/ap1/v1/projects/{projectId}/tags", savedProject.getId()))
+        mockMvc.perform(get("/api/v1/projects/{projectId}/tags", savedProject.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].name").value("docker"))
-                .andExpect(jsonPath("$[1].name").value("spring"));
+                .andExpect(jsonPath("$[*].name", containsInAnyOrder("docker", "spring")));
     }
 
     @Test
     void getTagById_shouldReturnTag() throws Exception {
         TagEntity tag = createAndSaveTag("kubernetes", "#444");
 
-        mockMvc.perform(get("/ap1/v1/projects/{projectId}/tags/{tagId}", savedProject.getId(), tag.getId()))
+        mockMvc.perform(get("/api/v1/projects/{projectId}/tags/{tagId}", savedProject.getId(), tag.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(tag.getId().toString()))
                 .andExpect(jsonPath("$.name").value("kubernetes"))
@@ -110,7 +109,7 @@ class TagControllerIT extends BaseIntegrationTest {
     void getTagById_shouldReturnNotFound_whenTagDoesNotExist() throws Exception {
         UUID nonExistentId = UUID.randomUUID();
 
-        mockMvc.perform(get("/ap1/v1/projects/{projectId}/tags/{tagId}", savedProject.getId(), nonExistentId))
+        mockMvc.perform(get("/api/v1/projects/{projectId}/tags/{tagId}", savedProject.getId(), nonExistentId))
                 .andExpect(status().isNotFound());
     }
 
@@ -120,12 +119,11 @@ class TagControllerIT extends BaseIntegrationTest {
         createAndSaveTag("vue-js", "#222");
         createAndSaveTag("angular", "#333");
 
-        mockMvc.perform(get("/ap1/v1/projects/{projectId}/tags/search", savedProject.getId())
+        mockMvc.perform(get("/api/v1/projects/{projectId}/tags/search", savedProject.getId())
                         .param("name", "js"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].name").value("react-js"))
-                .andExpect(jsonPath("$[1].name").value("vue-js"));
+                .andExpect(jsonPath("$[*].name", containsInAnyOrder("react-js", "vue-js")));
     }
 
     @Test
@@ -134,7 +132,7 @@ class TagControllerIT extends BaseIntegrationTest {
 
         UpdateTagRequest request = new UpdateTagRequest("new-name", "#555");
 
-        mockMvc.perform(patch("/ap1/v1/projects/{projectId}/tags/{tagId}", savedProject.getId(), tag.getId())
+        mockMvc.perform(patch("/api/v1/projects/{projectId}/tags/{tagId}", savedProject.getId(), tag.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -150,7 +148,7 @@ class TagControllerIT extends BaseIntegrationTest {
     void deleteTag_shouldRemoveTag() throws Exception {
         TagEntity tag = createAndSaveTag("temp", "#999");
 
-        mockMvc.perform(delete("/ap1/v1/projects/{projectId}/tags/{tagId}", savedProject.getId(), tag.getId()))
+        mockMvc.perform(delete("/api/v1/projects/{projectId}/tags/{tagId}", savedProject.getId(), tag.getId()))
                 .andExpect(status().isNoContent());
 
         assertFalse(tagRepository.existsById(tag.getId()));

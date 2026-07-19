@@ -55,4 +55,9 @@ public class CredentialPersistenceAdapter implements CredentialRepositoryPort {
     public boolean existsByIdAndProjectId(UUID id, UUID projectId) {
         return credentialRepository.existsByIdAndProject_Id(id, projectId);
     }
+
+    @Override
+    public String getSupportedType() {
+        return "credential";
+    }
 }

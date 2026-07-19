@@ -10,11 +10,11 @@ public interface ItemTagRepositoryPort {
 
     void associateTagToItem(UUID tagId, String itemType, UUID itemId);
 
-    void disassembleTagFromItem(UUID tagId, String itemType, UUID itemId);
+    void disassembleTagFromItem(UUID projectId, UUID tagId, String itemType, UUID itemId);
 
     void removeAllTagsFromItem(String itemType, UUID itemId);
 
-    List<Tag> findTagsForItem(String itemType, UUID itemId);
+    List<Tag> findTagsForItem(String itemType, UUID projectId, UUID itemId);
 
-    Map<UUID, List<Tag>> findTagsForItems(String itemType, List<UUID> itemIds);
+    Map<UUID, List<Tag>> findTagsForItems(String itemType, UUID projectId, List<UUID> itemIds);
 }

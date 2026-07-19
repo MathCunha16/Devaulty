@@ -56,4 +56,9 @@ public class NotePersistenceAdapter implements NoteRepositoryPort {
     public boolean existsByIdAndProjectId(UUID id, UUID projectId) {
         return noteRepository.existsByIdAndProject_Id(id, projectId);
     }
+
+    @Override
+    public String getSupportedType() {
+        return "note";
+    }
 }

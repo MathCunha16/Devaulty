@@ -21,7 +21,7 @@ public interface ItemTagApi {
     )
     @ApiResponses(value = {
         @ApiResponse(
-            responseCode = "244",
+            responseCode = "204",
             description = "Association completed (returns 204 No Content)",
             content = @Content
         ),

@@ -7,7 +7,7 @@ import org.springframework.data.domain.Page;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface CredentialRepositoryPort {
+public interface CredentialRepositoryPort extends ProjectScopedRepositoryPort {
 
     Credential save(Credential credential);
 

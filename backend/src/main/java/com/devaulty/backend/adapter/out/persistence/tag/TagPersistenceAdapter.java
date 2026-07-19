@@ -24,10 +24,14 @@ public class TagPersistenceAdapter implements TagRepositoryPort {
 
     @Override
     public Tag save(Tag tag) {
-        TagEntity entity = tagMapper.toEntity(tag);
-        entity.setProject(projectRepository.getReferenceById(tag.getProjectId()));
-        TagEntity savedEntity = tagRepository.save(entity);
-        return tagMapper.toDomain(savedEntity);
+        try {
+            TagEntity entity = tagMapper.toEntity(tag);
+            entity.setProject(projectRepository.getReferenceById(tag.getProjectId()));
+            TagEntity savedEntity = tagRepository.save(entity);
+            return tagMapper.toDomain(savedEntity);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new com.devaulty.backend.application.exception.ResourceAlreadyExistsException("Tag", tag.getName());
+        }
     }
 
     @Override

@@ -55,4 +55,9 @@ public class LinkPersistenceAdapter implements LinkRepositoryPort {
     public boolean existsByIdAndProjectId(UUID id, UUID projectId) {
         return linkRepository.existsByIdAndProject_Id(id, projectId);
     }
+
+    @Override
+    public String getSupportedType() {
+        return "link";
+    }
 }

@@ -1,5 +1,6 @@
 package com.devaulty.backend.application.impl.tag;
 
+import com.devaulty.backend.application.exception.ResourceAlreadyExistsException;
 import com.devaulty.backend.application.exception.ResourceNotFoundException;
 import com.devaulty.backend.application.port.in.tag.UpdateTagCommand;
 import com.devaulty.backend.application.port.out.persistence.ProjectRepositoryPort;
@@ -44,6 +45,7 @@ class UpdateTagImplTest {
 
         when(projectRepository.existsById(projectId)).thenReturn(true);
         when(tagRepository.findById(tagId)).thenReturn(Optional.of(tag));
+        when(tagRepository.existsByNameAndProjectId(projectId, "new-name")).thenReturn(false);
         when(tagRepository.save(any(Tag.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
@@ -56,6 +58,7 @@ class UpdateTagImplTest {
 
         verify(projectRepository, times(1)).existsById(projectId);
         verify(tagRepository, times(1)).findById(tagId);
+        verify(tagRepository, times(1)).existsByNameAndProjectId(projectId, "new-name");
         verify(tagRepository, times(1)).save(any(Tag.class));
     }
 
@@ -120,6 +123,34 @@ class UpdateTagImplTest {
 
         verify(projectRepository, times(1)).existsById(projectId);
         verify(tagRepository, times(1)).findById(tagId);
+        verify(tagRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowResourceAlreadyExistsExceptionWhenUpdatedNameAlreadyExists() {
+        // Arrange
+        UUID projectId = UUID.randomUUID();
+        UUID tagId = UUID.randomUUID();
+        UpdateTagCommand command = new UpdateTagCommand(tagId, projectId, "existing-name", "#000");
+
+        Tag tag = new Tag();
+        tag.setId(tagId);
+        tag.setProjectId(projectId);
+        tag.setName("old-name");
+        tag.setColor("#FFF");
+
+        when(projectRepository.existsById(projectId)).thenReturn(true);
+        when(tagRepository.findById(tagId)).thenReturn(Optional.of(tag));
+        when(tagRepository.existsByNameAndProjectId(projectId, "existing-name")).thenReturn(true);
+
+        // Act & Assert
+        assertThrows(ResourceAlreadyExistsException.class, () -> {
+            updateTagUseCase.execute(command);
+        });
+
+        verify(projectRepository, times(1)).existsById(projectId);
+        verify(tagRepository, times(1)).findById(tagId);
+        verify(tagRepository, times(1)).existsByNameAndProjectId(projectId, "existing-name");
         verify(tagRepository, never()).save(any());
     }
 }

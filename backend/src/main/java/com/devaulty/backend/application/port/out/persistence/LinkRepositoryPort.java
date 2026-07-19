@@ -6,7 +6,7 @@ import org.springframework.data.domain.Page;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface LinkRepositoryPort {
+public interface LinkRepositoryPort extends ProjectScopedRepositoryPort {
     Link save(Link link);
 
     Optional<Link> findById(UUID id);

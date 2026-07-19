@@ -39,7 +39,7 @@ public class CreateTagImpl implements CreateTagUseCase {
         Tag tag = new Tag();
         tag.setId(UUID.randomUUID());
         tag.setProjectId(command.projectId());
-        tag.setName(command.name());
+        tag.setName(sanitizedName);
         tag.setColor(command.color());
         tag.setCreatedAt(LocalDateTime.now());
 
