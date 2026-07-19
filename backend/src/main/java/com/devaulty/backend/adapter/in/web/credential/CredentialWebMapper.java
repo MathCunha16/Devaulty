@@ -4,12 +4,14 @@ import com.devaulty.backend.adapter.in.web.credential.dto.CreateCredentialReques
 import com.devaulty.backend.adapter.in.web.credential.dto.CredentialSummaryResponse;
 import com.devaulty.backend.adapter.in.web.credential.dto.CredentialViewResponse;
 import com.devaulty.backend.adapter.in.web.credential.dto.UpdateCredentialRequest;
+import com.devaulty.backend.adapter.in.web.tag.TagWebMapper;
 import com.devaulty.backend.application.exception.BusinessRuleException;
 import com.devaulty.backend.application.exception.JsonProcessingException;
 import com.devaulty.backend.application.port.in.credential.CreateCredentialCommand;
 import com.devaulty.backend.application.port.in.credential.CredentialSummary;
 import com.devaulty.backend.application.port.in.credential.DecryptedCredential;
 import com.devaulty.backend.application.port.in.credential.UpdateCredentialCommand;
+import com.devaulty.backend.domain.model.Tag;
 import com.devaulty.backend.domain.model.enums.CredentialSecretType;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -19,19 +21,22 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = TagWebMapper.class)
 public abstract class CredentialWebMapper {
 
     @Autowired
     protected JsonMapper jsonMapper;
 
-    @Mapping(source = "decryptedPayload", target = "decryptedPayload", qualifiedByName = "jsonToMap")
-    public abstract CredentialViewResponse toViewResponse(DecryptedCredential credential);
+    @Mapping(source = "credential.decryptedPayload", target = "decryptedPayload", qualifiedByName = "jsonToMap")
+    @Mapping(source = "tags", target = "tags")
+    public abstract CredentialViewResponse toViewResponse(DecryptedCredential credential, List<Tag> tags);
 
-    public abstract CredentialSummaryResponse toSummaryResponse(CredentialSummary credential);
+    @Mapping(source = "tags", target = "tags")
+    public abstract CredentialSummaryResponse toSummaryResponse(CredentialSummary credential, List<Tag> tags);
 
     public CreateCredentialCommand toCreateCredentialCommand(CreateCredentialRequest request, UUID projectId) {
         char[] serializedPayload = null;

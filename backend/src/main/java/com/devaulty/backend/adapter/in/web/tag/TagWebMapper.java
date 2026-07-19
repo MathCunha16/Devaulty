@@ -1,6 +1,7 @@
 package com.devaulty.backend.adapter.in.web.tag;
 
 import com.devaulty.backend.adapter.in.web.tag.dto.CreateTagRequest;
+import com.devaulty.backend.adapter.in.web.tag.dto.TagSummaryResponse;
 import com.devaulty.backend.adapter.in.web.tag.dto.TagViewResponse;
 import com.devaulty.backend.adapter.in.web.tag.dto.UpdateTagRequest;
 import com.devaulty.backend.application.port.in.tag.CreateTagCommand;
@@ -15,6 +16,8 @@ import java.util.UUID;
 public interface TagWebMapper {
 
     TagViewResponse toViewResponse(Tag tag);
+
+    TagSummaryResponse toSummaryResponse(Tag tag);
 
     @Mapping(target = "projectId", source = "projectId")
     CreateTagCommand toCreateTagCommand(CreateTagRequest request, UUID projectId);

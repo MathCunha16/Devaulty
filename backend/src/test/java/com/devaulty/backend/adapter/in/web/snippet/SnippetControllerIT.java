@@ -70,7 +70,8 @@ class SnippetControllerIT extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.content").value("echo 'hello world'"))
                 .andExpect(jsonPath("$.language").value("BASH"))
                 .andExpect(jsonPath("$.snippetType").value("COMMAND"))
-                .andExpect(jsonPath("$.createdAt").isNotEmpty());
+                .andExpect(jsonPath("$.createdAt").isNotEmpty())
+                .andExpect(jsonPath("$.tags").isEmpty());
 
         assertEquals(1, snippetRepository.count());
     }

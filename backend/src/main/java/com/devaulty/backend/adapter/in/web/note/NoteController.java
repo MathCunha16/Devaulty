@@ -7,12 +7,17 @@ import com.devaulty.backend.adapter.in.web.note.dto.UpdateNoteRequest;
 import com.devaulty.backend.adapter.in.web.util.UriLocationBuilderHelper;
 import com.devaulty.backend.application.port.in.note.*;
 import com.devaulty.backend.domain.model.Note;
+import com.devaulty.backend.application.port.in.tag.item.GetTagsForItemUseCase;
+import com.devaulty.backend.application.port.in.tag.item.GetTagsForItemsUseCase;
+import com.devaulty.backend.domain.model.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -26,10 +31,14 @@ public class NoteController implements NoteApi{
     private final UpdateNoteUseCase updateNoteUseCase;
     private final UnarchiveNoteUseCase unarchiveNoteUseCase;
     private final DeleteNoteUseCase deleteNoteUseCase;
+    private final GetTagsForItemUseCase getTagsForItemUseCase;
+    private final GetTagsForItemsUseCase getTagsForItemsUseCase;
     private final NoteWebMapper mapper;
     private final UriLocationBuilderHelper uriLocationBuilderHelper;
 
-    public NoteController(CreateNoteUseCase createNoteUseCase, GetAllNotesByProjectUseCase getAllNotesByProjectUseCase, GetNoteByIdUseCase getNoteByIdUseCase, ArchiveNoteUseCase archiveNoteUseCase, UpdateNoteUseCase updateNoteUseCase, UnarchiveNoteUseCase unarchiveNoteUseCase, DeleteNoteUseCase deleteNoteUseCase, NoteWebMapper mapper, UriLocationBuilderHelper uriLocationBuilderHelper) {
+    private static final String ITEM_TYPE = "note";
+
+    public NoteController(CreateNoteUseCase createNoteUseCase, GetAllNotesByProjectUseCase getAllNotesByProjectUseCase, GetNoteByIdUseCase getNoteByIdUseCase, ArchiveNoteUseCase archiveNoteUseCase, UpdateNoteUseCase updateNoteUseCase, UnarchiveNoteUseCase unarchiveNoteUseCase, DeleteNoteUseCase deleteNoteUseCase, GetTagsForItemUseCase getTagsForItemUseCase, GetTagsForItemsUseCase getTagsForItemsUseCase, NoteWebMapper mapper, UriLocationBuilderHelper uriLocationBuilderHelper) {
         this.createNoteUseCase = createNoteUseCase;
         this.getAllNotesByProjectUseCase = getAllNotesByProjectUseCase;
         this.getNoteByIdUseCase = getNoteByIdUseCase;
@@ -37,6 +46,8 @@ public class NoteController implements NoteApi{
         this.updateNoteUseCase = updateNoteUseCase;
         this.unarchiveNoteUseCase = unarchiveNoteUseCase;
         this.deleteNoteUseCase = deleteNoteUseCase;
+        this.getTagsForItemUseCase = getTagsForItemUseCase;
+        this.getTagsForItemsUseCase = getTagsForItemsUseCase;
         this.mapper = mapper;
         this.uriLocationBuilderHelper = uriLocationBuilderHelper;
     }
@@ -51,7 +62,7 @@ public class NoteController implements NoteApi{
         CreateNoteCommand command = mapper.toCreateNoteCommand(request, projectId);
         Note note = createNoteUseCase.execute(command);
         URI location = uriLocationBuilderHelper.buildLocationUri(note.getId());
-        return ResponseEntity.created(location).body(mapper.toViewResponse(note));
+        return ResponseEntity.created(location).body(mapper.toViewResponse(note, List.of()));
     }
 
     @Override
@@ -62,7 +73,11 @@ public class NoteController implements NoteApi{
             @RequestParam(defaultValue = "10") int size
     ){
         Page<Note> notes = getAllNotesByProjectUseCase.execute(projectId, page, size);
-        return ResponseEntity.ok(notes.map(mapper::toSummaryResponse));
+        List<UUID> ids = notes.getContent().stream().map(Note::getId).toList();
+        Map<UUID, List<Tag>> tagsByItem = getTagsForItemsUseCase.execute(ITEM_TYPE, projectId, ids);
+        Page<NoteSummaryResponse> response = notes.map(s ->
+                mapper.toSummaryResponse(s, tagsByItem.getOrDefault(s.getId(), List.of())));
+        return ResponseEntity.ok(response);
     }
 
     @Override
@@ -73,7 +88,8 @@ public class NoteController implements NoteApi{
     )
     {
         Note note = getNoteByIdUseCase.execute(projectId, noteID);
-        return ResponseEntity.ok(mapper.toViewResponse(note));
+        List<Tag> tags = getTagsForItemUseCase.execute(ITEM_TYPE, projectId, noteID);
+        return ResponseEntity.ok(mapper.toViewResponse(note, tags));
     }
 
     @Override
@@ -85,7 +101,8 @@ public class NoteController implements NoteApi{
     ){
         UpdateNoteCommand command = mapper.toUpdateNoteCommand(request, projectId, noteId);
         Note note = updateNoteUseCase.execute(command);
-        return ResponseEntity.ok(mapper.toViewResponse(note));
+        List<Tag> tags = getTagsForItemUseCase.execute(ITEM_TYPE, projectId, noteId);
+        return ResponseEntity.ok(mapper.toViewResponse(note, tags));
     }
 
     @Override

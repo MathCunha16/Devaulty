@@ -2,6 +2,8 @@ package com.devaulty.backend.adapter.out.persistence.tag.item;
 
 import com.devaulty.backend.adapter.out.persistence.tag.TagEntity;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -14,6 +16,7 @@ public class ItemTagEntity {
     @Id
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tag_id")
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private TagEntity tag;
 
     @Id
@@ -22,7 +25,7 @@ public class ItemTagEntity {
 
     @Id
     @Column(name = "item_id")
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.VARCHAR)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private UUID itemId;
 
     public ItemTagEntity() {

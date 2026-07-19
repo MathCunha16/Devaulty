@@ -69,7 +69,8 @@ class ProblemControllerIT extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.solution").value("Fix configuration"))
                 .andExpect(jsonPath("$.status").value("OPEN"))
                 .andExpect(jsonPath("$.severity").value("HIGH"))
-                .andExpect(jsonPath("$.createdAt").isNotEmpty());
+                .andExpect(jsonPath("$.createdAt").isNotEmpty())
+                .andExpect(jsonPath("$.tags").isEmpty());
 
         assertEquals(1, problemRepository.count());
     }
@@ -126,8 +127,10 @@ class ProblemControllerIT extends BaseIntegrationTest {
                         .param("size", "5"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content", hasSize(2)))
-                .andExpect(jsonPath("$.content[0].title").value("Problem 2")) // Sorted DESC by createdAt
+                .andExpect(jsonPath("$.content[0].title").value("Problem 2"))
+                .andExpect(jsonPath("$.content[0].tags").isEmpty())
                 .andExpect(jsonPath("$.content[1].title").value("Problem 1"))
+                .andExpect(jsonPath("$.content[1].tags").isEmpty())
                 .andExpect(jsonPath("$.page.totalElements").value(2));
     }
 
@@ -150,7 +153,8 @@ class ProblemControllerIT extends BaseIntegrationTest {
         mockMvc.perform(get("/api/v1/projects/{projectId}/problems/{problemId}", savedProject.getId(), id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
-                .andExpect(jsonPath("$.title").value("Get Problem"));
+                .andExpect(jsonPath("$.title").value("Get Problem"))
+                .andExpect(jsonPath("$.tags").isEmpty());
     }
 
     @Test

@@ -43,16 +43,14 @@ databaseChangeLog:
                   type: TEXT
 
         - createIndex:
-            indexName: idx_tags_project
+            indexName: uk_tags_project_name
             tableName: tags
+            unique: true
             columns:
               - column:
                   name: project_id
-
-        - addUniqueConstraint:
-            tableName: tags
-            columnNames: project_id, name
-            constraintName: uk_tags_project_name
+              - column:
+                  name: name
 
       rollback:
         - dropTable:

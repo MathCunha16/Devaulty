@@ -1,21 +1,26 @@
 package com.devaulty.backend.adapter.in.web.problem;
 
 import com.devaulty.backend.adapter.in.web.problem.dto.*;
+import com.devaulty.backend.adapter.in.web.tag.TagWebMapper;
 import com.devaulty.backend.application.port.in.problem.CreateProblemCommand;
 import com.devaulty.backend.application.port.in.problem.UpdateProblemCommand;
 import com.devaulty.backend.application.port.in.problem.UpdateProblemStatusCommand;
 import com.devaulty.backend.domain.model.Problem;
+import com.devaulty.backend.domain.model.Tag;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import java.util.List;
 import java.util.UUID;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = TagWebMapper.class)
 public interface ProblemWebMapper {
 
-    ProblemViewResponse toViewResponse(Problem problem);
+    @Mapping(target = "tags", source = "tags")
+    ProblemViewResponse toViewResponse(Problem problem, List<Tag> tags);
 
-    ProblemSummaryResponse toSummaryResponse(Problem problem);
+    @Mapping(target = "tags", source = "tags")
+    ProblemSummaryResponse toSummaryResponse(Problem problem, List<Tag> tags);
 
     @Mapping(target = "projectId", source = "projectId")
     CreateProblemCommand toCreateProblemCommand(CreateProblemRequest request, UUID projectId);

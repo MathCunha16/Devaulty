@@ -21,7 +21,7 @@ databaseChangeLog:
       file: db/changelog/changesets/007-create-credentials-table.yaml
 
   - include:
-      file: db/changelog/changesets/008-create-users-table.yaml
+      file: db/changelog/changesets/008-create-tags-table.yaml
 
   - include:
       file: db/changelog/changesets/009-create-item-tags-table.yaml
