@@ -119,4 +119,62 @@ class GetTagsForItemsImplTest {
         verify(snippetRepository, times(1)).findExistingIdsByProject(itemIds, projectId);
         verify(itemTagRepository, never()).findTagsForItems(any(), any(), any());
     }
+
+    @Test
+    void shouldReturnTagsForItems_whenInputContainsDuplicates() {
+        // Arrange
+        UUID projectId = UUID.randomUUID();
+        UUID itemId = UUID.randomUUID();
+        List<UUID> itemIds = List.of(itemId, itemId); // Duplicate
+        String itemType = "snippet";
+
+        Tag tag = new Tag();
+        tag.setProjectId(projectId);
+        tag.setName("docker");
+        List<Tag> tagsList = Collections.singletonList(tag);
+
+        Map<UUID, List<Tag>> expectedMap = new HashMap<>();
+        expectedMap.put(itemId, tagsList);
+
+        when(projectRepository.existsById(projectId)).thenReturn(true);
+        when(snippetRepository.getSupportedType()).thenReturn(itemType);
+        // The repository will return distinct existing ID
+        when(snippetRepository.findExistingIdsByProject(itemIds, projectId)).thenReturn(List.of(itemId));
+        when(itemTagRepository.findTagsForItems(itemType, projectId, itemIds)).thenReturn(expectedMap);
+
+        // Act
+        Map<UUID, List<Tag>> result = getTagsForItemsUseCase.execute(itemType, projectId, itemIds);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(expectedMap, result);
+
+        verify(projectRepository, times(1)).existsById(projectId);
+        verify(snippetRepository, times(1)).findExistingIdsByProject(itemIds, projectId);
+        verify(itemTagRepository, times(1)).findTagsForItems(itemType, projectId, itemIds);
+    }
+
+    @Test
+    void shouldReturnEmptyMap_whenInputIsEmpty() {
+        // Arrange
+        UUID projectId = UUID.randomUUID();
+        List<UUID> itemIds = Collections.emptyList();
+        String itemType = "snippet";
+
+        when(projectRepository.existsById(projectId)).thenReturn(true);
+        when(snippetRepository.getSupportedType()).thenReturn(itemType);
+        when(snippetRepository.findExistingIdsByProject(itemIds, projectId)).thenReturn(Collections.emptyList());
+        when(itemTagRepository.findTagsForItems(itemType, projectId, itemIds)).thenReturn(Collections.emptyMap());
+
+        // Act
+        Map<UUID, List<Tag>> result = getTagsForItemsUseCase.execute(itemType, projectId, itemIds);
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+
+        verify(projectRepository, times(1)).existsById(projectId);
+        verify(snippetRepository, times(1)).findExistingIdsByProject(itemIds, projectId);
+        verify(itemTagRepository, times(1)).findTagsForItems(itemType, projectId, itemIds);
+    }
 }
