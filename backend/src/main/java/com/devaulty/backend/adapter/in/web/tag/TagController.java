@@ -37,6 +37,7 @@ public class TagController implements TagApi {
         this.uriLocationBuilderHelper = uriLocationBuilderHelper;
     }
 
+    @Override
     @PostMapping
     public ResponseEntity<TagViewResponse> create(
             @PathVariable UUID projectId,
@@ -48,6 +49,7 @@ public class TagController implements TagApi {
         return ResponseEntity.created(location).body(response);
     }
 
+    @Override
     @GetMapping
     public ResponseEntity<List<TagViewResponse>> getAll(
             @PathVariable UUID projectId
@@ -59,6 +61,7 @@ public class TagController implements TagApi {
         return ResponseEntity.ok(responses);
     }
 
+    @Override
     @GetMapping("/{tagId}")
     public ResponseEntity<TagViewResponse> getById(
             @PathVariable UUID projectId,
@@ -68,6 +71,7 @@ public class TagController implements TagApi {
         return ResponseEntity.ok(response);
     }
 
+    @Override
     @GetMapping("/search")
     public ResponseEntity<List<TagViewResponse>> searchByName(
             @PathVariable UUID projectId,
@@ -80,6 +84,7 @@ public class TagController implements TagApi {
         return ResponseEntity.ok(responses);
     }
 
+    @Override
     @PatchMapping("/{tagId}")
     public ResponseEntity<TagViewResponse> update(
             @PathVariable UUID projectId,
@@ -91,6 +96,7 @@ public class TagController implements TagApi {
         return ResponseEntity.ok(response);
     }
 
+    @Override
     @DeleteMapping("/{tagId}")
     public ResponseEntity<Void> delete(
             @PathVariable UUID projectId,

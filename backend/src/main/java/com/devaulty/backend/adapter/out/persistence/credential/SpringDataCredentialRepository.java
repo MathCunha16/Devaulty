@@ -27,4 +27,6 @@ public interface SpringDataCredentialRepository extends JpaRepository<Credential
             @Param("projectId") UUID projectId,
             Pageable pageable
     );
+
+    boolean existsByIdAndProject_Id(UUID id, UUID projectId);
 }

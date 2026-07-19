@@ -8,4 +8,6 @@ import java.util.UUID;
 
 public interface SpringDataLinkRepository extends JpaRepository<LinkEntity, UUID> {
     Page<LinkEntity> findAllByProject_Id(UUID projectId, Pageable pageable);
+
+    boolean existsByIdAndProject_Id(UUID id, UUID projectId);
 }

@@ -46,8 +46,14 @@ public class NotePersistenceAdapter implements NoteRepositoryPort {
         return entities.map(noteMapper::toDomain);
     }
 
+
     @Override
     public void deleteById(UUID id) {
         noteRepository.deleteById(id);
+    }
+
+    @Override
+    public boolean existsByIdAndProjectId(UUID id, UUID projectId) {
+        return noteRepository.existsByIdAndProject_Id(id, projectId);
     }
 }

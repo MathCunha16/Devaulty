@@ -4,6 +4,7 @@ import com.devaulty.backend.application.impl.credential.*;
 import com.devaulty.backend.application.port.in.credential.*;
 import com.devaulty.backend.application.port.in.security.CheckMasterPasswordSetupUseCase;
 import com.devaulty.backend.application.port.out.persistence.CredentialRepositoryPort;
+import com.devaulty.backend.application.port.out.persistence.ItemTagRepositoryPort;
 import com.devaulty.backend.application.port.out.persistence.ProjectRepositoryPort;
 import com.devaulty.backend.application.port.out.security.CryptoPort;
 import com.devaulty.backend.application.port.out.security.MasterKeySessionPort;
@@ -84,13 +85,15 @@ public class CredentialBeanConfig {
             CredentialRepositoryPort credentialRepositoryPort,
             ProjectRepositoryPort projectRepositoryPort,
             MasterKeySessionPort masterKeySessionPort,
-            CheckMasterPasswordSetupUseCase checkMasterPasswordSetupUseCase
+            CheckMasterPasswordSetupUseCase checkMasterPasswordSetupUseCase,
+            ItemTagRepositoryPort itemTagRepositoryPort
     ){
         return new DeleteCredentialImpl(
                 credentialRepositoryPort,
                 projectRepositoryPort,
                 masterKeySessionPort,
-                checkMasterPasswordSetupUseCase
+                checkMasterPasswordSetupUseCase,
+                itemTagRepositoryPort
         );
     }
 }

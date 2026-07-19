@@ -1,19 +1,19 @@
 package com.devaulty.backend.application.impl.problem;
 
 import com.devaulty.backend.application.exception.ResourceNotFoundException;
+import com.devaulty.backend.application.port.out.persistence.ItemTagRepositoryPort;
 import com.devaulty.backend.application.port.out.persistence.ProblemRepositoryPort;
 import com.devaulty.backend.application.port.out.persistence.ProjectRepositoryPort;
-import com.devaulty.backend.domain.model.Problem;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -25,6 +25,9 @@ class DeleteProblemImplTest {
     @Mock
     private ProjectRepositoryPort projectRepository;
 
+    @Mock
+    private ItemTagRepositoryPort itemTagRepository;
+
     @InjectMocks
     private DeleteProblemImpl deleteProblemUseCase;
 
@@ -33,19 +36,17 @@ class DeleteProblemImplTest {
         // Arrange
         UUID projectId = UUID.randomUUID();
         UUID problemId = UUID.randomUUID();
-        Problem problem = new Problem();
-        problem.setId(problemId);
-        problem.setProjectId(projectId);
 
         when(projectRepository.existsById(projectId)).thenReturn(true);
-        when(problemRepository.findById(problemId)).thenReturn(Optional.of(problem));
+        when(problemRepository.existsByIdAndProjectId(problemId, projectId)).thenReturn(true);
 
         // Act
         deleteProblemUseCase.execute(projectId, problemId);
 
         // Assert
         verify(projectRepository, times(1)).existsById(projectId);
-        verify(problemRepository, times(1)).findById(problemId);
+        verify(problemRepository, times(1)).existsByIdAndProjectId(problemId, projectId);
+        verify(itemTagRepository, times(1)).removeAllTagsFromItem("problem", problemId);
         verify(problemRepository, times(1)).deleteById(problemId);
     }
 
@@ -63,7 +64,8 @@ class DeleteProblemImplTest {
         });
 
         verify(projectRepository, times(1)).existsById(projectId);
-        verify(problemRepository, never()).findById(any(UUID.class));
+        verify(problemRepository, never()).existsByIdAndProjectId(any(UUID.class), any(UUID.class));
+        verify(itemTagRepository, never()).removeAllTagsFromItem(any(), any());
         verify(problemRepository, never()).deleteById(any(UUID.class));
     }
 
@@ -74,7 +76,7 @@ class DeleteProblemImplTest {
         UUID problemId = UUID.randomUUID();
 
         when(projectRepository.existsById(projectId)).thenReturn(true);
-        when(problemRepository.findById(problemId)).thenReturn(Optional.empty());
+        when(problemRepository.existsByIdAndProjectId(problemId, projectId)).thenReturn(false);
 
         // Act & Assert
         assertThrows(ResourceNotFoundException.class, () -> {
@@ -82,7 +84,8 @@ class DeleteProblemImplTest {
         });
 
         verify(projectRepository, times(1)).existsById(projectId);
-        verify(problemRepository, times(1)).findById(problemId);
+        verify(problemRepository, times(1)).existsByIdAndProjectId(problemId, projectId);
+        verify(itemTagRepository, never()).removeAllTagsFromItem(any(), any());
         verify(problemRepository, never()).deleteById(any(UUID.class));
     }
 
@@ -90,22 +93,21 @@ class DeleteProblemImplTest {
     void shouldThrowResourceNotFoundExceptionWhenProblemDoesNotBelongToProject() {
         // Arrange
         UUID projectId = UUID.randomUUID();
-        UUID otherProjectId = UUID.randomUUID();
         UUID problemId = UUID.randomUUID();
-        Problem problem = new Problem();
-        problem.setId(problemId);
-        problem.setProjectId(otherProjectId);
 
         when(projectRepository.existsById(projectId)).thenReturn(true);
-        when(problemRepository.findById(problemId)).thenReturn(Optional.of(problem));
+        // existsByIdAndProjectId returns false because it belongs to another project
+        when(problemRepository.existsByIdAndProjectId(problemId, projectId)).thenReturn(false);
 
         // Act & Assert
-        assertThrows(ResourceNotFoundException.class, () -> {
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> {
             deleteProblemUseCase.execute(projectId, problemId);
         });
+        assertEquals("Problem not found with identifier " + problemId, exception.getMessage());
 
         verify(projectRepository, times(1)).existsById(projectId);
-        verify(problemRepository, times(1)).findById(problemId);
+        verify(problemRepository, times(1)).existsByIdAndProjectId(problemId, projectId);
+        verify(itemTagRepository, never()).removeAllTagsFromItem(any(), any());
         verify(problemRepository, never()).deleteById(any(UUID.class));
     }
 }

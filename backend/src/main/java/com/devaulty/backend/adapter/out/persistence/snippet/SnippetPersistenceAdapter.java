@@ -50,4 +50,9 @@ public class SnippetPersistenceAdapter implements SnippetRepositoryPort {
     public void deleteById(UUID id) {
         snippetRepository.deleteById(id);
     }
+
+    @Override
+    public boolean existsByIdAndProjectId(UUID id, UUID projectId) {
+        return snippetRepository.existsByIdAndProject_Id(id, projectId);
+    }
 }

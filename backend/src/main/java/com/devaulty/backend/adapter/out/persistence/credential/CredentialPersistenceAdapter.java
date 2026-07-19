@@ -50,4 +50,9 @@ public class CredentialPersistenceAdapter implements CredentialRepositoryPort {
     public void deleteById(UUID id) {
         credentialRepository.deleteById(id);
     }
+
+    @Override
+    public boolean existsByIdAndProjectId(UUID id, UUID projectId) {
+        return credentialRepository.existsByIdAndProject_Id(id, projectId);
+    }
 }

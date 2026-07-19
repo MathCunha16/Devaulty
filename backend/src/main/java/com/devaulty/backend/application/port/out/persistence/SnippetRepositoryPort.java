@@ -14,4 +14,6 @@ public interface SnippetRepositoryPort {
     Page<Snippet> findAllByProject(UUID projectId, int page, int size);
 
     void deleteById(UUID id);
+
+    boolean existsByIdAndProjectId(UUID id, UUID projectId);
 }

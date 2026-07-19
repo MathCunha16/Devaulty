@@ -8,4 +8,6 @@ import java.util.UUID;
 
 public interface SpringDataProblemRepository extends JpaRepository<ProblemEntity, UUID> {
     Page<ProblemEntity> findAllByProject_Id(UUID projectId, Pageable pageable);
+
+    boolean existsByIdAndProject_Id(UUID id, UUID projectId);
 }

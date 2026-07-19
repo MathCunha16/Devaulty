@@ -50,4 +50,9 @@ public class LinkPersistenceAdapter implements LinkRepositoryPort {
     public void deleteById(UUID id) {
         linkRepository.deleteById(id);
     }
+
+    @Override
+    public boolean existsByIdAndProjectId(UUID id, UUID projectId) {
+        return linkRepository.existsByIdAndProject_Id(id, projectId);
+    }
 }

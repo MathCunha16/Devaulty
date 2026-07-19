@@ -8,4 +8,6 @@ import java.util.UUID;
 
 public interface SpringDataSnippetRepository extends JpaRepository<SnippetEntity, UUID> {
     Page<SnippetEntity> findAllByProject_Id(UUID projectId, Pageable pageable);
+
+    boolean existsByIdAndProject_Id(UUID id, UUID projectId);
 }

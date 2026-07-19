@@ -50,4 +50,10 @@ public class ProblemPersistenceAdapter implements ProblemRepositoryPort {
     public void deleteById(UUID id) {
         problemRepository.deleteById(id);
     }
+
+    @Override
+    public boolean existsByIdAndProjectId(UUID id, UUID projectId) {
+        return problemRepository.existsByIdAndProject_Id(id, projectId);
+    }
+
 }
