@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -46,8 +47,27 @@ public class NotePersistenceAdapter implements NoteRepositoryPort {
         return entities.map(noteMapper::toDomain);
     }
 
+
     @Override
     public void deleteById(UUID id) {
         noteRepository.deleteById(id);
+    }
+
+    @Override
+    public boolean existsByIdAndProjectId(UUID id, UUID projectId) {
+        return noteRepository.existsByIdAndProject_Id(id, projectId);
+    }
+
+    @Override
+    public String getSupportedType() {
+        return "note";
+    }
+
+    @Override
+    public List<UUID> findExistingIdsByProject(List<UUID> ids, UUID projectId) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return noteRepository.findExistingIdsByProjectId(ids, projectId);
     }
 }

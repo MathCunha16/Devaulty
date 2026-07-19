@@ -2,6 +2,7 @@ package com.devaulty.backend.infrastructure.configuration;
 
 import com.devaulty.backend.application.impl.note.*;
 import com.devaulty.backend.application.port.in.note.*;
+import com.devaulty.backend.application.port.out.persistence.ItemTagRepositoryPort;
 import com.devaulty.backend.application.port.out.persistence.NoteRepositoryPort;
 import com.devaulty.backend.application.port.out.persistence.ProjectRepositoryPort;
 import org.springframework.context.annotation.Bean;
@@ -46,11 +47,13 @@ public class NoteBeanConfig {
     @Bean
     public DeleteNoteUseCase deleteNoteUseCase(
             NoteRepositoryPort noteRepositoryPort,
-            ProjectRepositoryPort projectRepositoryPort
+            ProjectRepositoryPort projectRepositoryPort,
+            ItemTagRepositoryPort itemTagRepositoryPort
     ){
         return new DeleteNoteImpl(
                 noteRepositoryPort,
-                projectRepositoryPort
+                projectRepositoryPort,
+                itemTagRepositoryPort
         );
     }
 

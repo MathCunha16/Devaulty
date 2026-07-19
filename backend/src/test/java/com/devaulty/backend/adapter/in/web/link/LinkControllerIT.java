@@ -64,7 +64,8 @@ class LinkControllerIT extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.title").value("My Link"))
                 .andExpect(jsonPath("$.url").value("https://example.com"))
                 .andExpect(jsonPath("$.description").value("Link description"))
-                .andExpect(jsonPath("$.createdAt").isNotEmpty());
+                .andExpect(jsonPath("$.createdAt").isNotEmpty())
+                .andExpect(jsonPath("$.tags").isEmpty());
 
         assertEquals(1, linkRepository.count());
     }
@@ -117,8 +118,10 @@ class LinkControllerIT extends BaseIntegrationTest {
                         .param("size", "5"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content", hasSize(2)))
-                .andExpect(jsonPath("$.content[0].title").value("Link 2")) // Sorted DESC by createdAt
+                .andExpect(jsonPath("$.content[0].title").value("Link 2"))
+                .andExpect(jsonPath("$.content[0].tags").isEmpty())
                 .andExpect(jsonPath("$.content[1].title").value("Link 1"))
+                .andExpect(jsonPath("$.content[1].tags").isEmpty())
                 .andExpect(jsonPath("$.page.totalElements").value(2));
     }
 
@@ -141,7 +144,8 @@ class LinkControllerIT extends BaseIntegrationTest {
         mockMvc.perform(get("/api/v1/projects/{projectId}/links/{linkId}", savedProject.getId(), id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
-                .andExpect(jsonPath("$.title").value("Get Link"));
+                .andExpect(jsonPath("$.title").value("Get Link"))
+                .andExpect(jsonPath("$.tags").isEmpty());
     }
 
     @Test

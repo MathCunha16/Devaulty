@@ -2,6 +2,7 @@ package com.devaulty.backend.infrastructure.configuration;
 
 import com.devaulty.backend.application.impl.problem.*;
 import com.devaulty.backend.application.port.in.problem.*;
+import com.devaulty.backend.application.port.out.persistence.ItemTagRepositoryPort;
 import com.devaulty.backend.application.port.out.persistence.ProblemRepositoryPort;
 import com.devaulty.backend.application.port.out.persistence.ProjectRepositoryPort;
 import org.springframework.context.annotation.Bean;
@@ -46,11 +47,13 @@ public class ProblemBeanConfig {
     @Bean
     public DeleteProblemUseCase deleteProblemUseCase(
             ProblemRepositoryPort problemRepositoryPort,
-            ProjectRepositoryPort projectRepositoryPort
+            ProjectRepositoryPort projectRepositoryPort,
+            ItemTagRepositoryPort itemTagRepositoryPort
     ){
         return new DeleteProblemImpl(
                 problemRepositoryPort,
-                projectRepositoryPort
+                projectRepositoryPort,
+                itemTagRepositoryPort
         );
     }
 

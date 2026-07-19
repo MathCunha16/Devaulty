@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -49,5 +50,23 @@ public class CredentialPersistenceAdapter implements CredentialRepositoryPort {
     @Override
     public void deleteById(UUID id) {
         credentialRepository.deleteById(id);
+    }
+
+    @Override
+    public boolean existsByIdAndProjectId(UUID id, UUID projectId) {
+        return credentialRepository.existsByIdAndProject_Id(id, projectId);
+    }
+
+    @Override
+    public String getSupportedType() {
+        return "credential";
+    }
+
+    @Override
+    public List<UUID> findExistingIdsByProject(List<UUID> ids, UUID projectId) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return credentialRepository.findExistingIdsByProjectId(ids, projectId);
     }
 }

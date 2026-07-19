@@ -2,6 +2,7 @@ package com.devaulty.backend.infrastructure.configuration;
 
 import com.devaulty.backend.application.impl.snippet.*;
 import com.devaulty.backend.application.port.in.snippet.*;
+import com.devaulty.backend.application.port.out.persistence.ItemTagRepositoryPort;
 import com.devaulty.backend.application.port.out.persistence.ProjectRepositoryPort;
 import com.devaulty.backend.application.port.out.persistence.SnippetRepositoryPort;
 import org.springframework.context.annotation.Bean;
@@ -57,11 +58,13 @@ public class SnippetBeanConfig {
     @Bean
     public DeleteSnippetUseCase deleteSnippetUseCase(
             SnippetRepositoryPort snippetRepositoryPort,
-            ProjectRepositoryPort projectRepositoryPort
+            ProjectRepositoryPort projectRepositoryPort,
+            ItemTagRepositoryPort itemTagRepositoryPort
     ){
         return new DeleteSnippetImpl(
                 snippetRepositoryPort,
-                projectRepositoryPort
+                projectRepositoryPort,
+                itemTagRepositoryPort
         );
     }
 }

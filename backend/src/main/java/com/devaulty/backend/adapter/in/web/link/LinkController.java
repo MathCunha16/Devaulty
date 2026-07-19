@@ -6,12 +6,17 @@ import com.devaulty.backend.adapter.in.web.link.dto.UpdateLinkRequest;
 import com.devaulty.backend.adapter.in.web.util.UriLocationBuilderHelper;
 import com.devaulty.backend.application.port.in.link.*;
 import com.devaulty.backend.domain.model.Link;
+import com.devaulty.backend.application.port.in.tag.item.GetTagsForItemUseCase;
+import com.devaulty.backend.application.port.in.tag.item.GetTagsForItemsUseCase;
+import com.devaulty.backend.domain.model.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -23,15 +28,21 @@ public class LinkController implements LinkApi{
     private final GetLinkByIdUseCase getLinkByIdUseCase;
     private final DeleteLinkUseCase deleteLinkUseCase;
     private final UpdateLinkUseCase updateLinkUseCase;
+    private final GetTagsForItemUseCase getTagsForItemUseCase;
+    private final GetTagsForItemsUseCase getTagsForItemsUseCase;
     private final LinkWebMapper webMapper;
     private final UriLocationBuilderHelper uriLocationBuilderHelper;
 
-    public LinkController(CreateLinkUseCase createLinkUseCase, GetAllLinksByProjectUseCase getAllLinksByProjectUseCase, GetLinkByIdUseCase getLinkByIdUseCase, DeleteLinkUseCase deleteLinkUseCase, UpdateLinkUseCase updateLinkUseCase, LinkWebMapper webMapper, UriLocationBuilderHelper uriLocationBuilderHelper) {
+    private static final String ITEM_TYPE = "link";
+
+    public LinkController(CreateLinkUseCase createLinkUseCase, GetAllLinksByProjectUseCase getAllLinksByProjectUseCase, GetLinkByIdUseCase getLinkByIdUseCase, DeleteLinkUseCase deleteLinkUseCase, UpdateLinkUseCase updateLinkUseCase, GetTagsForItemUseCase getTagsForItemUseCase, GetTagsForItemsUseCase getTagsForItemsUseCase, LinkWebMapper webMapper, UriLocationBuilderHelper uriLocationBuilderHelper) {
         this.createLinkUseCase = createLinkUseCase;
         this.getAllLinksByProjectUseCase = getAllLinksByProjectUseCase;
         this.getLinkByIdUseCase = getLinkByIdUseCase;
         this.deleteLinkUseCase = deleteLinkUseCase;
         this.updateLinkUseCase = updateLinkUseCase;
+        this.getTagsForItemUseCase = getTagsForItemUseCase;
+        this.getTagsForItemsUseCase = getTagsForItemsUseCase;
         this.webMapper = webMapper;
         this.uriLocationBuilderHelper = uriLocationBuilderHelper;
     }
@@ -45,7 +56,7 @@ public class LinkController implements LinkApi{
         CreateLinkCommand command = webMapper.toCreateLinkCommand(request, projectId);
         Link link = createLinkUseCase.execute(command);
         URI uri = uriLocationBuilderHelper.buildLocationUri(link.getId());
-        return ResponseEntity.created(uri).body(webMapper.toViewResponse(link));
+        return ResponseEntity.created(uri).body(webMapper.toViewResponse(link, List.of()));
     }
 
     @Override
@@ -56,7 +67,11 @@ public class LinkController implements LinkApi{
             @RequestParam(defaultValue = "10") int size
     ){
         Page<Link> links = getAllLinksByProjectUseCase.execute(projectId, page, size);
-        return ResponseEntity.ok(links.map(webMapper::toViewResponse));
+        List<UUID> ids = links.getContent().stream().map(Link::getId).toList();
+        Map<UUID, List<Tag>> tagsByItem = getTagsForItemsUseCase.execute(ITEM_TYPE, projectId, ids);
+        Page<LinkViewResponse> response = links.map(s ->
+                webMapper.toViewResponse(s, tagsByItem.getOrDefault(s.getId(), List.of())));
+        return ResponseEntity.ok(response);
     }
 
     @Override
@@ -66,7 +81,8 @@ public class LinkController implements LinkApi{
             @PathVariable UUID linkId
     ){
         Link link = getLinkByIdUseCase.execute(projectId, linkId);
-        return ResponseEntity.ok(webMapper.toViewResponse(link));
+        List<Tag> tags = getTagsForItemUseCase.execute(ITEM_TYPE, projectId, linkId);
+        return ResponseEntity.ok(webMapper.toViewResponse(link, tags));
     }
 
     @Override
@@ -78,7 +94,8 @@ public class LinkController implements LinkApi{
     ){
         UpdateLinkCommand command = webMapper.toUpdateLinkCommand(request, projectId, linkId);
         Link link = updateLinkUseCase.execute(command);
-        return ResponseEntity.ok(webMapper.toViewResponse(link));
+        List<Tag> tags = getTagsForItemUseCase.execute(ITEM_TYPE, projectId, linkId);
+        return ResponseEntity.ok(webMapper.toViewResponse(link, tags));
     }
 
     @Override

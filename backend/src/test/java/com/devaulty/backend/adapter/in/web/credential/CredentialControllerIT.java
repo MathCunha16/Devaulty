@@ -99,7 +99,8 @@ class CredentialControllerIT extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.decryptedPayload.password").value("dbpassword"))
                 .andExpect(jsonPath("$.notes").value("some notes"))
                 .andExpect(jsonPath("$.relatedUrl").value("http://db-server"))
-                .andExpect(jsonPath("$.createdAt").isNotEmpty());
+                .andExpect(jsonPath("$.createdAt").isNotEmpty())
+                .andExpect(jsonPath("$.tags").isEmpty());
 
         assertEquals(1, credentialRepository.count());
 
@@ -288,8 +289,10 @@ class CredentialControllerIT extends BaseIntegrationTest {
                         .param("size", "5"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content", hasSize(2)))
-                .andExpect(jsonPath("$.content[0].title").value("Cred 2")) // sorted desc by createdAt
+                .andExpect(jsonPath("$.content[0].title").value("Cred 2"))
+                .andExpect(jsonPath("$.content[0].tags").isEmpty())
                 .andExpect(jsonPath("$.content[1].title").value("Cred 1"))
+                .andExpect(jsonPath("$.content[1].tags").isEmpty())
                 .andExpect(jsonPath("$.page.totalElements").value(2));
     }
 
@@ -318,7 +321,8 @@ class CredentialControllerIT extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.id").value(credentialId.toString()))
                 .andExpect(jsonPath("$.title").value("Get Credential"))
                 .andExpect(jsonPath("$.decryptedPayload.username").value("admin"))
-                .andExpect(jsonPath("$.decryptedPayload.password").value("secret"));
+                .andExpect(jsonPath("$.decryptedPayload.password").value("secret"))
+                .andExpect(jsonPath("$.tags").isEmpty());
     }
 
     @Test

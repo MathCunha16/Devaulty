@@ -7,7 +7,7 @@ import org.springframework.data.domain.Page;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface CredentialRepositoryPort {
+public interface CredentialRepositoryPort extends ProjectScopedRepositoryPort {
 
     Credential save(Credential credential);
 
@@ -16,4 +16,6 @@ public interface CredentialRepositoryPort {
     Page<CredentialSummary> findAllByProject(UUID projectId, int page, int size);
 
     void deleteById(UUID id);
+
+    boolean existsByIdAndProjectId(UUID id, UUID projectId);
 }

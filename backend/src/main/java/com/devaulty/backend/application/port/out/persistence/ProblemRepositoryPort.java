@@ -6,7 +6,7 @@ import org.springframework.data.domain.Page;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface ProblemRepositoryPort {
+public interface ProblemRepositoryPort extends ProjectScopedRepositoryPort {
     Problem save(Problem problem);
 
     Optional<Problem> findById(UUID id);
@@ -14,4 +14,6 @@ public interface ProblemRepositoryPort {
     Page<Problem> findAllByProject(UUID projectId, int page, int size);
 
     void deleteById(UUID id);
+
+    boolean existsByIdAndProjectId(UUID id, UUID projectId);
 }

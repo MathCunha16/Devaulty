@@ -62,7 +62,8 @@ class NoteControllerIT extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.title").value("My Note"))
                 .andExpect(jsonPath("$.content").value("Note content here"))
                 .andExpect(jsonPath("$.archived").value(false))
-                .andExpect(jsonPath("$.createdAt").isNotEmpty());
+                .andExpect(jsonPath("$.createdAt").isNotEmpty())
+                .andExpect(jsonPath("$.tags").isEmpty());
 
         assertEquals(1, noteRepository.count());
     }
@@ -113,8 +114,10 @@ class NoteControllerIT extends BaseIntegrationTest {
                         .param("size", "5"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content", hasSize(2)))
-                .andExpect(jsonPath("$.content[0].title").value("Note 2")) // Sorted DESC by createdAt
+                .andExpect(jsonPath("$.content[0].title").value("Note 2"))
+                .andExpect(jsonPath("$.content[0].tags").isEmpty())
                 .andExpect(jsonPath("$.content[1].title").value("Note 1"))
+                .andExpect(jsonPath("$.content[1].tags").isEmpty())
                 .andExpect(jsonPath("$.page.totalElements").value(2));
     }
 
@@ -137,7 +140,8 @@ class NoteControllerIT extends BaseIntegrationTest {
         mockMvc.perform(get("/ap1/v1/projects/{projectId}/notes/{noteID}", savedProject.getId(), id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
-                .andExpect(jsonPath("$.title").value("Get Note"));
+                .andExpect(jsonPath("$.title").value("Get Note"))
+                .andExpect(jsonPath("$.tags").isEmpty());
     }
 
     @Test

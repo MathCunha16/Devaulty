@@ -2,6 +2,7 @@ package com.devaulty.backend.adapter.in.web.snippet;
 
 import com.devaulty.backend.adapter.in.web.exception.ApiErrorResponse;
 import com.devaulty.backend.adapter.in.web.snippet.dto.CreateSnippetRequest;
+import com.devaulty.backend.adapter.in.web.snippet.dto.SnippetSummaryResponse;
 import com.devaulty.backend.adapter.in.web.snippet.dto.SnippetViewResponse;
 import com.devaulty.backend.adapter.in.web.snippet.dto.UpdateSnippetRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -91,7 +92,7 @@ public interface SnippetApi {
         )
     })
     @GetMapping
-    ResponseEntity<Page<SnippetViewResponse>> getAllByProject(
+    ResponseEntity<Page<SnippetSummaryResponse>> getAllByProject(
             @PathVariable UUID projectId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size

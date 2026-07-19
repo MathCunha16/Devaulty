@@ -2,6 +2,7 @@ package com.devaulty.backend.infrastructure.configuration;
 
 import com.devaulty.backend.application.impl.link.*;
 import com.devaulty.backend.application.port.in.link.*;
+import com.devaulty.backend.application.port.out.persistence.ItemTagRepositoryPort;
 import com.devaulty.backend.application.port.out.persistence.LinkRepositoryPort;
 import com.devaulty.backend.application.port.out.persistence.ProjectRepositoryPort;
 import org.springframework.context.annotation.Bean;
@@ -46,11 +47,13 @@ public class LinkBeanConfig {
     @Bean
     public DeleteLinkUseCase deleteLinkUseCase(
             LinkRepositoryPort linkRepositoryPort,
-            ProjectRepositoryPort projectRepositoryPort
+            ProjectRepositoryPort projectRepositoryPort,
+            ItemTagRepositoryPort itemTagRepositoryPort
     ){
         return new DeleteLinkImpl(
                 linkRepositoryPort,
-                projectRepositoryPort
+                projectRepositoryPort,
+                itemTagRepositoryPort
         );
     }
 
