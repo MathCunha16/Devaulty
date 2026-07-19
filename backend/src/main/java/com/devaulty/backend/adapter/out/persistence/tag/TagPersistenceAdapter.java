@@ -1,8 +1,10 @@
 package com.devaulty.backend.adapter.out.persistence.tag;
 
 import com.devaulty.backend.adapter.out.persistence.project.SpringDataProjectRepository;
+import com.devaulty.backend.application.exception.ResourceAlreadyExistsException;
 import com.devaulty.backend.application.port.out.persistence.TagRepositoryPort;
 import com.devaulty.backend.domain.model.Tag;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -29,8 +31,8 @@ public class TagPersistenceAdapter implements TagRepositoryPort {
             entity.setProject(projectRepository.getReferenceById(tag.getProjectId()));
             TagEntity savedEntity = tagRepository.save(entity);
             return tagMapper.toDomain(savedEntity);
-        } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            throw new com.devaulty.backend.application.exception.ResourceAlreadyExistsException("Tag", tag.getName());
+        } catch (DataIntegrityViolationException e) {
+            throw new ResourceAlreadyExistsException("Tag", tag.getName());
         }
     }
 
@@ -66,5 +68,4 @@ public class TagPersistenceAdapter implements TagRepositoryPort {
     public boolean existsByIdAndProjectId(UUID id, UUID projectId) {
         return tagRepository.existsByIdAndProject_Id(id, projectId);
     }
-
 }

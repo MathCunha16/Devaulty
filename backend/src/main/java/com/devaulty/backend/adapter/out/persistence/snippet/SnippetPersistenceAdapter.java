@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -59,5 +60,10 @@ public class SnippetPersistenceAdapter implements SnippetRepositoryPort {
     @Override
     public String getSupportedType() {
         return "snippet";
+    }
+
+    @Override
+    public List<UUID> findExistingIdsByProject(List<UUID> ids, UUID projectId) {
+        return snippetRepository.findExistingIdsByProjectId(ids, projectId);
     }
 }

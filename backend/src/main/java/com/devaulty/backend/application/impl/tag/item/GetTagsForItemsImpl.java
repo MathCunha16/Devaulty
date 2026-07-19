@@ -34,23 +34,27 @@ public class GetTagsForItemsImpl implements GetTagsForItemsUseCase {
             throw new ResourceNotFoundException("Project", projectId);
         }
 
-        for (UUID itemId : itemIds) {
-            validateItemOwnership(itemType, projectId, itemId);
-        }
+        validateItemsOwnership(itemType, projectId, itemIds);
 
         return itemTagRepositoryPort.findTagsForItems(itemType, projectId, itemIds);
     }
 
-    private void validateItemOwnership(String itemType, UUID projectId, UUID itemId) {
-        boolean exists = projectScopedRepositories.stream()
-                .filter(repo -> repo.getSupportedType().equalsIgnoreCase(itemType))
+    private void validateItemsOwnership(String itemType, UUID projectId, List<UUID> itemIds) {
+        ProjectScopedRepositoryPort repo = projectScopedRepositories.stream()
+                .filter(r -> r.getSupportedType().equalsIgnoreCase(itemType))
                 .findFirst()
-                .map(repo -> repo.existsByIdAndProjectId(itemId, projectId))
                 .orElseThrow(() -> new IllegalArgumentException("Unsupported item type: " + itemType));
 
-        if (!exists) {
+        List<UUID> existingIds = repo.findExistingIdsByProject(itemIds, projectId);
+
+        if (existingIds.size() != itemIds.size()) {
+            UUID missingId = itemIds.stream()
+                    .filter(id -> !existingIds.contains(id))
+                    .findFirst()
+                    .orElse(null);
+
             String resourceName = itemType.substring(0, 1).toUpperCase() + itemType.substring(1).toLowerCase();
-            throw new ResourceNotFoundException(resourceName, itemId);
+            throw new ResourceNotFoundException(resourceName, missingId);
         }
     }
 }

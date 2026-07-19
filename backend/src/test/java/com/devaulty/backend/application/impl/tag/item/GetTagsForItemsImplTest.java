@@ -61,7 +61,7 @@ class GetTagsForItemsImplTest {
 
         when(projectRepository.existsById(projectId)).thenReturn(true);
         when(snippetRepository.getSupportedType()).thenReturn(itemType);
-        when(snippetRepository.existsByIdAndProjectId(itemId, projectId)).thenReturn(true);
+        when(snippetRepository.findExistingIdsByProject(itemIds, projectId)).thenReturn(Collections.singletonList(itemId));
         when(itemTagRepository.findTagsForItems(itemType, projectId, itemIds)).thenReturn(expectedMap);
 
         // Act
@@ -75,7 +75,7 @@ class GetTagsForItemsImplTest {
         assertEquals("docker", result.get(itemId).getFirst().getName());
 
         verify(projectRepository, times(1)).existsById(projectId);
-        verify(snippetRepository, times(1)).existsByIdAndProjectId(itemId, projectId);
+        verify(snippetRepository, times(1)).findExistingIdsByProject(itemIds, projectId);
         verify(itemTagRepository, times(1)).findTagsForItems(itemType, projectId, itemIds);
     }
 
@@ -108,7 +108,7 @@ class GetTagsForItemsImplTest {
 
         when(projectRepository.existsById(projectId)).thenReturn(true);
         when(snippetRepository.getSupportedType()).thenReturn(itemType);
-        when(snippetRepository.existsByIdAndProjectId(itemId, projectId)).thenReturn(false);
+        when(snippetRepository.findExistingIdsByProject(itemIds, projectId)).thenReturn(Collections.emptyList());
 
         // Act & Assert
         assertThrows(ResourceNotFoundException.class, () -> {
@@ -116,7 +116,7 @@ class GetTagsForItemsImplTest {
         });
 
         verify(projectRepository, times(1)).existsById(projectId);
-        verify(snippetRepository, times(1)).existsByIdAndProjectId(itemId, projectId);
+        verify(snippetRepository, times(1)).findExistingIdsByProject(itemIds, projectId);
         verify(itemTagRepository, never()).findTagsForItems(any(), any(), any());
     }
 }

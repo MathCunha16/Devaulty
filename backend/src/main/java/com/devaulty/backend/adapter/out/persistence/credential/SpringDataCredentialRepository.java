@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface SpringDataCredentialRepository extends JpaRepository<CredentialEntity, UUID> {
@@ -29,4 +30,10 @@ public interface SpringDataCredentialRepository extends JpaRepository<Credential
     );
 
     boolean existsByIdAndProject_Id(UUID id, UUID projectId);
+
+    @Query("SELECT c.id FROM CredentialEntity c WHERE c.id IN :ids AND c.project.id = :projectId")
+    List<UUID> findExistingIdsByProjectId(
+            @Param("ids") List<UUID> ids,
+            @Param("projectId") UUID projectId
+    );
 }
