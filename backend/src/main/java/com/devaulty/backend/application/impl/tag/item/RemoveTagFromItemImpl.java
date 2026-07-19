@@ -39,21 +39,24 @@ public class RemoveTagFromItemImpl implements RemoveTagFromItemUseCase {
             throw new ResourceNotFoundException("Tag", tagId);
         }
 
-        validateItemOwnership(itemType, projectId, itemId);
+        String canonicalType = validateItemOwnership(itemType, projectId, itemId);
 
-        itemTagRepositoryPort.disassembleTagFromItem(projectId, tagId, itemType, itemId);
+        itemTagRepositoryPort.disassembleTagFromItem(projectId, tagId, canonicalType, itemId);
     }
 
-    private void validateItemOwnership(String itemType, UUID projectId, UUID itemId) {
-        boolean exists = projectScopedRepositories.stream()
-                .filter(repo -> repo.getSupportedType().equalsIgnoreCase(itemType))
+    private String validateItemOwnership(String itemType, UUID projectId, UUID itemId) {
+        ProjectScopedRepositoryPort repo = projectScopedRepositories.stream()
+                .filter(r -> r.getSupportedType().equalsIgnoreCase(itemType))
                 .findFirst()
-                .map(repo -> repo.existsByIdAndProjectId(itemId, projectId))
                 .orElseThrow(() -> new IllegalArgumentException("Unsupported item type: " + itemType));
+
+        boolean exists = repo.existsByIdAndProjectId(itemId, projectId);
 
         if (!exists) {
             String resourceName = itemType.substring(0, 1).toUpperCase() + itemType.substring(1).toLowerCase();
             throw new ResourceNotFoundException(resourceName, itemId);
         }
+
+        return repo.getSupportedType();
     }
 }

@@ -51,6 +51,9 @@ public class ItemTagPersistenceAdapter implements ItemTagRepositoryPort {
 
     @Override
     public Map<UUID, List<Tag>> findTagsForItems(String itemType, UUID projectId, List<UUID> itemIds) {
+        if (itemIds == null || itemIds.isEmpty()) {
+            return Map.of();
+        }
         return itemTagRepository.findByItemTypeAndItemIdInAndProjectId(itemType, itemIds, projectId)
                 .stream()
                 .collect(Collectors.groupingBy(

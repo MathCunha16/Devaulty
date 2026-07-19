@@ -65,6 +65,9 @@ public class NotePersistenceAdapter implements NoteRepositoryPort {
 
     @Override
     public List<UUID> findExistingIdsByProject(List<UUID> ids, UUID projectId) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
         return noteRepository.findExistingIdsByProjectId(ids, projectId);
     }
 }

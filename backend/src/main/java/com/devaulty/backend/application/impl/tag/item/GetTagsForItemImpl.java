@@ -33,21 +33,24 @@ public class GetTagsForItemImpl implements GetTagsForItemUseCase {
             throw new ResourceNotFoundException("Project", projectId);
         }
 
-        validateItemOwnership(itemType, projectId, itemId);
+        String canonicalType = validateItemOwnership(itemType, projectId, itemId);
 
-        return itemTagRepositoryPort.findTagsForItem(itemType, projectId, itemId);
+        return itemTagRepositoryPort.findTagsForItem(canonicalType, projectId, itemId);
     }
 
-    private void validateItemOwnership(String itemType, UUID projectId, UUID itemId) {
-        boolean exists = projectScopedRepositories.stream()
-                .filter(repo -> repo.getSupportedType().equalsIgnoreCase(itemType))
+    private String validateItemOwnership(String itemType, UUID projectId, UUID itemId) {
+        ProjectScopedRepositoryPort repo = projectScopedRepositories.stream()
+                .filter(r -> r.getSupportedType().equalsIgnoreCase(itemType))
                 .findFirst()
-                .map(repo -> repo.existsByIdAndProjectId(itemId, projectId))
                 .orElseThrow(() -> new IllegalArgumentException("Unsupported item type: " + itemType));
+
+        boolean exists = repo.existsByIdAndProjectId(itemId, projectId);
 
         if (!exists) {
             String resourceName = itemType.substring(0, 1).toUpperCase() + itemType.substring(1).toLowerCase();
             throw new ResourceNotFoundException(resourceName, itemId);
         }
+
+        return repo.getSupportedType();
     }
 }
