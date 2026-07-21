@@ -103,6 +103,7 @@
   color: var(--color-foreground);
   text-decoration: none;
   transition: opacity 0.15s ease;
+  pointer-events: auto;
 }
 
 .appLogo:hover {

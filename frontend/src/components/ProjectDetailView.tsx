@@ -485,7 +485,7 @@ export const ProjectDetailView: React.FC = () => {
             title="Problems & Diagnostics"
           >
             <Icons.AlertCircle size={18} />
-            <span className={styles.workspaceTabLabel}>Errors</span>
+            <span className={styles.workspaceTabLabel}>Problems</span>
             {openProblemsCount > 0 && (
               <span className={styles.badgeCount}>{openProblemsCount}</span>
             )}
@@ -493,7 +493,7 @@ export const ProjectDetailView: React.FC = () => {
 
           <button className={`${styles.workspaceTab} ${styles.workspaceTabDisabled}`} title="Credentials (Coming Soon)" disabled>
             <Icons.KeyRound size={18} />
-            <span className={styles.workspaceTabLabel}>Keys</span>
+            <span className={styles.workspaceTabLabel}>Credentials</span>
           </button>
 
           <button className={`${styles.workspaceTab} ${styles.workspaceTabDisabled}`} title="System Notes (Coming Soon)" disabled>

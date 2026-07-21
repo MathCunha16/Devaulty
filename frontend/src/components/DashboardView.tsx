@@ -93,7 +93,13 @@ export const DashboardView: React.FC = () => {
           {activeProjects.map((project) => {
             const ProjectIcon = getIconComponent(project.icon);
             return (
-              <div key={project.id} className={styles.projectCard}>
+              <Link
+                key={project.id}
+                to="/projects/$projectId"
+                params={{ projectId: project.id }}
+                className={styles.projectCard}
+                style={{ textDecoration: "none" }}
+              >
                 <div
                   className="h-1 w-full absolute top-0 left-0"
                   style={{ backgroundColor: project.color || "var(--color-primary)" }}
@@ -118,15 +124,11 @@ export const DashboardView: React.FC = () => {
                   <div className={styles.cardActions}>
                     <button
                       className={styles.actionBtn}
-                      onClick={() => setEditingProjectId(project.id)}
-                      title="Edit Project"
-                      disabled={isMutationPending}
-                    >
-                      <Icons.Edit3 size={12} />
-                    </button>
-                    <button
-                      className={styles.actionBtn}
-                      onClick={() => handleArchive(project.id, project.name)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleArchive(project.id, project.name);
+                      }}
                       title="Archive Project"
                       disabled={isMutationPending}
                     >
@@ -134,7 +136,11 @@ export const DashboardView: React.FC = () => {
                     </button>
                     <button
                       className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
-                      onClick={() => handleDelete(project.id, project.name)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleDelete(project.id, project.name);
+                      }}
                       title="Delete Project"
                       disabled={isMutationPending}
                     >
@@ -142,16 +148,21 @@ export const DashboardView: React.FC = () => {
                     </button>
                   </div>
 
-                  <Link
-                    to="/projects/$projectId"
-                    params={{ projectId: project.id }}
+                  <button
                     className={styles.openLink}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setEditingProjectId(project.id);
+                    }}
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                    title="Manage Project"
                   >
-                    <span>Open snippets</span>
-                    <Icons.ExternalLink size={12} />
-                  </Link>
+                    <span>Manage</span>
+                    <Icons.Settings size={12} />
+                  </button>
                 </div>
-              </div>
+              </Link>
             );
           })}
 
@@ -207,7 +218,11 @@ export const DashboardView: React.FC = () => {
                       <div className={styles.cardActions}>
                         <button
                           className={styles.actionBtn}
-                          onClick={() => handleUnarchive(project.id, project.name)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleUnarchive(project.id, project.name);
+                          }}
                           title="Restore Project"
                           disabled={isMutationPending}
                         >
@@ -215,7 +230,11 @@ export const DashboardView: React.FC = () => {
                         </button>
                         <button
                           className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
-                          onClick={() => handleDelete(project.id, project.name)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleDelete(project.id, project.name);
+                          }}
                           title="Delete Project"
                           disabled={isMutationPending}
                         >
