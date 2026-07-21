@@ -142,16 +142,6 @@ const RootLayoutInner: React.FC = () => {
           </Suspense>
         </div>
 
-        <footer className={styles.statusBar}>
-          <div className={styles.statusItem}>
-            <div className={styles.statusIndicator} />
-            <span>API LINK: http://localhost:8080/api/v1</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span>PERSISTENCE: BACKEND SERVER</span>
-            <span>v1.0.0</span>
-          </div>
-        </footer>
       </main>
       <Toaster position="bottom-right" theme={theme} closeButton />
     </div>

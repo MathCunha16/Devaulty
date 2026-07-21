@@ -73,13 +73,6 @@ export const DashboardView: React.FC = () => {
           <span className={styles.statLabel}>Archived Projects</span>
           <span className={styles.statValue}>{archivedProjects.length}</span>
         </div>
-        <div className={styles.statCard}>
-          <span className={styles.statLabel}>System Persistence</span>
-          <span className="text-sm font-semibold text-emerald-500 font-mono flex items-center gap-1.5 mt-2">
-            <Icons.Database size={16} />
-            LOCAL DEV API
-          </span>
-        </div>
       </div>
 
       <div>
