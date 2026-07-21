@@ -6,6 +6,7 @@ import {
   useUpdateProjectMutation,
   useProjectQuery,
 } from "../hooks/useProjects";
+import { useAutoResize } from "../../../hooks/useAutoResize";
 import styles from "./ProjectForm.module.css";
 
 interface ProjectFormProps {
@@ -54,6 +55,8 @@ const ProjectFormInner: React.FC<ProjectFormInnerProps> = ({
   const [color, setColor] = useState(initialValues?.color || PRESET_COLORS[5]);
   const [icon, setIcon] = useState(initialValues?.icon || PRESET_ICONS[0]);
 
+  const descRef = useAutoResize(description, 72);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({ name, description, color, icon });
@@ -79,7 +82,7 @@ const ProjectFormInner: React.FC<ProjectFormInnerProps> = ({
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={isSubmitting}
-              maxLength={255}
+              maxLength={30}
               required
             />
           </div>
@@ -87,6 +90,7 @@ const ProjectFormInner: React.FC<ProjectFormInnerProps> = ({
           <div className={styles.field}>
             <label className={styles.label}>Description</label>
             <textarea
+              ref={descRef}
               className={styles.textarea}
               placeholder="Brief summary of this project..."
               value={description}

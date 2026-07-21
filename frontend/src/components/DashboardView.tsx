@@ -9,6 +9,7 @@ import {
   useDeleteProjectMutation,
 } from "~features/projects/hooks/useProjects";
 import { ProjectForm } from "~features/projects/components/ProjectForm";
+import { ConfirmModal } from "./ConfirmModal";
 import { getIconComponent } from "../utils/icons";
 import styles from "../routes/index.module.css";
 
@@ -21,6 +22,12 @@ export const DashboardView: React.FC = () => {
   const [editingProjectId, setEditingProjectId] = useState<string | undefined>(undefined);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    itemId: string;
+    itemName: string;
+    isLoading: boolean;
+  }>({ isOpen: false, itemId: "", itemName: "", isLoading: false });
 
   const projects = projectsData?.content || [];
   const activeProjects = projects.filter((p) => !p.archived);
@@ -46,14 +53,19 @@ export const DashboardView: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (window.confirm(`Are you absolutely sure you want to delete project "${name}"? This action CANNOT be undone and will delete all associated snippets.`)) {
-      try {
-        await deleteMutation.mutateAsync(id);
-        toast.success(`Project "${name}" deleted`);
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to delete project");
-      }
+  const handleDelete = (id: string, name: string) => {
+    setConfirmModal({ isOpen: true, itemId: id, itemName: name, isLoading: false });
+  };
+
+  const handleConfirmDelete = async () => {
+    setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+    try {
+      await deleteMutation.mutateAsync(confirmModal.itemId);
+      toast.success(`Project "${confirmModal.itemName}" deleted`);
+      setConfirmModal({ isOpen: false, itemId: "", itemName: "", isLoading: false });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete project");
+      setConfirmModal((prev) => ({ ...prev, isLoading: false }));
     }
   };
 
@@ -233,6 +245,18 @@ export const DashboardView: React.FC = () => {
       {isCreateOpen && (
         <ProjectForm isOpen={true} onClose={() => setIsCreateOpen(false)} />
       )}
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={handleConfirmDelete}
+        title="Delete Project"
+        message="Are you sure you want to permanently delete the project"
+        itemName={confirmModal.itemName}
+        warningText="This cannot be undone. All snippets and diagnostics in this project will be permanently deleted."
+        isLoading={confirmModal.isLoading}
+      />
     </div>
   );
 };

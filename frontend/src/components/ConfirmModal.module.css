@@ -1,0 +1,135 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1.5rem;
+}
+
+.modal {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  animation: modalIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.iconWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  margin-bottom: 1rem;
+}
+
+.body {
+  padding: 1.75rem 1.75rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--color-foreground);
+  margin-bottom: 0.5rem;
+}
+
+.message {
+  font-size: 0.85rem;
+  color: var(--color-muted-foreground);
+  line-height: 1.6;
+}
+
+.highlight {
+  font-weight: 600;
+  color: var(--color-foreground);
+  font-family: var(--font-mono);
+}
+
+.warning {
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  border-radius: var(--radius-sm);
+  padding: 0.375rem 0.75rem;
+}
+
+.footer {
+  padding: 1rem 1.75rem 1.5rem;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.btnCancel {
+  padding: 0.5rem 1.125rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border: 1px solid var(--color-border);
+  background-color: transparent;
+  color: var(--color-foreground);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnCancel:hover {
+  background-color: var(--color-secondary);
+}
+
+.btnDelete {
+  padding: 0.5rem 1.125rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  background-color: #ef4444;
+  color: white;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.btnDelete:hover {
+  background-color: #dc2626;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.35);
+}
+
+.btnDelete:disabled,
+.btnCancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
