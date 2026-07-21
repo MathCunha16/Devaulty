@@ -1,6 +1,7 @@
 import { apiClient } from "@/api/client";
 import type {
   CreateTagRequest,
+  UpdateTagRequest,
   TagViewResponse,
 } from "~types/api";
 
@@ -20,8 +21,28 @@ export const tagsApi = {
     return response.data;
   },
 
+  update: async (
+    projectId: string,
+    tagId: string,
+    request: UpdateTagRequest
+  ): Promise<TagViewResponse> => {
+    const response = await apiClient.patch<TagViewResponse>(
+      `/projects/${projectId}/tags/${tagId}`,
+      request
+    );
+    return response.data;
+  },
+
   delete: async (projectId: string, tagId: string): Promise<void> => {
     await apiClient.delete(`/projects/${projectId}/tags/${tagId}`);
+  },
+
+  search: async (projectId: string, name: string): Promise<TagViewResponse[]> => {
+    const response = await apiClient.get<TagViewResponse[]>(
+      `/projects/${projectId}/tags/search`,
+      { params: { name } }
+    );
+    return response.data;
   },
 
   associate: async (
