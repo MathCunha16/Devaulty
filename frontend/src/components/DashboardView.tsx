@@ -9,6 +9,7 @@ import {
   useDeleteProjectMutation,
 } from "~features/projects/hooks/useProjects";
 import { ProjectForm } from "~features/projects/components/ProjectForm";
+import { ConfirmModal } from "./ConfirmModal";
 import { getIconComponent } from "../utils/icons";
 import styles from "../routes/index.module.css";
 
@@ -21,6 +22,12 @@ export const DashboardView: React.FC = () => {
   const [editingProjectId, setEditingProjectId] = useState<string | undefined>(undefined);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    itemId: string;
+    itemName: string;
+    isLoading: boolean;
+  }>({ isOpen: false, itemId: "", itemName: "", isLoading: false });
 
   const projects = projectsData?.content || [];
   const activeProjects = projects.filter((p) => !p.archived);
@@ -46,14 +53,19 @@ export const DashboardView: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (window.confirm(`Are you absolutely sure you want to delete project "${name}"? This action CANNOT be undone and will delete all associated snippets.`)) {
-      try {
-        await deleteMutation.mutateAsync(id);
-        toast.success(`Project "${name}" deleted`);
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to delete project");
-      }
+  const handleDelete = (id: string, name: string) => {
+    setConfirmModal({ isOpen: true, itemId: id, itemName: name, isLoading: false });
+  };
+
+  const handleConfirmDelete = async () => {
+    setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+    try {
+      await deleteMutation.mutateAsync(confirmModal.itemId);
+      toast.success(`Project "${confirmModal.itemName}" deleted`);
+      setConfirmModal({ isOpen: false, itemId: "", itemName: "", isLoading: false });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete project");
+      setConfirmModal((prev) => ({ ...prev, isLoading: false }));
     }
   };
 
@@ -73,13 +85,6 @@ export const DashboardView: React.FC = () => {
           <span className={styles.statLabel}>Archived Projects</span>
           <span className={styles.statValue}>{archivedProjects.length}</span>
         </div>
-        <div className={styles.statCard}>
-          <span className={styles.statLabel}>System Persistence</span>
-          <span className="text-sm font-semibold text-emerald-500 font-mono flex items-center gap-1.5 mt-2">
-            <Icons.Database size={16} />
-            LOCAL DEV API
-          </span>
-        </div>
       </div>
 
       <div>
@@ -88,7 +93,13 @@ export const DashboardView: React.FC = () => {
           {activeProjects.map((project) => {
             const ProjectIcon = getIconComponent(project.icon);
             return (
-              <div key={project.id} className={styles.projectCard}>
+              <Link
+                key={project.id}
+                to="/projects/$projectId"
+                params={{ projectId: project.id }}
+                className={styles.projectCard}
+                style={{ textDecoration: "none" }}
+              >
                 <div
                   className="h-1 w-full absolute top-0 left-0"
                   style={{ backgroundColor: project.color || "var(--color-primary)" }}
@@ -113,15 +124,11 @@ export const DashboardView: React.FC = () => {
                   <div className={styles.cardActions}>
                     <button
                       className={styles.actionBtn}
-                      onClick={() => setEditingProjectId(project.id)}
-                      title="Edit Project"
-                      disabled={isMutationPending}
-                    >
-                      <Icons.Edit3 size={12} />
-                    </button>
-                    <button
-                      className={styles.actionBtn}
-                      onClick={() => handleArchive(project.id, project.name)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleArchive(project.id, project.name);
+                      }}
                       title="Archive Project"
                       disabled={isMutationPending}
                     >
@@ -129,7 +136,11 @@ export const DashboardView: React.FC = () => {
                     </button>
                     <button
                       className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
-                      onClick={() => handleDelete(project.id, project.name)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleDelete(project.id, project.name);
+                      }}
                       title="Delete Project"
                       disabled={isMutationPending}
                     >
@@ -137,16 +148,21 @@ export const DashboardView: React.FC = () => {
                     </button>
                   </div>
 
-                  <Link
-                    to="/projects/$projectId"
-                    params={{ projectId: project.id }}
+                  <button
                     className={styles.openLink}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setEditingProjectId(project.id);
+                    }}
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                    title="Manage Project"
                   >
-                    <span>Open snippets</span>
-                    <Icons.ExternalLink size={12} />
-                  </Link>
+                    <span>Manage</span>
+                    <Icons.Settings size={12} />
+                  </button>
                 </div>
-              </div>
+              </Link>
             );
           })}
 
@@ -202,7 +218,11 @@ export const DashboardView: React.FC = () => {
                       <div className={styles.cardActions}>
                         <button
                           className={styles.actionBtn}
-                          onClick={() => handleUnarchive(project.id, project.name)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleUnarchive(project.id, project.name);
+                          }}
                           title="Restore Project"
                           disabled={isMutationPending}
                         >
@@ -210,7 +230,11 @@ export const DashboardView: React.FC = () => {
                         </button>
                         <button
                           className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
-                          onClick={() => handleDelete(project.id, project.name)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleDelete(project.id, project.name);
+                          }}
                           title="Delete Project"
                           disabled={isMutationPending}
                         >
@@ -240,6 +264,18 @@ export const DashboardView: React.FC = () => {
       {isCreateOpen && (
         <ProjectForm isOpen={true} onClose={() => setIsCreateOpen(false)} />
       )}
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={handleConfirmDelete}
+        title="Delete Project"
+        message="Are you sure you want to permanently delete the project"
+        itemName={confirmModal.itemName}
+        warningText="This cannot be undone. All snippets and diagnostics in this project will be permanently deleted."
+        isLoading={confirmModal.isLoading}
+      />
     </div>
   );
 };

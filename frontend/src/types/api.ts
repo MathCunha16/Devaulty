@@ -104,6 +104,7 @@ export interface SnippetViewResponse {
   content: string;
   language: SnippetLanguage;
   snippetType: SnippetType;
+  tags?: TagSummaryResponse[];
   createdAt: string; // date-time
   updatedAt: string; // date-time
 }
@@ -149,3 +150,75 @@ export interface ApiErrorResponse {
     message: string;
   }>;
 }
+
+export type ProblemStatus = "OPEN" | "WORKING_ON" | "RESOLVED" | "WONT_FIX";
+export type ProblemSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
+export interface TagSummaryResponse {
+  id: string; // uuid
+  name: string;
+  color?: string;
+}
+
+export interface TagViewResponse {
+  id: string; // uuid
+  projectId: string; // uuid
+  name: string;
+  color?: string;
+  createdAt: string; // date-time
+  updatedAt: string; // date-time
+}
+
+export interface CreateTagRequest {
+  name: string;
+  color?: string;
+}
+
+export interface CreateProblemRequest {
+  title: string;
+  errorDescription?: string;
+  solution?: string;
+  status: ProblemStatus;
+  severity: ProblemSeverity;
+}
+
+export interface ProblemViewResponse {
+  id: string; // uuid
+  projectId: string; // uuid
+  title: string;
+  errorDescription?: string;
+  solution?: string;
+  status: ProblemStatus;
+  severity: ProblemSeverity;
+  tags: TagSummaryResponse[];
+  createdAt: string; // date-time
+  updatedAt: string; // date-time
+}
+
+export interface ProblemSummaryResponse {
+  id: string; // uuid
+  projectId: string; // uuid
+  title: string;
+  status: ProblemStatus;
+  severity: ProblemSeverity;
+  tags: TagSummaryResponse[];
+  createdAt: string; // date-time
+  updatedAt: string; // date-time
+}
+
+export interface UpdateProblemRequest {
+  title?: string;
+  errorDescription?: string;
+  solution?: string;
+  severity?: ProblemSeverity;
+}
+
+export interface UpdateProblemStatusRequest {
+  status: ProblemStatus;
+}
+
+export interface PagedModelProblemSummaryResponse {
+  content: ProblemSummaryResponse[];
+  page: PageMetadata;
+}
+
