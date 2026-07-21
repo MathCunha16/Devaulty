@@ -286,6 +286,22 @@ export const ProjectDetailView: React.FC = () => {
   const [showTagPopoverId, setShowTagPopoverId] = useState<string | null>(null);
   const [tagSearchQuery, setTagSearchQuery] = useState("");
 
+  // Close tag popover when clicking outside
+  useEffect(() => {
+    if (showTagPopoverId === null) return;
+
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(`.${styles.addTagContainer}`)) {
+        setShowTagPopoverId(null);
+        setTagSearchQuery("");
+      }
+    };
+
+    document.addEventListener("click", handleOutsideClick);
+    return () => document.removeEventListener("click", handleOutsideClick);
+  }, [showTagPopoverId]);
+
   // Snippet update mutation
   const updateSnippetMutation = useUpdateSnippetMutation(projectId, selectedSnippetId || "");
 
@@ -568,6 +584,12 @@ export const ProjectDetailView: React.FC = () => {
     (l.description && l.description.toLowerCase().includes(linkSearchQuery.toLowerCase()))
   );
 
+  const handleTabChange = (tab: "snippets" | "problems" | "notes" | "links") => {
+    setActiveTab(tab);
+    setShowTagPopoverId(null);
+    setTagSearchQuery("");
+  };
+
   const projectIcon = getIconComponent(project?.icon);
   const isSubmittingSnippet = createSnippetMutation.isPending || updateSnippetMutation.isPending;
 
@@ -612,7 +634,7 @@ export const ProjectDetailView: React.FC = () => {
         <div className={styles.workspaceSidebar}>
           <button
             className={`${styles.workspaceTab} ${activeTab === "snippets" ? styles.workspaceTabActive : ""}`}
-            onClick={() => setActiveTab("snippets")}
+            onClick={() => handleTabChange("snippets")}
             title="Code Snippets"
           >
             <Icons.Code size={18} />
@@ -621,7 +643,7 @@ export const ProjectDetailView: React.FC = () => {
 
           <button
             className={`${styles.workspaceTab} ${activeTab === "problems" ? styles.workspaceTabActive : ""}`}
-            onClick={() => setActiveTab("problems")}
+            onClick={() => handleTabChange("problems")}
             title="Problems & Diagnostics"
           >
             <Icons.AlertCircle size={18} />
@@ -638,7 +660,7 @@ export const ProjectDetailView: React.FC = () => {
 
           <button
             className={`${styles.workspaceTab} ${activeTab === "notes" ? styles.workspaceTabActive : ""}`}
-            onClick={() => setActiveTab("notes")}
+            onClick={() => handleTabChange("notes")}
             title="System Notes"
           >
             <Icons.FileText size={18} />
@@ -647,7 +669,7 @@ export const ProjectDetailView: React.FC = () => {
 
           <button
             className={`${styles.workspaceTab} ${activeTab === "links" ? styles.workspaceTabActive : ""}`}
-            onClick={() => setActiveTab("links")}
+            onClick={() => handleTabChange("links")}
             title="Web Links"
           >
             <Icons.Link2 size={18} />
@@ -1772,7 +1794,7 @@ export const ProjectDetailView: React.FC = () => {
                             </button>
 
                             {showTagPopoverId === `note-${noteDetail.id}` && (
-                              <div className={styles.tagPopover}>
+                              <div className={styles.tagPopover} style={{ bottom: "auto", top: "100%", marginTop: "0.375rem" }}>
                                 <div className={styles.popoverHeader}>
                                   <input
                                     type="text"
@@ -2037,7 +2059,7 @@ export const ProjectDetailView: React.FC = () => {
                             </button>
 
                             {showTagPopoverId === `link-${linkDetail.id}` && (
-                              <div className={styles.tagPopover}>
+                              <div className={styles.tagPopover} style={{ bottom: "auto", top: "100%", marginTop: "0.375rem" }}>
                                 <div className={styles.popoverHeader}>
                                   <input
                                     type="text"
