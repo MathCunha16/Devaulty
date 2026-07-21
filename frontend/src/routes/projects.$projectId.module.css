@@ -170,6 +170,7 @@
   color: var(--color-muted-foreground);
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   line-height: 1.4;
@@ -190,14 +191,22 @@
 }
 
 .badgeType {
-  composes: badge;
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
   background-color: rgba(0, 210, 255, 0.1);
   color: var(--color-primary);
   border: 1px solid rgba(0, 210, 255, 0.2);
 }
 
 .badgeLang {
-  composes: badge;
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
   background-color: rgba(16, 185, 129, 0.1);
   color: #10b981;
   border: 1px solid rgba(16, 185, 129, 0.2);
@@ -432,7 +441,12 @@
 }
 
 .formTextarea {
-  composes: formInput;
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  color: var(--color-foreground);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
   min-height: 60px;
   resize: none;
   overflow: hidden;
@@ -440,7 +454,11 @@
 }
 
 .formEditor {
-  composes: formInput;
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  color: var(--color-foreground);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
   font-family: var(--font-mono);
   font-size: 0.85rem;
   min-height: 200px;
@@ -479,10 +497,15 @@
 }
 
 .btnPrimary {
-  composes: btn;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
   background-color: var(--color-primary);
   color: var(--color-primary-foreground);
-  border-color: var(--color-primary);
+  border: 1px solid var(--color-primary);
 }
 
 .btnPrimary:hover {
@@ -598,18 +621,34 @@
 }
 
 .problemList {
-  composes: snippetList;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-right: 0.25rem;
 }
 
 /* Problem Card */
 .problemItem {
-  composes: snippetItem;
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: left;
   position: relative;
   padding-left: 1.25rem !important; /* space for severity left bar */
 }
 
 .problemItemActive {
-  composes: snippetItemActive;
+  background-color: var(--color-secondary);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 8px rgba(0, 210, 255, 0.15);
 }
 
 .severityIndicator {
@@ -708,11 +747,18 @@
 
 /* Detail Workspace Styles */
 .problemDetailScroll {
-  composes: snippetDetailScroll;
+  flex: 1;
+  overflow-y: auto;
+  padding-left: 0.5rem;
 }
 
 .problemDetailContainer {
-  composes: snippetDetailContainer;
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .problemMetadataRow {
@@ -984,8 +1030,20 @@
 }
 
 .popoverItemCreate {
-  composes: popoverItem;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
   color: var(--color-primary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  transition: background-color 0.15s ease;
   border-top: 1px solid var(--color-border);
   margin-top: 0.25rem;
   padding-top: 0.5rem;

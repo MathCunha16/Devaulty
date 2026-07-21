@@ -5,7 +5,8 @@ import { ThemeProvider } from "./ThemeProvider";
 import { useTheme } from "../hooks/useTheme";
 import { useProjectsQuery } from "~features/projects/hooks/useProjects";
 import { ProjectForm } from "~features/projects/components/ProjectForm";
-import { SidebarProvider, useSidebar } from "../contexts/SidebarContext";
+import { SidebarProvider } from "../contexts/SidebarProvider";
+import { useSidebar } from "../hooks/useSidebar";
 import * as Icons from "lucide-react";
 import styles from "../routes/__root.module.css";
 import { LogoDevaulty } from "./LogoDevaulty";
@@ -55,6 +56,7 @@ const NavigationSidebar: React.FC = () => {
     // wrapper: transitions the visible width
     <div
       className={`${styles.sidebarWrapper} ${isOpen ? "" : styles.sidebarWrapperClosed}`}
+      inert={!isOpen ? true : undefined}
     >
       {/* inner sidebar: always 300px, fades in/out */}
       <aside

@@ -5,7 +5,7 @@ import * as Icons from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { useTheme } from "../hooks/useTheme";
 import { useAutoResize } from "../hooks/useAutoResize";
-import { useSidebar } from "../contexts/SidebarContext";
+import { useSidebar } from "../hooks/useSidebar";
 import { ConfirmModal } from "./ConfirmModal";
 import { useProjectQuery } from "~features/projects/hooks/useProjects";
 import {

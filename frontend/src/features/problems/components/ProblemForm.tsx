@@ -76,8 +76,9 @@ const ProblemFormInner: React.FC<ProblemFormInnerProps> = ({
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.field}>
-            <label className={styles.label}>Title</label>
+            <label htmlFor="problem-title" className={styles.label}>Title</label>
             <input
+              id="problem-title"
               type="text"
               className={styles.input}
               placeholder="e.g., NullPointerException on Auth flow, Memory leak in cache"
@@ -91,8 +92,9 @@ const ProblemFormInner: React.FC<ProblemFormInnerProps> = ({
 
           <div className={styles.row}>
             <div className={styles.field}>
-              <label className={styles.label}>Severity</label>
+              <label htmlFor="problem-severity" className={styles.label}>Severity</label>
               <select
+                id="problem-severity"
                 className={styles.input}
                 value={severity}
                 onChange={(e) => setSeverity(e.target.value as ProblemSeverity)}
@@ -106,8 +108,9 @@ const ProblemFormInner: React.FC<ProblemFormInnerProps> = ({
             </div>
 
             <div className={styles.field}>
-              <label className={styles.label}>Status</label>
+              <label htmlFor="problem-status" className={styles.label}>Status</label>
               <select
+                id="problem-status"
                 className={styles.input}
                 value={status}
                 onChange={(e) => setStatus(e.target.value as ProblemStatus)}
@@ -122,8 +125,9 @@ const ProblemFormInner: React.FC<ProblemFormInnerProps> = ({
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Error / Stack Trace Logs</label>
+            <label htmlFor="problem-error-description" className={styles.label}>Error / Stack Trace Logs</label>
             <textarea
+              id="problem-error-description"
               ref={errorDescRef}
               className={styles.textarea}
               placeholder="Paste stack traces, logs, or error details here..."
@@ -134,8 +138,9 @@ const ProblemFormInner: React.FC<ProblemFormInnerProps> = ({
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Solution Code / Script</label>
+            <label htmlFor="problem-solution" className={styles.label}>Solution Code / Script</label>
             <textarea
+              id="problem-solution"
               ref={solutionRef}
               className={styles.textarea}
               placeholder="Paste your fix, resolution script, or notes here..."
@@ -205,7 +210,7 @@ const EditProblemFormModal: React.FC<{
   problemId: string;
   onClose: () => void;
 }> = ({ projectId, problemId, onClose }) => {
-  const { data: problem } = useProblemQuery(projectId, problemId);
+  const { data: problem, isLoading, isError } = useProblemQuery(projectId, problemId);
   const updateMutation = useUpdateProblemMutation(projectId, problemId);
 
   const handleSubmit = async (values: ProblemFormValues) => {
@@ -223,12 +228,37 @@ const EditProblemFormModal: React.FC<{
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className={styles.overlay} onClick={onClose}>
+        <div className={styles.modal}>
+          <div className="flex flex-col items-center justify-center p-12 gap-3">
+            <Loader2 className="animate-spin text-primary" size={28} />
+            <span className="text-xs text-muted-foreground font-mono">LOADING DIAGNOSTICS...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !problem) {
+    return (
+      <div className={styles.overlay} onClick={onClose}>
+        <div className={styles.modal}>
+          <div className="flex flex-col items-center justify-center p-12 gap-3 text-destructive font-mono text-xs">
+            <span>FAILED TO LOAD DIAGNOSTICS DATA.</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const initialValues: ProblemFormValues = {
-    title: problem?.title || "",
-    errorDescription: problem?.errorDescription || "",
-    solution: problem?.solution || "",
-    status: problem?.status || "OPEN",
-    severity: problem?.severity || "MEDIUM",
+    title: problem.title || "",
+    errorDescription: problem.errorDescription || "",
+    solution: problem.solution || "",
+    status: problem.status || "OPEN",
+    severity: problem.severity || "MEDIUM",
   };
 
   return (
