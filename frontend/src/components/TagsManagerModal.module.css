@@ -267,6 +267,7 @@
 
 .inlineColors {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.25rem;
   margin-right: 0.5rem;
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, Suspense } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -62,6 +62,10 @@ const NoteFormInner: React.FC<NoteFormInnerProps> = ({
   // Trap focus inside modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
       if (e.key !== "Tab") return;
 
       const modal = modalRef.current;
@@ -274,22 +278,7 @@ export const NoteForm: React.FC<NoteFormProps> = ({
   if (!isOpen) return null;
 
   if (noteId) {
-    return (
-      <Suspense
-        fallback={
-          <div className={styles.overlay} onClick={onClose}>
-            <div className={styles.modal}>
-              <div className="flex flex-col items-center justify-center p-12 gap-3">
-                <Loader2 className="animate-spin text-primary" size={28} />
-                <span className="text-xs text-muted-foreground font-mono">LOADING...</span>
-              </div>
-            </div>
-          </div>
-        }
-      >
-        <EditNoteFormModal projectId={projectId} noteId={noteId} onClose={onClose} />
-      </Suspense>
-    );
+    return <EditNoteFormModal projectId={projectId} noteId={noteId} onClose={onClose} />;
   }
 
   return <CreateNoteFormModal projectId={projectId} onClose={onClose} />;

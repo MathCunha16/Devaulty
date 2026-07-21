@@ -53,7 +53,7 @@ class NoteControllerIT extends BaseIntegrationTest {
                 "Note content here"
         );
 
-        mockMvc.perform(post("/ap1/v1/projects/{projectId}/notes", savedProject.getId())
+        mockMvc.perform(post("/api/v1/projects/{projectId}/notes", savedProject.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -76,7 +76,7 @@ class NoteControllerIT extends BaseIntegrationTest {
                 "Content"
         );
 
-        mockMvc.perform(post("/ap1/v1/projects/{projectId}/notes", savedProject.getId())
+        mockMvc.perform(post("/api/v1/projects/{projectId}/notes", savedProject.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -92,7 +92,7 @@ class NoteControllerIT extends BaseIntegrationTest {
                 "content"
         );
 
-        mockMvc.perform(post("/ap1/v1/projects/{projectId}/notes", nonExistentProjectId)
+        mockMvc.perform(post("/api/v1/projects/{projectId}/notes", nonExistentProjectId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
@@ -109,7 +109,7 @@ class NoteControllerIT extends BaseIntegrationTest {
         noteRepository.save(n1);
         noteRepository.save(n2);
 
-        mockMvc.perform(get("/ap1/v1/projects/{projectId}/notes", savedProject.getId())
+        mockMvc.perform(get("/api/v1/projects/{projectId}/notes", savedProject.getId())
                         .param("page", "0")
                         .param("size", "5"))
                 .andExpect(status().isOk())
@@ -125,7 +125,7 @@ class NoteControllerIT extends BaseIntegrationTest {
     void getAllNotes_shouldReturnNotFound_whenProjectDoesNotExist() throws Exception {
         UUID nonExistentProjectId = UUID.randomUUID();
 
-        mockMvc.perform(get("/ap1/v1/projects/{projectId}/notes", nonExistentProjectId))
+        mockMvc.perform(get("/api/v1/projects/{projectId}/notes", nonExistentProjectId))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }
@@ -137,7 +137,7 @@ class NoteControllerIT extends BaseIntegrationTest {
         note.setCreatedAt(LocalDateTime.now());
         noteRepository.save(note);
 
-        mockMvc.perform(get("/ap1/v1/projects/{projectId}/notes/{noteID}", savedProject.getId(), id))
+        mockMvc.perform(get("/api/v1/projects/{projectId}/notes/{noteID}", savedProject.getId(), id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.title").value("Get Note"))
@@ -149,7 +149,7 @@ class NoteControllerIT extends BaseIntegrationTest {
         UUID nonExistentProjectId = UUID.randomUUID();
         UUID noteId = UUID.randomUUID();
 
-        mockMvc.perform(get("/ap1/v1/projects/{projectId}/notes/{noteID}", nonExistentProjectId, noteId))
+        mockMvc.perform(get("/api/v1/projects/{projectId}/notes/{noteID}", nonExistentProjectId, noteId))
                 .andExpect(status().isNotFound());
     }
 
@@ -157,7 +157,7 @@ class NoteControllerIT extends BaseIntegrationTest {
     void getNoteById_shouldReturnNotFound_whenNoteDoesNotExist() throws Exception {
         UUID nonExistentNoteId = UUID.randomUUID();
 
-        mockMvc.perform(get("/ap1/v1/projects/{projectId}/notes/{noteID}", savedProject.getId(), nonExistentNoteId))
+        mockMvc.perform(get("/api/v1/projects/{projectId}/notes/{noteID}", savedProject.getId(), nonExistentNoteId))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Note not found with identifier " + nonExistentNoteId));
     }
@@ -176,7 +176,7 @@ class NoteControllerIT extends BaseIntegrationTest {
         noteRepository.save(note);
 
         // Request other project's note under savedProject's path
-        mockMvc.perform(get("/ap1/v1/projects/{projectId}/notes/{noteID}", savedProject.getId(), noteId))
+        mockMvc.perform(get("/api/v1/projects/{projectId}/notes/{noteID}", savedProject.getId(), noteId))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Note not found with identifier " + noteId));
     }
@@ -193,7 +193,7 @@ class NoteControllerIT extends BaseIntegrationTest {
                 "New Content"
         );
 
-        mockMvc.perform(patch("/ap1/v1/projects/{projectId}/notes/{noteId}", savedProject.getId(), id)
+        mockMvc.perform(patch("/api/v1/projects/{projectId}/notes/{noteId}", savedProject.getId(), id)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -215,7 +215,7 @@ class NoteControllerIT extends BaseIntegrationTest {
         // Blank title
         UpdateNoteRequest request = new UpdateNoteRequest("   ", null);
 
-        mockMvc.perform(patch("/ap1/v1/projects/{projectId}/notes/{noteId}", savedProject.getId(), id)
+        mockMvc.perform(patch("/api/v1/projects/{projectId}/notes/{noteId}", savedProject.getId(), id)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -229,7 +229,7 @@ class NoteControllerIT extends BaseIntegrationTest {
         note.setCreatedAt(LocalDateTime.now());
         noteRepository.save(note);
 
-        mockMvc.perform(patch("/ap1/v1/projects/{projectId}/notes/{noteId}/archive", savedProject.getId(), id))
+        mockMvc.perform(patch("/api/v1/projects/{projectId}/notes/{noteId}/archive", savedProject.getId(), id))
                 .andExpect(status().isNoContent());
 
         NoteEntity archived = noteRepository.findById(id).orElseThrow();
@@ -243,7 +243,7 @@ class NoteControllerIT extends BaseIntegrationTest {
         note.setCreatedAt(LocalDateTime.now());
         noteRepository.save(note);
 
-        mockMvc.perform(patch("/ap1/v1/projects/{projectId}/notes/{noteId}/archive", savedProject.getId(), id))
+        mockMvc.perform(patch("/api/v1/projects/{projectId}/notes/{noteId}/archive", savedProject.getId(), id))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Note already archived"));
     }
@@ -255,7 +255,7 @@ class NoteControllerIT extends BaseIntegrationTest {
         note.setCreatedAt(LocalDateTime.now());
         noteRepository.save(note);
 
-        mockMvc.perform(patch("/ap1/v1/projects/{projectId}/notes/{noteId}/unarchive", savedProject.getId(), id))
+        mockMvc.perform(patch("/api/v1/projects/{projectId}/notes/{noteId}/unarchive", savedProject.getId(), id))
                 .andExpect(status().isNoContent());
 
         NoteEntity unarchived = noteRepository.findById(id).orElseThrow();
@@ -269,7 +269,7 @@ class NoteControllerIT extends BaseIntegrationTest {
         note.setCreatedAt(LocalDateTime.now());
         noteRepository.save(note);
 
-        mockMvc.perform(patch("/ap1/v1/projects/{projectId}/notes/{noteId}/unarchive", savedProject.getId(), id))
+        mockMvc.perform(patch("/api/v1/projects/{projectId}/notes/{noteId}/unarchive", savedProject.getId(), id))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Note not archived"));
     }
@@ -281,7 +281,7 @@ class NoteControllerIT extends BaseIntegrationTest {
         note.setCreatedAt(LocalDateTime.now());
         noteRepository.save(note);
 
-        mockMvc.perform(delete("/ap1/v1/projects/{projectId}/notes/{noteId}", savedProject.getId(), id))
+        mockMvc.perform(delete("/api/v1/projects/{projectId}/notes/{noteId}", savedProject.getId(), id))
                 .andExpect(status().isNoContent());
 
         assertFalse(noteRepository.existsById(id));
@@ -292,7 +292,7 @@ class NoteControllerIT extends BaseIntegrationTest {
         UUID nonExistentProjectId = UUID.randomUUID();
         UUID noteId = UUID.randomUUID();
 
-        mockMvc.perform(delete("/ap1/v1/projects/{projectId}/notes/{noteId}", nonExistentProjectId, noteId))
+        mockMvc.perform(delete("/api/v1/projects/{projectId}/notes/{noteId}", nonExistentProjectId, noteId))
                 .andExpect(status().isNotFound());
     }
 
@@ -300,7 +300,7 @@ class NoteControllerIT extends BaseIntegrationTest {
     void deleteNote_shouldReturnNotFound_whenNoteDoesNotExist() throws Exception {
         UUID nonExistentNoteId = UUID.randomUUID();
 
-        mockMvc.perform(delete("/ap1/v1/projects/{projectId}/notes/{noteId}", savedProject.getId(), nonExistentNoteId))
+        mockMvc.perform(delete("/api/v1/projects/{projectId}/notes/{noteId}", savedProject.getId(), nonExistentNoteId))
                 .andExpect(status().isNotFound());
     }
 }

@@ -40,9 +40,11 @@ export const useUpdateTagMutation = (projectId: string) => {
       tagsApi.update(projectId, tagId, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: tagsKeys.all(projectId) });
-      // Invalidate snippets and problems lists so names/colors are updated everywhere
+      // Invalidate related entities
       queryClient.invalidateQueries({ queryKey: ["projects", projectId, "problems"] });
       queryClient.invalidateQueries({ queryKey: ["projects", projectId, "snippets"] });
+      queryClient.invalidateQueries({ queryKey: ["projects", projectId, "notes"] });
+      queryClient.invalidateQueries({ queryKey: ["projects", projectId, "links"] });
     },
   });
 };

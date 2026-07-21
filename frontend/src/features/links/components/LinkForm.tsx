@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, Suspense } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -64,6 +64,10 @@ const LinkFormInner: React.FC<LinkFormInnerProps> = ({
   // Trap focus inside modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
       if (e.key !== "Tab") return;
 
       const modal = modalRef.current;
@@ -92,7 +96,7 @@ const LinkFormInner: React.FC<LinkFormInnerProps> = ({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [onClose]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -298,22 +302,7 @@ export const LinkForm: React.FC<LinkFormProps> = ({
   if (!isOpen) return null;
 
   if (linkId) {
-    return (
-      <Suspense
-        fallback={
-          <div className={styles.overlay} onClick={onClose}>
-            <div className={styles.modal}>
-              <div className="flex flex-col items-center justify-center p-12 gap-3">
-                <Loader2 className="animate-spin text-primary" size={28} />
-                <span className="text-xs text-muted-foreground font-mono">LOADING...</span>
-              </div>
-            </div>
-          </div>
-        }
-      >
-        <EditLinkFormModal projectId={projectId} linkId={linkId} onClose={onClose} />
-      </Suspense>
-    );
+    return <EditLinkFormModal projectId={projectId} linkId={linkId} onClose={onClose} />;
   }
 
   return <CreateLinkFormModal projectId={projectId} onClose={onClose} />;

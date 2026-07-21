@@ -111,6 +111,20 @@ export const TagsManagerModal: React.FC<TagsManagerModalProps> = ({
 
   if (!isOpen) return null;
 
+  const resetModalState = () => {
+    setNewTagName('');
+    setNewTagColor(PRESET_COLORS[0]);
+    setSearchQuery('');
+    setEditingTagId(null);
+    setEditingTagName('');
+    setEditingTagColor('');
+  };
+
+  const handleClose = () => {
+    resetModalState();
+    onClose();
+  };
+
   const handleCreateTag = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTagName.trim()) return;
@@ -178,7 +192,7 @@ export const TagsManagerModal: React.FC<TagsManagerModalProps> = ({
 
   return (
     <>
-      <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.overlay} onClick={handleClose}>
         <div
           ref={modalRef}
           className={styles.modal}
@@ -191,7 +205,7 @@ export const TagsManagerModal: React.FC<TagsManagerModalProps> = ({
             <h2 id="tags-manager-title" className={styles.title}>
               MANAGE PROJECT TAGS
             </h2>
-            <button className={styles.closeBtn} onClick={onClose} aria-label="Close modal">
+            <button className={styles.closeBtn} onClick={handleClose} aria-label="Close modal">
               <X size={16} />
             </button>
           </div>
@@ -285,6 +299,7 @@ export const TagsManagerModal: React.FC<TagsManagerModalProps> = ({
                                   className={`${styles.colorBtn} ${editingTagColor === c ? styles.colorBtnActive : ""}`}
                                   style={{ backgroundColor: c, width: "16px", height: "16px" }}
                                   onClick={() => setEditingTagColor(c)}
+                                  title={`Select color ${c}`}
                                 />
                               ))}
                             </div>
@@ -360,7 +375,7 @@ export const TagsManagerModal: React.FC<TagsManagerModalProps> = ({
         title="Delete Tag"
         message="Are you sure you want to permanently delete the tag"
         itemName={tagToDelete?.name}
-        warningText="This will disassociate this tag from all snippets and problems across the project."
+        warningText="This will disassociate this tag from all snippets, problems, notes, and links across the project"
         isLoading={deleteMutation.isPending}
       />
     </>
