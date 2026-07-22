@@ -58,8 +58,10 @@ export const useLockVaultMutation = () => {
     mutationFn: () => securityApi.lockVault(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: securityKeys.vaultStatus });
-      // Invalidate and clear cached credentials from RAM
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      // Wipes cached credential queries from memory upon lock
+      queryClient.removeQueries({
+        predicate: (query) => query.queryKey.includes("credentials"),
+      });
     },
   });
 };

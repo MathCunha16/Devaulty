@@ -40,6 +40,24 @@ export const CredentialDetailModal: React.FC<CredentialDetailModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
+    const previousActiveElement = document.activeElement as HTMLElement | null;
+
+    const focusModal = () => {
+      const modal = modalRef.current;
+      if (!modal) return;
+
+      const focusables = modal.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length > 0) {
+        focusables[0].focus();
+      } else {
+        modal.focus();
+      }
+    };
+
+    const timer = setTimeout(focusModal, 50);
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
@@ -72,14 +90,24 @@ export const CredentialDetailModal: React.FC<CredentialDetailModalProps> = ({
     };
 
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("keydown", handleKeyDown);
+      if (previousActiveElement && typeof previousActiveElement.focus === "function") {
+        previousActiveElement.focus();
+      }
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success(`${label} copied to clipboard!`);
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`${label} copied to clipboard!`);
+    } catch {
+      toast.error(`Failed to copy ${label.toLowerCase()} to clipboard`);
+    }
   };
 
   const payload = cred?.decryptedPayload || {};
@@ -101,6 +129,7 @@ export const CredentialDetailModal: React.FC<CredentialDetailModalProps> = ({
     <div className={styles.overlay} onClick={onClose}>
       <div
         ref={modalRef}
+        tabIndex={-1}
         className={styles.modal}
         onClick={(e) => e.stopPropagation()}
         role="dialog"

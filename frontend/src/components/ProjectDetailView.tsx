@@ -257,13 +257,15 @@ export const ProjectDetailView: React.FC = () => {
   >("snippets");
 
   // Security queries
-  const { data: isSetupRequired } = useMasterPasswordSetupStatusQuery(
-    activeTab === "credentials"
-  );
-  const { data: vaultStatus } = useVaultStatusQuery(activeTab === "credentials");
+  const { data: isSetupRequired, isLoading: isSetupLoading } =
+    useMasterPasswordSetupStatusQuery(activeTab === "credentials");
+  const { data: vaultStatus, isLoading: isVaultStatusLoading } =
+    useVaultStatusQuery(activeTab === "credentials");
 
+  const isSecurityLoading =
+    activeTab === "credentials" && (isSetupLoading || isVaultStatusLoading);
   const isVaultActive = vaultStatus?.active === true;
-  const isVaultLocked = !isSetupRequired && !isVaultActive;
+  const isVaultLocked = !isSecurityLoading && !isSetupRequired && !isVaultActive;
 
   // Credentials queries & mutations
   const { data: credentialsData, isLoading: isCredentialsLoading } =
@@ -2000,7 +2002,11 @@ export const ProjectDetailView: React.FC = () => {
         {/* Tab 3: Credentials Workspace */}
         {activeTab === "credentials" && (
           <div className="flex-1 flex flex-col h-full overflow-y-auto p-2">
-            {isSetupRequired ? (
+            {isSecurityLoading ? (
+              <div className="flex-1 flex items-center justify-center p-8">
+                <Icons.Loader2 className="animate-spin text-muted-foreground" size={32} />
+              </div>
+            ) : isSetupRequired ? (
               <MasterPasswordSetupCard />
             ) : isVaultLocked ? (
               <UnlockVaultCard />

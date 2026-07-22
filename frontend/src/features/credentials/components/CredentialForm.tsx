@@ -234,7 +234,7 @@ const CredentialFormInner: React.FC<CredentialFormInnerProps> = ({
                     type="button"
                     className={styles.eyeBtn}
                     onClick={() => setShowPassword(!showPassword)}
-                    tabIndex={-1}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -260,7 +260,7 @@ const CredentialFormInner: React.FC<CredentialFormInnerProps> = ({
                   type="button"
                   className={styles.eyeBtn}
                   onClick={() => setShowApiKey(!showApiKey)}
-                  tabIndex={-1}
+                  aria-label={showApiKey ? "Hide API key" : "Show API key"}
                 >
                   {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>

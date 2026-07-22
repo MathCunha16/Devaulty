@@ -38,9 +38,10 @@ export const UnlockVaultCard: React.FC = () => {
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.field}>
-            <label className={styles.label}>Master Password</label>
+            <label htmlFor="unlock-password" className={styles.label}>Master Password</label>
             <div className={styles.inputWrapper}>
               <input
+                id="unlock-password"
                 type={showPassword ? "text" : "password"}
                 className={styles.input}
                 placeholder="Enter Master Password..."
@@ -54,7 +55,7 @@ export const UnlockVaultCard: React.FC = () => {
                 type="button"
                 className={styles.eyeBtn}
                 onClick={() => setShowPassword(!showPassword)}
-                tabIndex={-1}
+                aria-label={showPassword ? "Hide master password" : "Show master password"}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>

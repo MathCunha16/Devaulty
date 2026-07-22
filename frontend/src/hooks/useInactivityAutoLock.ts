@@ -8,6 +8,13 @@ export const useInactivityAutoLock = (enabled: boolean, onLockTriggered?: () => 
   const lockMutation = useLockVaultMutation();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const onLockTriggeredRef = useRef(onLockTriggered);
+  useEffect(() => {
+    onLockTriggeredRef.current = onLockTriggered;
+  }, [onLockTriggered]);
+
+  const mutateAsync = lockMutation.mutateAsync;
+
   const resetTimer = useCallback(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
@@ -16,16 +23,16 @@ export const useInactivityAutoLock = (enabled: boolean, onLockTriggered?: () => 
 
     timerRef.current = setTimeout(async () => {
       try {
-        await lockMutation.mutateAsync();
+        await mutateAsync();
         toast.warning("Vault automatically locked after 15 minutes of inactivity.");
-        if (onLockTriggered) {
-          onLockTriggered();
+        if (onLockTriggeredRef.current) {
+          onLockTriggeredRef.current();
         }
       } catch {
         // Ignore lock errors if session already ended
       }
     }, INACTIVITY_TIMEOUT_MS);
-  }, [enabled, lockMutation, onLockTriggered]);
+  }, [enabled, mutateAsync]);
 
   useEffect(() => {
     if (!enabled) {

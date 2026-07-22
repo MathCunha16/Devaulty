@@ -375,7 +375,7 @@ export const TagsManagerModal: React.FC<TagsManagerModalProps> = ({
         title="Delete Tag"
         message="Are you sure you want to permanently delete the tag"
         itemName={tagToDelete?.name}
-        warningText="This will disassociate this tag from all snippets, problems, notes, and links across the project"
+        warningText="This will disassociate this tag from all snippets, problems, credentials, notes, and links across the project"
         isLoading={deleteMutation.isPending}
       />
     </>

@@ -16,7 +16,7 @@ export const MasterPasswordSetupCard: React.FC = () => {
   const hasMinLength = password.length >= 8;
   const hasUpper = /[A-Z]/.exec(password) !== null;
   const hasLower = /[a-z]/.exec(password) !== null;
-  const hasNumberOrSpecial = /[0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.exec(password) !== null;
+  const hasNumberOrSpecial = /[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/]/.exec(password) !== null;
 
   const isStrong = hasMinLength && hasUpper && hasLower && hasNumberOrSpecial;
   const match = password.length > 0 && password === confirmPassword;
@@ -74,9 +74,10 @@ export const MasterPasswordSetupCard: React.FC = () => {
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.field}>
-            <label className={styles.label}>New Master Password</label>
+            <label htmlFor="setup-new-password" className={styles.label}>New Master Password</label>
             <div className={styles.inputWrapper}>
               <input
+                id="setup-new-password"
                 type={showPassword ? "text" : "password"}
                 className={styles.input}
                 placeholder="Enter a strong password (minimum 8 characters)..."
@@ -89,7 +90,7 @@ export const MasterPasswordSetupCard: React.FC = () => {
                 type="button"
                 className={styles.eyeBtn}
                 onClick={() => setShowPassword(!showPassword)}
-                tabIndex={-1}
+                aria-label={showPassword ? "Hide master password" : "Show master password"}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -132,9 +133,10 @@ export const MasterPasswordSetupCard: React.FC = () => {
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Confirm Master Password</label>
+            <label htmlFor="setup-confirm-password" className={styles.label}>Confirm Master Password</label>
             <div className={styles.inputWrapper}>
               <input
+                id="setup-confirm-password"
                 type={showConfirm ? "text" : "password"}
                 className={styles.input}
                 placeholder="Repeat the master password..."
@@ -147,7 +149,7 @@ export const MasterPasswordSetupCard: React.FC = () => {
                 type="button"
                 className={styles.eyeBtn}
                 onClick={() => setShowConfirm(!showConfirm)}
-                tabIndex={-1}
+                aria-label={showConfirm ? "Hide confirm password" : "Show confirm password"}
               >
                 {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>

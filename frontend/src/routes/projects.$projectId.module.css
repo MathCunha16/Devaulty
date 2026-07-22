@@ -1125,7 +1125,8 @@
   font-weight: 700;
   font-family: var(--font-mono);
   color: var(--color-foreground);
-  word-break: break-word;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .credentialUrl {
@@ -1155,33 +1156,5 @@
   display: flex;
   align-items: center;
   gap: 0.375rem;
-}
-
-.btnDecrypt {
-  background-color: rgba(99, 102, 241, 0.1);
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  color: #6366f1;
-  padding: 0.375rem 0.625rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.72rem;
-  font-family: var(--font-mono);
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  transition: all 0.15s ease;
-}
-
-.btnDecrypt:hover {
-  background-color: #6366f1;
-  color: #ffffff;
-  border-color: #6366f1;
-}
-
-.btnDecrypt:hover {
-  background-color: #6366f1;
-  color: #ffffff;
-  border-color: #6366f1;
 }
 
