@@ -16,7 +16,7 @@ export const MasterPasswordSetupCard: React.FC = () => {
   const hasMinLength = password.length >= 8;
   const hasUpper = /[A-Z]/.exec(password) !== null;
   const hasLower = /[a-z]/.exec(password) !== null;
-  const hasNumberOrSpecial = /[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/]/.exec(password) !== null;
+  const hasNumberOrSpecial = /[\d\W_]/.test(password);
 
   const isStrong = hasMinLength && hasUpper && hasLower && hasNumberOrSpecial;
   const match = password.length > 0 && password === confirmPassword;
