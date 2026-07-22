@@ -726,7 +726,7 @@ export const ProjectDetailView: React.FC = () => {
       const rawHtml = marked.parse(content, { breaks: true, gfm: true }) as string;
       return DOMPurify.sanitize(rawHtml);
     } catch {
-      return content;
+      return DOMPurify.sanitize(content);
     }
   };
 
