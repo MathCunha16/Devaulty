@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/ap1/v1/projects/{projectId}/notes")
+@RequestMapping("/api/v1/projects/{projectId}/notes")
 public class NoteController implements NoteApi{
 
     private final CreateNoteUseCase createNoteUseCase;

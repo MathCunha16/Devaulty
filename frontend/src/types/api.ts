@@ -174,6 +174,11 @@ export interface CreateTagRequest {
   color?: string;
 }
 
+export interface UpdateTagRequest {
+  name?: string;
+  color?: string;
+}
+
 export interface CreateProblemRequest {
   title: string;
   errorDescription?: string;
@@ -219,6 +224,72 @@ export interface UpdateProblemStatusRequest {
 
 export interface PagedModelProblemSummaryResponse {
   content: ProblemSummaryResponse[];
+  page: PageMetadata;
+}
+
+// Notes Models
+export interface NoteSummaryResponse {
+  id: string;
+  projectId: string;
+  title: string;
+  archived: boolean;
+  tags: TagSummaryResponse[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NoteViewResponse {
+  id: string;
+  projectId: string;
+  title: string;
+  content?: string;
+  archived: boolean;
+  tags: TagSummaryResponse[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateNoteRequest {
+  title: string;
+  content?: string;
+}
+
+export interface UpdateNoteRequest {
+  title?: string;
+  content?: string;
+}
+
+export interface PagedModelNoteSummaryResponse {
+  content: NoteSummaryResponse[];
+  page: PageMetadata;
+}
+
+// Links Models
+export interface LinkViewResponse {
+  id: string;
+  projectId: string;
+  title: string;
+  url: string;
+  description?: string;
+  tags: TagSummaryResponse[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateLinkRequest {
+  title: string;
+  url: string;
+  description?: string;
+}
+
+export interface UpdateLinkRequest {
+  title?: string;
+  url?: string;
+  description?: string;
+}
+
+export interface PagedModelLinkViewResponse {
+  content: LinkViewResponse[];
   page: PageMetadata;
 }
 

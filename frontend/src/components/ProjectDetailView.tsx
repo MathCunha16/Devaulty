@@ -27,6 +27,21 @@ import {
   useDisassociateTagMutation,
 } from "~features/tags/hooks/useTags";
 import { ProblemForm } from "~features/problems/components/ProblemForm";
+import { TagsManagerModal } from "./TagsManagerModal";
+import { NoteForm } from "~features/notes/components/NoteForm";
+import { LinkForm } from "~features/links/components/LinkForm";
+import {
+  useNotesQuery,
+  useNoteQuery,
+  useDeleteNoteMutation,
+  useArchiveNoteMutation,
+  useUnarchiveNoteMutation,
+} from "~features/notes/hooks/useNotes";
+import {
+  useLinksQuery,
+  useLinkQuery,
+  useDeleteLinkMutation,
+} from "~features/links/hooks/useLinks";
 import type { SnippetLanguage, SnippetType, ProblemStatus, ProblemSeverity, TagSummaryResponse } from "~types/api";
 import styles from "../routes/projects.$projectId.module.css";
 import { getIconComponent } from "../utils/icons";
@@ -205,18 +220,44 @@ export const ProjectDetailView: React.FC = () => {
   const associateTagMutation = useAssociateTagMutation(projectId);
   const disassociateTagMutation = useDisassociateTagMutation(projectId);
 
+  // Load notes details
+  const { data: notesData } = useNotesQuery(projectId);
+  const deleteNoteMutation = useDeleteNoteMutation(projectId);
+  const archiveNoteMutation = useArchiveNoteMutation(projectId);
+  const unarchiveNoteMutation = useUnarchiveNoteMutation(projectId);
+
+  // Load links details
+  const { data: linksData } = useLinksQuery(projectId);
+  const deleteLinkMutation = useDeleteLinkMutation(projectId);
+
   // Workspace sub-navigation state
-  const [activeTab, setActiveTab] = useState<"snippets" | "problems">("snippets");
+  const [activeTab, setActiveTab] = useState<"snippets" | "problems" | "notes" | "links">("snippets");
 
   // Selected item states
   const [selectedSnippetId, setSelectedSnippetId] = useState<string | undefined>(undefined);
   const [selectedProblemId, setSelectedProblemId] = useState<string | undefined>(undefined);
+  const [selectedNoteId, setSelectedNoteId] = useState<string | undefined>(undefined);
+  const [selectedLinkId, setSelectedLinkId] = useState<string | undefined>(undefined);
+
+  // Search/Filter states
+  const [noteSearchQuery, setNoteSearchQuery] = useState("");
+  const [linkSearchQuery, setLinkSearchQuery] = useState("");
+  const [noteArchivedFilter, setNoteArchivedFilter] = useState<"ACTIVE" | "ARCHIVED" | "ALL">("ACTIVE");
 
   // Edit / Creation states
   const [isEditingSnippet, setIsEditingSnippet] = useState(false);
   const [isCreatingSnippet, setIsCreatingSnippet] = useState(false);
   const [isProblemFormOpen, setIsProblemFormOpen] = useState(false);
   const [editingProblemId, setEditingProblemId] = useState<string | undefined>(undefined);
+  const [isNoteFormOpen, setIsNoteFormOpen] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | undefined>(undefined);
+  const [isLinkFormOpen, setIsLinkFormOpen] = useState(false);
+  const [editingLinkId, setEditingLinkId] = useState<string | undefined>(undefined);
+  const [isTagsManagerOpen, setIsTagsManagerOpen] = useState(false);
+
+  // Selected item detail queries
+  const { data: noteDetail } = useNoteQuery(projectId, selectedNoteId || "");
+  const { data: linkDetail } = useLinkQuery(projectId, selectedLinkId || "");
 
   // ConfirmModal states
   const [confirmModal, setConfirmModal] = useState<{
@@ -244,6 +285,22 @@ export const ProjectDetailView: React.FC = () => {
   // Tags filter UI state
   const [showTagPopoverId, setShowTagPopoverId] = useState<string | null>(null);
   const [tagSearchQuery, setTagSearchQuery] = useState("");
+
+  // Close tag popover when clicking outside
+  useEffect(() => {
+    if (showTagPopoverId === null) return;
+
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(`.${styles.addTagContainer}`)) {
+        setShowTagPopoverId(null);
+        setTagSearchQuery("");
+      }
+    };
+
+    document.addEventListener("click", handleOutsideClick);
+    return () => document.removeEventListener("click", handleOutsideClick);
+  }, [showTagPopoverId]);
 
   // Snippet update mutation
   const updateSnippetMutation = useUpdateSnippetMutation(projectId, selectedSnippetId || "");
@@ -321,7 +378,11 @@ export const ProjectDetailView: React.FC = () => {
   };
 
   // Tags association operations
-  const handleAddTag = async (itemId: string, itemType: "SNIPPET" | "PROBLEM", tagId: string) => {
+  const handleAddTag = async (
+    itemId: string,
+    itemType: "SNIPPET" | "PROBLEM" | "NOTE" | "LINK",
+    tagId: string
+  ) => {
     try {
       await associateTagMutation.mutateAsync({ itemType, itemId, tagId });
       toast.success("Tag associated successfully");
@@ -331,7 +392,11 @@ export const ProjectDetailView: React.FC = () => {
     }
   };
 
-  const handleRemoveTag = async (itemId: string, itemType: "SNIPPET" | "PROBLEM", tagId: string) => {
+  const handleRemoveTag = async (
+    itemId: string,
+    itemType: "SNIPPET" | "PROBLEM" | "NOTE" | "LINK",
+    tagId: string
+  ) => {
     try {
       await disassociateTagMutation.mutateAsync({ itemType, itemId, tagId });
       toast.success("Tag removed successfully");
@@ -340,7 +405,10 @@ export const ProjectDetailView: React.FC = () => {
     }
   };
 
-  const handleCreateAndAddTag = async (itemId: string, itemType: "SNIPPET" | "PROBLEM") => {
+  const handleCreateAndAddTag = async (
+    itemId: string,
+    itemType: "SNIPPET" | "PROBLEM" | "NOTE" | "LINK"
+  ) => {
     if (!tagSearchQuery.trim()) return;
     try {
       const presetColors = ["#8b5cf6", "#10b981", "#f43f5e", "#f59e0b", "#0ea5e9"];
@@ -439,6 +507,89 @@ export const ProjectDetailView: React.FC = () => {
     });
   };
 
+  // Notes & Links handlers
+  const handleDeleteNote = (noteId: string, title: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete System Note",
+      message: "Are you sure you want to permanently delete the note",
+      itemName: title,
+      warningText: "This action cannot be undone. The note contents will be permanently lost.",
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+        try {
+          await deleteNoteMutation.mutateAsync(noteId);
+          toast.success("Note deleted successfully");
+          if (selectedNoteId === noteId) setSelectedNoteId(undefined);
+          closeConfirmModal();
+        } catch {
+          toast.error("Failed to delete note");
+          setConfirmModal((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+      isLoading: false,
+    });
+  };
+
+  const handleDeleteLink = (linkId: string, title: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete Web Link",
+      message: "Are you sure you want to permanently delete the link",
+      itemName: title,
+      warningText: "This action cannot be undone. The link details will be permanently lost.",
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+        try {
+          await deleteLinkMutation.mutateAsync(linkId);
+          toast.success("Link deleted successfully");
+          if (selectedLinkId === linkId) setSelectedLinkId(undefined);
+          closeConfirmModal();
+        } catch {
+          toast.error("Failed to delete link");
+          setConfirmModal((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+      isLoading: false,
+    });
+  };
+
+  const handleToggleArchiveNote = async (noteId: string, archived: boolean) => {
+    try {
+      if (archived) {
+        await unarchiveNoteMutation.mutateAsync(noteId);
+        toast.success("Note restored from archive");
+      } else {
+        await archiveNoteMutation.mutateAsync(noteId);
+        toast.success("Note archived");
+      }
+    } catch {
+      toast.error(`Failed to ${archived ? "restore" : "archive"} note`);
+    }
+  };
+
+  const notes = notesData?.content || [];
+  const filteredNotes = notes.filter((n) => {
+    const matchesSearch = n.title.toLowerCase().includes(noteSearchQuery.toLowerCase());
+    const matchesArchived =
+      noteArchivedFilter === "ALL" ||
+      (noteArchivedFilter === "ACTIVE" && !n.archived) ||
+      (noteArchivedFilter === "ARCHIVED" && n.archived);
+    return matchesSearch && matchesArchived;
+  });
+
+  const links = linksData?.content || [];
+  const filteredLinks = links.filter((l) =>
+    l.title.toLowerCase().includes(linkSearchQuery.toLowerCase()) ||
+    (l.description && l.description.toLowerCase().includes(linkSearchQuery.toLowerCase()))
+  );
+
+  const handleTabChange = (tab: "snippets" | "problems" | "notes" | "links") => {
+    setActiveTab(tab);
+    setShowTagPopoverId(null);
+    setTagSearchQuery("");
+  };
+
   const projectIcon = getIconComponent(project?.icon);
   const isSubmittingSnippet = createSnippetMutation.isPending || updateSnippetMutation.isPending;
 
@@ -458,13 +609,24 @@ export const ProjectDetailView: React.FC = () => {
           </div>
         </div>
 
-        <Link
-          to="/"
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-border px-2.5 py-1.5 rounded bg-card transition-colors"
-        >
-          <Icons.ArrowLeft size={12} />
-          <span>Back to Dashboard</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsTagsManagerOpen(true)}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border px-2.5 py-1.5 rounded bg-card transition-colors cursor-pointer"
+          >
+            <Icons.Tags size={12} />
+            <span>Manage Tags</span>
+          </button>
+
+          <Link
+            to="/"
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-border px-2.5 py-1.5 rounded bg-card transition-colors"
+          >
+            <Icons.ArrowLeft size={12} />
+            <span>Back to Dashboard</span>
+          </Link>
+        </div>
       </div>
 
       <div className={styles.pageLayout}>
@@ -472,7 +634,7 @@ export const ProjectDetailView: React.FC = () => {
         <div className={styles.workspaceSidebar}>
           <button
             className={`${styles.workspaceTab} ${activeTab === "snippets" ? styles.workspaceTabActive : ""}`}
-            onClick={() => setActiveTab("snippets")}
+            onClick={() => handleTabChange("snippets")}
             title="Code Snippets"
           >
             <Icons.Code size={18} />
@@ -481,7 +643,7 @@ export const ProjectDetailView: React.FC = () => {
 
           <button
             className={`${styles.workspaceTab} ${activeTab === "problems" ? styles.workspaceTabActive : ""}`}
-            onClick={() => setActiveTab("problems")}
+            onClick={() => handleTabChange("problems")}
             title="Problems & Diagnostics"
           >
             <Icons.AlertCircle size={18} />
@@ -496,12 +658,20 @@ export const ProjectDetailView: React.FC = () => {
             <span className={styles.workspaceTabLabel}>Credentials</span>
           </button>
 
-          <button className={`${styles.workspaceTab} ${styles.workspaceTabDisabled}`} title="System Notes (Coming Soon)" disabled>
+          <button
+            className={`${styles.workspaceTab} ${activeTab === "notes" ? styles.workspaceTabActive : ""}`}
+            onClick={() => handleTabChange("notes")}
+            title="System Notes"
+          >
             <Icons.FileText size={18} />
             <span className={styles.workspaceTabLabel}>Notes</span>
           </button>
 
-          <button className={`${styles.workspaceTab} ${styles.workspaceTabDisabled}`} title="Web Links (Coming Soon)" disabled>
+          <button
+            className={`${styles.workspaceTab} ${activeTab === "links" ? styles.workspaceTabActive : ""}`}
+            onClick={() => handleTabChange("links")}
+            title="Web Links"
+          >
             <Icons.Link2 size={18} />
             <span className={styles.workspaceTabLabel}>Links</span>
           </button>
@@ -863,6 +1033,19 @@ export const ProjectDetailView: React.FC = () => {
                                       <span>Create "{tagSearchQuery}"</span>
                                     </button>
                                   )}
+                                <div className="border-t border-border mt-2 pt-2 px-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setShowTagPopoverId(null);
+                                      setIsTagsManagerOpen(true);
+                                    }}
+                                    className="w-full flex items-center justify-center gap-1 text-[10px] text-muted-foreground hover:text-foreground py-1 font-mono uppercase tracking-wider bg-transparent border-0 cursor-pointer"
+                                  >
+                                    <Icons.Settings size={10} />
+                                    <span>Manage Tags</span>
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           )}
@@ -1285,6 +1468,19 @@ export const ProjectDetailView: React.FC = () => {
                                       <span>Create "{tagSearchQuery}"</span>
                                     </button>
                                   )}
+                                <div className="border-t border-border mt-2 pt-2 px-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setShowTagPopoverId(null);
+                                      setIsTagsManagerOpen(true);
+                                    }}
+                                    className="w-full flex items-center justify-center gap-1 text-[10px] text-muted-foreground hover:text-foreground py-1 font-mono uppercase tracking-wider bg-transparent border-0 cursor-pointer"
+                                  >
+                                    <Icons.Settings size={10} />
+                                    <span>Manage Tags</span>
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           )}
@@ -1414,6 +1610,548 @@ export const ProjectDetailView: React.FC = () => {
             </div>
           </>
         )}
+
+        {/* Tab 3: Notes Workspace */}
+        {activeTab === "notes" && (
+          <>
+            {/* Left Side: Notes navigation list */}
+            <div className={styles.leftPanel}>
+              <button
+                type="button"
+                className={styles.newSnippetBtn}
+                onClick={() => {
+                  setEditingNoteId(undefined);
+                  setIsNoteFormOpen(true);
+                }}
+              >
+                <Icons.Plus size={14} />
+                <span>Add Note</span>
+              </button>
+
+              <div className={styles.searchBar}>
+                <Icons.Search className={styles.searchIcon} size={14} />
+                <input
+                  type="text"
+                  placeholder="Search notes..."
+                  className={styles.searchInput}
+                  value={noteSearchQuery}
+                  onChange={(e) => setNoteSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <div className={styles.filterTabs}>
+                <button
+                  type="button"
+                  className={`${styles.filterTab} ${noteArchivedFilter === "ACTIVE" ? styles.filterTabActive : ""}`}
+                  onClick={() => setNoteArchivedFilter("ACTIVE")}
+                >
+                  ACTIVE
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.filterTab} ${noteArchivedFilter === "ARCHIVED" ? styles.filterTabActive : ""}`}
+                  onClick={() => setNoteArchivedFilter("ARCHIVED")}
+                >
+                  ARCHIVED
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.filterTab} ${noteArchivedFilter === "ALL" ? styles.filterTabActive : ""}`}
+                  onClick={() => setNoteArchivedFilter("ALL")}
+                >
+                  ALL
+                </button>
+              </div>
+
+              <div className={styles.snippetList}>
+                {filteredNotes.length === 0 ? (
+                  <div className="text-xs text-muted-foreground text-center py-8 border border-dashed rounded border-border font-mono">
+                    No notes found
+                  </div>
+                ) : (
+                  filteredNotes.map((n) => (
+                    <button
+                      key={n.id}
+                      className={`${styles.snippetItem} ${selectedNoteId === n.id ? styles.snippetItemActive : ""}`}
+                      onClick={() => setSelectedNoteId(n.id)}
+                    >
+                      <div className={styles.snippetItemHeader}>
+                        <span className={styles.snippetItemTitle}>{n.title}</span>
+                        {n.archived && <span className="text-[10px] text-amber-500 font-mono">ARCHIVED</span>}
+                      </div>
+                      {n.tags && n.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {n.tags.map((tag) => (
+                            <span
+                              key={tag.id}
+                              className={styles.badge}
+                              style={{
+                                backgroundColor: `${tag.color || "#8b5cf6"}15`,
+                                color: tag.color || "#8b5cf6",
+                                border: `1px solid ${tag.color || "#8b5cf6"}30`,
+                                fontSize: "10px",
+                              }}
+                            >
+                              {tag.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Right Side: Note Workspace details panel */}
+            <div className={styles.rightPanel}>
+              {noteDetail ? (
+                <div className={styles.problemDetailScroll}>
+                  <div className={styles.problemDetailContainer}>
+                    <div className={styles.detailHeader}>
+                      <div className={styles.detailTitleSection}>
+                        <h2 className={styles.detailTitle}>{noteDetail.title}</h2>
+                        <div className={styles.problemMetadataRow}>
+                          <span>Created: {new Date(noteDetail.createdAt).toLocaleDateString()}</span>
+                          <span>Updated: {new Date(noteDetail.updatedAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingNoteId(noteDetail.id);
+                            setIsNoteFormOpen(true);
+                          }}
+                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-border px-2.5 py-1.5 rounded bg-card transition-colors cursor-pointer"
+                        >
+                          <Icons.Edit3 size={12} />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleArchiveNote(noteDetail.id, noteDetail.archived)}
+                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-border px-2.5 py-1.5 rounded bg-card transition-colors cursor-pointer"
+                        >
+                          <Icons.Archive size={12} />
+                          <span>{noteDetail.archived ? "Restore" : "Archive"}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteNote(noteDetail.id, noteDetail.title)}
+                          className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/20 px-2.5 py-1.5 rounded bg-card transition-colors cursor-pointer"
+                        >
+                          <Icons.Trash2 size={12} />
+                          <span>Delete</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="p-6 flex flex-col gap-6">
+                      {/* Tags section */}
+                      <div className="flex flex-col gap-2">
+                        <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Tags</span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {noteDetail.tags &&
+                            noteDetail.tags.map((tag: TagSummaryResponse) => (
+                              <span
+                                key={tag.id}
+                                className={styles.badge}
+                                style={{
+                                  backgroundColor: `${tag.color || "#8b5cf6"}15`,
+                                  color: tag.color || "#8b5cf6",
+                                  border: `1px solid ${tag.color || "#8b5cf6"}30`,
+                                  fontSize: "11px",
+                                  padding: "0.2rem 0.5rem",
+                                }}
+                              >
+                                <span>{tag.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveTag(noteDetail.id, "NOTE", tag.id)}
+                                  className="ml-1 text-muted-foreground hover:text-foreground bg-transparent border-0 cursor-pointer"
+                                >
+                                  &times;
+                                </button>
+                              </span>
+                            ))}
+
+                          <div className={styles.addTagContainer}>
+                            <button
+                              type="button"
+                              className={styles.addTagBtn}
+                              onClick={() =>
+                                setShowTagPopoverId(
+                                  showTagPopoverId === `note-${noteDetail.id}`
+                                    ? null
+                                    : `note-${noteDetail.id}`
+                                )
+                              }
+                            >
+                              <Icons.Plus size={10} />
+                              <span>Add Tag</span>
+                            </button>
+
+                            {showTagPopoverId === `note-${noteDetail.id}` && (
+                              <div className={styles.tagPopover} style={{ bottom: "auto", top: "100%", marginTop: "0.375rem" }}>
+                                <div className={styles.popoverHeader}>
+                                  <input
+                                    type="text"
+                                    placeholder="Filter/create tag..."
+                                    className={styles.tagSearchInput}
+                                    value={tagSearchQuery}
+                                    onChange={(e) => setTagSearchQuery(e.target.value)}
+                                    autoFocus
+                                  />
+                                </div>
+                                <div className={styles.popoverList}>
+                                  {tagsData
+                                    .filter(
+                                      (t) =>
+                                        t.name.toLowerCase().includes(tagSearchQuery.toLowerCase()) &&
+                                        (!noteDetail.tags ||
+                                          !noteDetail.tags.some((st: TagSummaryResponse) => st.id === t.id))
+                                    )
+                                    .map((t) => (
+                                      <button
+                                        key={t.id}
+                                        type="button"
+                                        className={styles.popoverItem}
+                                        onClick={() => handleAddTag(noteDetail.id, "NOTE", t.id)}
+                                      >
+                                        <span
+                                          className={styles.tagColorPreview}
+                                          style={{ backgroundColor: t.color || "var(--color-primary)" }}
+                                        />
+                                        <span>{t.name}</span>
+                                      </button>
+                                    ))}
+
+                                  {tagSearchQuery.trim() &&
+                                    !tagsData.some(
+                                      (t) => t.name.toLowerCase() === tagSearchQuery.toLowerCase()
+                                    ) && (
+                                      <button
+                                        type="button"
+                                        className={styles.popoverItemCreate}
+                                        onClick={() => handleCreateAndAddTag(noteDetail.id, "NOTE")}
+                                      >
+                                        <Icons.Plus size={10} />
+                                        <span>Create "{tagSearchQuery}"</span>
+                                      </button>
+                                    )}
+
+                                  <div className="border-t border-border mt-2 pt-2 px-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setShowTagPopoverId(null);
+                                        setIsTagsManagerOpen(true);
+                                      }}
+                                      className="w-full flex items-center justify-center gap-1 text-[10px] text-muted-foreground hover:text-foreground py-1 font-mono uppercase tracking-wider bg-transparent border-0 cursor-pointer"
+                                    >
+                                      <Icons.Settings size={10} />
+                                      <span>Manage Tags</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Content panel */}
+                      <div className="flex-grow flex flex-col gap-2">
+                        <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Note Content</span>
+                        <div className="bg-background/50 border border-border rounded p-4 font-mono text-sm whitespace-pre-wrap leading-relaxed overflow-y-auto min-h-[300px]">
+                          {noteDetail.content || (
+                            <span className="text-muted-foreground italic">
+                              No content documented. Click Edit to add details.
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.placeholder}>
+                  <Icons.FileText size={48} className="text-muted-foreground animate-pulse" />
+                  <div className={styles.placeholderText}>
+                    No note selected. Select a note from the navigator or click "Add Note" to write a new note.
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Tab 4: Links Workspace */}
+        {activeTab === "links" && (
+          <>
+            {/* Left Side: Links navigation list */}
+            <div className={styles.leftPanel}>
+              <button
+                type="button"
+                className={styles.newSnippetBtn}
+                onClick={() => {
+                  setEditingLinkId(undefined);
+                  setIsLinkFormOpen(true);
+                }}
+              >
+                <Icons.Plus size={14} />
+                <span>Add Link</span>
+              </button>
+
+              <div className={styles.searchBar}>
+                <Icons.Search className={styles.searchIcon} size={14} />
+                <input
+                  type="text"
+                  placeholder="Search links..."
+                  className={styles.searchInput}
+                  value={linkSearchQuery}
+                  onChange={(e) => setLinkSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <div className={styles.snippetList}>
+                {filteredLinks.length === 0 ? (
+                  <div className="text-xs text-muted-foreground text-center py-8 border border-dashed rounded border-border font-mono">
+                    No links found
+                  </div>
+                ) : (
+                  filteredLinks.map((l) => (
+                    <button
+                      key={l.id}
+                      className={`${styles.snippetItem} ${selectedLinkId === l.id ? styles.snippetItemActive : ""}`}
+                      onClick={() => setSelectedLinkId(l.id)}
+                    >
+                      <div className={styles.snippetItemHeader}>
+                        <span className={styles.snippetItemTitle}>{l.title}</span>
+                        <Icons.ExternalLink size={12} className="text-muted-foreground shrink-0" />
+                      </div>
+                      <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[220px] block">
+                        {l.url}
+                      </span>
+                      {l.tags && l.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {l.tags.map((tag) => (
+                            <span
+                              key={tag.id}
+                              className={styles.badge}
+                              style={{
+                                backgroundColor: `${tag.color || "#8b5cf6"}15`,
+                                color: tag.color || "#8b5cf6",
+                                border: `1px solid ${tag.color || "#8b5cf6"}30`,
+                                fontSize: "10px",
+                              }}
+                            >
+                              {tag.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Right Side: Link Workspace details panel */}
+            <div className={styles.rightPanel}>
+              {linkDetail ? (
+                <div className={styles.problemDetailScroll}>
+                  <div className={styles.problemDetailContainer}>
+                    <div className={styles.detailHeader}>
+                      <div className={styles.detailTitleSection}>
+                        <h2 className={styles.detailTitle}>{linkDetail.title}</h2>
+                        <div className={styles.problemMetadataRow}>
+                          <span>Created: {new Date(linkDetail.createdAt).toLocaleDateString()}</span>
+                          <span>Updated: {new Date(linkDetail.updatedAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingLinkId(linkDetail.id);
+                            setIsLinkFormOpen(true);
+                          }}
+                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-border px-2.5 py-1.5 rounded bg-card transition-colors cursor-pointer"
+                        >
+                          <Icons.Edit3 size={12} />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteLink(linkDetail.id, linkDetail.title)}
+                          className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/20 px-2.5 py-1.5 rounded bg-card transition-colors cursor-pointer"
+                        >
+                          <Icons.Trash2 size={12} />
+                          <span>Delete</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="p-6 flex flex-col gap-6">
+                      {/* URL card block */}
+                      <div className="bg-background/50 border border-border rounded p-4 flex flex-col gap-3">
+                        <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Web Address</span>
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="font-mono text-sm text-primary truncate flex-grow">{linkDetail.url}</span>
+                          <a
+                            href={linkDetail.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-xs text-primary-foreground bg-primary hover:bg-primary/95 border border-primary px-3.5 py-1.5 rounded transition-colors font-bold decoration-none cursor-pointer"
+                          >
+                            <span>Open Link</span>
+                            <Icons.ExternalLink size={12} />
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Tags section */}
+                      <div className="flex flex-col gap-2">
+                        <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Tags</span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {linkDetail.tags &&
+                            linkDetail.tags.map((tag: TagSummaryResponse) => (
+                              <span
+                                key={tag.id}
+                                className={styles.badge}
+                                style={{
+                                  backgroundColor: `${tag.color || "#8b5cf6"}15`,
+                                  color: tag.color || "#8b5cf6",
+                                  border: `1px solid ${tag.color || "#8b5cf6"}30`,
+                                  fontSize: "11px",
+                                  padding: "0.2rem 0.5rem",
+                                }}
+                              >
+                                <span>{tag.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveTag(linkDetail.id, "LINK", tag.id)}
+                                  className="ml-1 text-muted-foreground hover:text-foreground bg-transparent border-0 cursor-pointer"
+                                >
+                                  &times;
+                                </button>
+                              </span>
+                            ))}
+
+                          <div className={styles.addTagContainer}>
+                            <button
+                              type="button"
+                              className={styles.addTagBtn}
+                              onClick={() =>
+                                setShowTagPopoverId(
+                                  showTagPopoverId === `link-${linkDetail.id}`
+                                    ? null
+                                    : `link-${linkDetail.id}`
+                                )
+                              }
+                            >
+                              <Icons.Plus size={10} />
+                              <span>Add Tag</span>
+                            </button>
+
+                            {showTagPopoverId === `link-${linkDetail.id}` && (
+                              <div className={styles.tagPopover} style={{ bottom: "auto", top: "100%", marginTop: "0.375rem" }}>
+                                <div className={styles.popoverHeader}>
+                                  <input
+                                    type="text"
+                                    placeholder="Filter/create tag..."
+                                    className={styles.tagSearchInput}
+                                    value={tagSearchQuery}
+                                    onChange={(e) => setTagSearchQuery(e.target.value)}
+                                    autoFocus
+                                  />
+                                </div>
+                                <div className={styles.popoverList}>
+                                  {tagsData
+                                    .filter(
+                                      (t) =>
+                                        t.name.toLowerCase().includes(tagSearchQuery.toLowerCase()) &&
+                                        (!linkDetail.tags ||
+                                          !linkDetail.tags.some((st: TagSummaryResponse) => st.id === t.id))
+                                    )
+                                    .map((t) => (
+                                      <button
+                                        key={t.id}
+                                        type="button"
+                                        className={styles.popoverItem}
+                                        onClick={() => handleAddTag(linkDetail.id, "LINK", t.id)}
+                                      >
+                                        <span
+                                          className={styles.tagColorPreview}
+                                          style={{ backgroundColor: t.color || "var(--color-primary)" }}
+                                        />
+                                        <span>{t.name}</span>
+                                      </button>
+                                    ))}
+
+                                  {tagSearchQuery.trim() &&
+                                    !tagsData.some(
+                                      (t) => t.name.toLowerCase() === tagSearchQuery.toLowerCase()
+                                    ) && (
+                                      <button
+                                        type="button"
+                                        className={styles.popoverItemCreate}
+                                        onClick={() => handleCreateAndAddTag(linkDetail.id, "LINK")}
+                                      >
+                                        <Icons.Plus size={10} />
+                                        <span>Create "{tagSearchQuery}"</span>
+                                      </button>
+                                    )}
+
+                                  <div className="border-t border-border mt-2 pt-2 px-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setShowTagPopoverId(null);
+                                        setIsTagsManagerOpen(true);
+                                      }}
+                                      className="w-full flex items-center justify-center gap-1 text-[10px] text-muted-foreground hover:text-foreground py-1 font-mono uppercase tracking-wider bg-transparent border-0 cursor-pointer"
+                                    >
+                                      <Icons.Settings size={10} />
+                                      <span>Manage Tags</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Description Panel */}
+                      <div className="flex-grow flex flex-col gap-2">
+                        <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Description</span>
+                        <div className="bg-background/50 border border-border rounded p-4 font-mono text-sm whitespace-pre-wrap leading-relaxed overflow-y-auto min-h-[150px]">
+                          {linkDetail.description || (
+                            <span className="text-muted-foreground italic">
+                              No description documented. Click Edit to add details.
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.placeholder}>
+                  <Icons.Link2 size={48} className="text-muted-foreground animate-pulse" />
+                  <div className={styles.placeholderText}>
+                    No link selected. Select a web link from the navigator or click "Add Link" to register a new destination.
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Global Problem Form Modal */}
@@ -1427,6 +2165,28 @@ export const ProjectDetailView: React.FC = () => {
         problemId={editingProblemId}
       />
 
+      {/* Global Notes Form Modal */}
+      <NoteForm
+        isOpen={isNoteFormOpen}
+        onClose={() => {
+          setIsNoteFormOpen(false);
+          setEditingNoteId(undefined);
+        }}
+        projectId={projectId}
+        noteId={editingNoteId}
+      />
+
+      {/* Global Links Form Modal */}
+      <LinkForm
+        isOpen={isLinkFormOpen}
+        onClose={() => {
+          setIsLinkFormOpen(false);
+          setEditingLinkId(undefined);
+        }}
+        projectId={projectId}
+        linkId={editingLinkId}
+      />
+
       {/* Global Confirm Delete Modal */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
@@ -1437,6 +2197,13 @@ export const ProjectDetailView: React.FC = () => {
         itemName={confirmModal.itemName}
         warningText={confirmModal.warningText}
         isLoading={confirmModal.isLoading}
+      />
+
+      {/* Global Tags Manager Modal */}
+      <TagsManagerModal
+        isOpen={isTagsManagerOpen}
+        onClose={() => setIsTagsManagerOpen(false)}
+        projectId={projectId}
       />
     </div>
   );
