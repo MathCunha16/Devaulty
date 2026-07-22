@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, useMatch } from "@tanstack/react-router";
 import { toast } from "sonner";
 import * as Icons from "lucide-react";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
 import Editor from "@monaco-editor/react";
 import { useTheme } from "../hooks/useTheme";
 import { useAutoResize } from "../hooks/useAutoResize";
@@ -312,6 +314,25 @@ export const ProjectDetailView: React.FC = () => {
   const [noteSearchQuery, setNoteSearchQuery] = useState("");
   const [linkSearchQuery, setLinkSearchQuery] = useState("");
   const [noteArchivedFilter, setNoteArchivedFilter] = useState<"ACTIVE" | "ARCHIVED" | "ALL">("ACTIVE");
+
+  // Notes markdown preview toggle (persisted globally in localStorage)
+  const [useMarkdown, setUseMarkdown] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem("devaulty_notes_markdown_preview");
+      return saved !== "false"; // default to true
+    } catch {
+      return true;
+    }
+  });
+
+  const handleToggleMarkdown = (enabled: boolean) => {
+    setUseMarkdown(enabled);
+    try {
+      localStorage.setItem("devaulty_notes_markdown_preview", String(enabled));
+    } catch {
+      // ignore storage errors
+    }
+  };
 
   // Edit / Creation states
   const [isEditingSnippet, setIsEditingSnippet] = useState(false);
@@ -695,6 +716,18 @@ export const ProjectDetailView: React.FC = () => {
     setActiveTab(tab);
     setShowTagPopoverId(null);
     setTagSearchQuery("");
+  };
+
+  const renderMarkdown = (content: string | undefined) => {
+    if (!content) {
+      return '<span class="text-muted-foreground italic">No content documented. Click Edit to add details.</span>';
+    }
+    try {
+      const rawHtml = marked.parse(content, { breaks: true, gfm: true }) as string;
+      return DOMPurify.sanitize(rawHtml);
+    } catch {
+      return DOMPurify.sanitize(content);
+    }
   };
 
   const projectIcon = getIconComponent(project?.icon);
@@ -1975,14 +2008,50 @@ export const ProjectDetailView: React.FC = () => {
 
                       {/* Content panel */}
                       <div className="flex-grow flex flex-col gap-2">
-                        <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Note Content</span>
-                        <div className="bg-background/50 border border-border rounded p-4 font-mono text-sm whitespace-pre-wrap leading-relaxed overflow-y-auto min-h-[300px]">
-                          {noteDetail.content || (
-                            <span className="text-muted-foreground italic">
-                              No content documented. Click Edit to add details.
-                            </span>
-                          )}
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Note Content</span>
+                          <div className="flex items-center gap-1 bg-secondary/40 p-0.5 rounded border border-border">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleMarkdown(false)}
+                              className={`px-2 py-1 text-[10px] font-mono rounded cursor-pointer transition-all ${
+                                !useMarkdown
+                                  ? "bg-primary text-primary-foreground shadow-sm font-bold"
+                                  : "text-muted-foreground hover:text-foreground bg-transparent"
+                              }`}
+                              style={{ border: "none" }}
+                            >
+                              RAW
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleMarkdown(true)}
+                              className={`px-2 py-1 text-[10px] font-mono rounded cursor-pointer transition-all ${
+                                useMarkdown
+                                  ? "bg-primary text-primary-foreground shadow-sm font-bold"
+                                  : "text-muted-foreground hover:text-foreground bg-transparent"
+                              }`}
+                              style={{ border: "none" }}
+                            >
+                              MARKDOWN
+                            </button>
+                          </div>
                         </div>
+
+                        {useMarkdown ? (
+                          <div
+                            className={`bg-background/50 border border-border rounded p-6 text-sm leading-relaxed overflow-y-auto min-h-[300px] ${styles.markdownContainer}`}
+                            dangerouslySetInnerHTML={{ __html: renderMarkdown(noteDetail.content) }}
+                          />
+                        ) : (
+                          <div className="bg-background/50 border border-border rounded p-4 font-mono text-sm whitespace-pre-wrap leading-relaxed overflow-y-auto min-h-[300px]">
+                            {noteDetail.content || (
+                              <span className="text-muted-foreground italic">
+                                No content documented. Click Edit to add details.
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
