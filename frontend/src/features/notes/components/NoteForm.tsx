@@ -63,7 +63,9 @@ const NoteFormInner: React.FC<NoteFormInnerProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        if (!isSubmitting) {
+          onClose();
+        }
         return;
       }
       if (e.key !== "Tab") return;
@@ -94,7 +96,7 @@ const NoteFormInner: React.FC<NoteFormInnerProps> = ({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [onClose, isSubmitting]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,7 +111,7 @@ const NoteFormInner: React.FC<NoteFormInnerProps> = ({
   };
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div className={styles.overlay} onClick={() => !isSubmitting && onClose()}>
       <div
         ref={modalRef}
         className={styles.modal}

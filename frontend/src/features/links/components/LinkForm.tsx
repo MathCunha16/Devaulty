@@ -65,7 +65,9 @@ const LinkFormInner: React.FC<LinkFormInnerProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        if (!isSubmitting) {
+          onClose();
+        }
         return;
       }
       if (e.key !== "Tab") return;
@@ -96,7 +98,7 @@ const LinkFormInner: React.FC<LinkFormInnerProps> = ({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  }, [onClose, isSubmitting]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,7 +118,7 @@ const LinkFormInner: React.FC<LinkFormInnerProps> = ({
   };
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div className={styles.overlay} onClick={() => !isSubmitting && onClose()}>
       <div
         ref={modalRef}
         className={styles.modal}
