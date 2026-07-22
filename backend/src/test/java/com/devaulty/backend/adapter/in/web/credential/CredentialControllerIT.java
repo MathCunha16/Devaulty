@@ -87,7 +87,7 @@ class CredentialControllerIT extends BaseIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(post("/ap1/v1/projects/{projectId}/credentials", savedProject.getId())
+        mockMvc.perform(post("/api/v1/projects/{projectId}/credentials", savedProject.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isCreated())
@@ -133,7 +133,7 @@ class CredentialControllerIT extends BaseIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(post("/ap1/v1/projects/{projectId}/credentials", savedProject.getId())
+        mockMvc.perform(post("/api/v1/projects/{projectId}/credentials", savedProject.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isCreated())
@@ -151,7 +151,7 @@ class CredentialControllerIT extends BaseIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(post("/ap1/v1/projects/{projectId}/credentials", savedProject.getId())
+        mockMvc.perform(post("/api/v1/projects/{projectId}/credentials", savedProject.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isCreated())
@@ -169,7 +169,7 @@ class CredentialControllerIT extends BaseIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(post("/ap1/v1/projects/{projectId}/credentials", savedProject.getId())
+        mockMvc.perform(post("/api/v1/projects/{projectId}/credentials", savedProject.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isBadRequest())
@@ -188,7 +188,7 @@ class CredentialControllerIT extends BaseIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(post("/ap1/v1/projects/{projectId}/credentials", savedProject.getId())
+        mockMvc.perform(post("/api/v1/projects/{projectId}/credentials", savedProject.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isBadRequest())
@@ -208,7 +208,7 @@ class CredentialControllerIT extends BaseIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(post("/ap1/v1/projects/{projectId}/credentials", nonExistentProjectId)
+        mockMvc.perform(post("/api/v1/projects/{projectId}/credentials", nonExistentProjectId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isNotFound())
@@ -227,7 +227,7 @@ class CredentialControllerIT extends BaseIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(post("/ap1/v1/projects/{projectId}/credentials", savedProject.getId())
+        mockMvc.perform(post("/api/v1/projects/{projectId}/credentials", savedProject.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isLocked())
@@ -246,7 +246,7 @@ class CredentialControllerIT extends BaseIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(post("/ap1/v1/projects/{projectId}/credentials", savedProject.getId())
+        mockMvc.perform(post("/api/v1/projects/{projectId}/credentials", savedProject.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isForbidden())
@@ -284,7 +284,7 @@ class CredentialControllerIT extends BaseIntegrationTest {
         credentialRepository.save(c1);
         credentialRepository.save(c2);
 
-        mockMvc.perform(get("/ap1/v1/projects/{projectId}/credentials", savedProject.getId())
+        mockMvc.perform(get("/api/v1/projects/{projectId}/credentials", savedProject.getId())
                         .param("page", "0")
                         .param("size", "5"))
                 .andExpect(status().isOk())
@@ -316,7 +316,7 @@ class CredentialControllerIT extends BaseIntegrationTest {
         entity.setCreatedAt(LocalDateTime.now());
         credentialRepository.save(entity);
 
-        mockMvc.perform(get("/ap1/v1/projects/{projectId}/credentials/{credentialId}", savedProject.getId(), credentialId))
+        mockMvc.perform(get("/api/v1/projects/{projectId}/credentials/{credentialId}", savedProject.getId(), credentialId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(credentialId.toString()))
                 .andExpect(jsonPath("$.title").value("Get Credential"))
@@ -329,7 +329,7 @@ class CredentialControllerIT extends BaseIntegrationTest {
     void getCredentialById_shouldReturnNotFound_whenCredentialDoesNotExist() throws Exception {
         UUID nonExistentId = UUID.randomUUID();
 
-        mockMvc.perform(get("/ap1/v1/projects/{projectId}/credentials/{credentialId}", savedProject.getId(), nonExistentId))
+        mockMvc.perform(get("/api/v1/projects/{projectId}/credentials/{credentialId}", savedProject.getId(), nonExistentId))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Credential not found with identifier " + nonExistentId));
     }
@@ -360,7 +360,7 @@ class CredentialControllerIT extends BaseIntegrationTest {
         credentialRepository.save(entity);
 
         // Fetch using savedProject's ID (not otherProject's ID)
-        mockMvc.perform(get("/ap1/v1/projects/{projectId}/credentials/{credentialId}", savedProject.getId(), credentialId))
+        mockMvc.perform(get("/api/v1/projects/{projectId}/credentials/{credentialId}", savedProject.getId(), credentialId))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Credential not found with identifier " + credentialId));
     }
@@ -393,7 +393,7 @@ class CredentialControllerIT extends BaseIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(patch("/ap1/v1/projects/{projectId}/credentials/{credentialId}", savedProject.getId(), credentialId)
+        mockMvc.perform(patch("/api/v1/projects/{projectId}/credentials/{credentialId}", savedProject.getId(), credentialId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isOk())
@@ -440,7 +440,7 @@ class CredentialControllerIT extends BaseIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(patch("/ap1/v1/projects/{projectId}/credentials/{credentialId}", savedProject.getId(), credentialId)
+        mockMvc.perform(patch("/api/v1/projects/{projectId}/credentials/{credentialId}", savedProject.getId(), credentialId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isOk())
@@ -481,7 +481,7 @@ class CredentialControllerIT extends BaseIntegrationTest {
         entity.setCreatedAt(LocalDateTime.now());
         credentialRepository.save(entity);
 
-        mockMvc.perform(delete("/ap1/v1/projects/{projectId}/credentials/{credentialId}", savedProject.getId(), credentialId))
+        mockMvc.perform(delete("/api/v1/projects/{projectId}/credentials/{credentialId}", savedProject.getId(), credentialId))
                 .andExpect(status().isNoContent());
 
         assertFalse(credentialRepository.existsById(credentialId));
@@ -491,7 +491,7 @@ class CredentialControllerIT extends BaseIntegrationTest {
     void deleteCredential_shouldReturnNotFound_whenCredentialDoesNotExist() throws Exception {
         UUID nonExistentId = UUID.randomUUID();
 
-        mockMvc.perform(delete("/ap1/v1/projects/{projectId}/credentials/{credentialId}", savedProject.getId(), nonExistentId))
+        mockMvc.perform(delete("/api/v1/projects/{projectId}/credentials/{credentialId}", savedProject.getId(), nonExistentId))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Credential not found with identifier " + nonExistentId));
     }

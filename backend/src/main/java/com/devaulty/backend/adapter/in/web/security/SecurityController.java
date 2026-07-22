@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Arrays;
 
 @RestController
-@RequestMapping("/ap1/v1/security")
+@RequestMapping("/api/v1/security")
 public class SecurityController implements SecurityApi{
 
     private final SetupMasterPasswordUseCase setupMasterPasswordUseCase;

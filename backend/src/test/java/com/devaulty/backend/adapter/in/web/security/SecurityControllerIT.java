@@ -38,7 +38,7 @@ class SecurityControllerIT extends BaseIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(post("/ap1/v1/security/master-password")
+        mockMvc.perform(post("/api/v1/security/master-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isNoContent());
@@ -64,7 +64,7 @@ class SecurityControllerIT extends BaseIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(post("/ap1/v1/security/master-password")
+        mockMvc.perform(post("/api/v1/security/master-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isBadRequest())
@@ -87,7 +87,7 @@ class SecurityControllerIT extends BaseIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(post("/ap1/v1/security/master-password")
+        mockMvc.perform(post("/api/v1/security/master-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isConflict())
@@ -96,7 +96,7 @@ class SecurityControllerIT extends BaseIntegrationTest {
 
     @Test
     void checkMasterPasswordSetup_shouldReturnTrue_whenNotConfigured() throws Exception {
-        mockMvc.perform(get("/ap1/v1/security/master-password/required-status"))
+        mockMvc.perform(get("/api/v1/security/master-password/required-status"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("true"));
     }
@@ -106,14 +106,14 @@ class SecurityControllerIT extends BaseIntegrationTest {
         appSettingRepository.save(new AppSettingEntity("master_password_hash", "mockHash"));
         appSettingRepository.save(new AppSettingEntity("master_password_salt", "mockSalt"));
 
-        mockMvc.perform(get("/ap1/v1/security/master-password/required-status"))
+        mockMvc.perform(get("/api/v1/security/master-password/required-status"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("false"));
     }
 
     @Test
     void getSessionStatus_shouldReturnInactiveAndZeroSeconds_whenLocked() throws Exception {
-        mockMvc.perform(get("/ap1/v1/security/vault/status"))
+        mockMvc.perform(get("/api/v1/security/vault/status"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active").value(false))
                 .andExpect(jsonPath("$.secondsLeft").value(0));
@@ -123,7 +123,7 @@ class SecurityControllerIT extends BaseIntegrationTest {
     void getSessionStatus_shouldReturnActiveAndRemainingSeconds_whenUnlocked() throws Exception {
         masterKeySessionPort.setKey(new SecretKeySpec(new byte[32], "AES"));
 
-        mockMvc.perform(get("/ap1/v1/security/vault/status"))
+        mockMvc.perform(get("/api/v1/security/vault/status"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active").value(true))
                 .andExpect(jsonPath("$.secondsLeft").value(greaterThan(0)));
@@ -138,7 +138,7 @@ class SecurityControllerIT extends BaseIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(post("/ap1/v1/security/master-password")
+        mockMvc.perform(post("/api/v1/security/master-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(setupJson))
                 .andExpect(status().isNoContent());
@@ -154,7 +154,7 @@ class SecurityControllerIT extends BaseIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(post("/ap1/v1/security/vault/unlock")
+        mockMvc.perform(post("/api/v1/security/vault/unlock")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(unlockJson))
                 .andExpect(status().isOk())
@@ -172,7 +172,7 @@ class SecurityControllerIT extends BaseIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(post("/ap1/v1/security/master-password")
+        mockMvc.perform(post("/api/v1/security/master-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(setupJson))
                 .andExpect(status().isNoContent());
@@ -186,7 +186,7 @@ class SecurityControllerIT extends BaseIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(post("/ap1/v1/security/vault/unlock")
+        mockMvc.perform(post("/api/v1/security/vault/unlock")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(unlockJson))
                 .andExpect(status().isUnauthorized())
@@ -203,7 +203,7 @@ class SecurityControllerIT extends BaseIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(post("/ap1/v1/security/vault/unlock")
+        mockMvc.perform(post("/api/v1/security/vault/unlock")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isForbidden())
@@ -218,7 +218,7 @@ class SecurityControllerIT extends BaseIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(post("/ap1/v1/security/vault/unlock")
+        mockMvc.perform(post("/api/v1/security/vault/unlock")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isBadRequest())
@@ -231,7 +231,7 @@ class SecurityControllerIT extends BaseIntegrationTest {
         masterKeySessionPort.setKey(new SecretKeySpec(new byte[32], "AES"));
         assertTrue(masterKeySessionPort.hasKey());
 
-        mockMvc.perform(post("/ap1/v1/security/vault/lock"))
+        mockMvc.perform(post("/api/v1/security/vault/lock"))
                 .andExpect(status().isNoContent());
 
         assertFalse(masterKeySessionPort.hasKey());
