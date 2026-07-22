@@ -293,3 +293,67 @@ export interface PagedModelLinkViewResponse {
   page: PageMetadata;
 }
 
+// Security Models
+export interface MasterPasswordRequest {
+  masterPassword: string;
+}
+
+export interface SessionStatus {
+  active: boolean;
+  secondsLeft: number;
+}
+
+// Credentials Models
+export type CredentialSecretType = "LOGIN" | "API_KEY" | "RAW_TEXT";
+
+export interface CreateCredentialRequest {
+  title: string;
+  secretType: CredentialSecretType;
+  username?: string;
+  password?: string;
+  apiKey?: string;
+  rawTextContent?: string;
+  notes?: string;
+  relatedUrl?: string;
+}
+
+export interface UpdateCredentialRequest {
+  title?: string;
+  secretType?: CredentialSecretType;
+  username?: string;
+  password?: string;
+  apiKey?: string;
+  rawTextContent?: string;
+  notes?: string;
+  relatedUrl?: string;
+}
+
+export interface CredentialSummaryResponse {
+  id: string;
+  projectId: string;
+  title: string;
+  secretType: CredentialSecretType;
+  relatedUrl?: string;
+  tags: TagSummaryResponse[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CredentialViewResponse {
+  id: string;
+  projectId: string;
+  title: string;
+  secretType: CredentialSecretType;
+  decryptedPayload?: Record<string, string>;
+  notes?: string;
+  relatedUrl?: string;
+  tags: TagSummaryResponse[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PagedModelCredentialSummaryResponse {
+  content: CredentialSummaryResponse[];
+  page: PageMetadata;
+}
+

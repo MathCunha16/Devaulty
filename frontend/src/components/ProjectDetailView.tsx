@@ -42,7 +42,28 @@ import {
   useLinkQuery,
   useDeleteLinkMutation,
 } from "~features/links/hooks/useLinks";
-import type { SnippetLanguage, SnippetType, ProblemStatus, ProblemSeverity, TagSummaryResponse } from "~types/api";
+import {
+  useMasterPasswordSetupStatusQuery,
+  useVaultStatusQuery,
+} from "~features/security/hooks/useSecurity";
+import { MasterPasswordSetupCard } from "~features/security/components/MasterPasswordSetupCard";
+import { UnlockVaultCard } from "~features/security/components/UnlockVaultCard";
+import { VaultSecurityBanner } from "~features/security/components/VaultSecurityBanner";
+import {
+  useCredentialsQuery,
+  useDeleteCredentialMutation,
+} from "~features/credentials/hooks/useCredentials";
+import { CredentialForm } from "~features/credentials/components/CredentialForm";
+import { CredentialDetailModal } from "~features/credentials/components/CredentialDetailModal";
+import { useInactivityAutoLock } from "../hooks/useInactivityAutoLock";
+import type {
+  SnippetLanguage,
+  SnippetType,
+  ProblemStatus,
+  ProblemSeverity,
+  TagSummaryResponse,
+  CredentialSecretType,
+} from "~types/api";
 import styles from "../routes/projects.$projectId.module.css";
 import { getIconComponent } from "../utils/icons";
 
@@ -231,7 +252,53 @@ export const ProjectDetailView: React.FC = () => {
   const deleteLinkMutation = useDeleteLinkMutation(projectId);
 
   // Workspace sub-navigation state
-  const [activeTab, setActiveTab] = useState<"snippets" | "problems" | "notes" | "links">("snippets");
+  const [activeTab, setActiveTab] = useState<
+    "snippets" | "problems" | "credentials" | "notes" | "links"
+  >("snippets");
+
+  // Security queries
+  const { data: isSetupRequired } = useMasterPasswordSetupStatusQuery(
+    activeTab === "credentials"
+  );
+  const { data: vaultStatus } = useVaultStatusQuery(activeTab === "credentials");
+
+  const isVaultActive = vaultStatus?.active === true;
+  const isVaultLocked = !isSetupRequired && !isVaultActive;
+
+  // Credentials queries & mutations
+  const { data: credentialsData, isLoading: isCredentialsLoading } =
+    useCredentialsQuery(projectId, activeTab === "credentials" && isVaultActive);
+  const deleteCredentialMutation = useDeleteCredentialMutation(projectId);
+
+  // Auto-lock after 15 minutes of inactivity in credentials workspace
+  useInactivityAutoLock(activeTab === "credentials" && isVaultActive, () => {
+    setActiveTab("snippets");
+  });
+
+  // Toggle data-vault-active on root document when viewing credentials workspace
+  useEffect(() => {
+    if (activeTab === "credentials") {
+      document.documentElement.dataset.vaultActive = "true";
+    } else {
+      delete document.documentElement.dataset.vaultActive;
+    }
+    return () => {
+      delete document.documentElement.dataset.vaultActive;
+    };
+  }, [activeTab]);
+
+  // Credentials UI states
+  const [credentialSearchQuery, setCredentialSearchQuery] = useState("");
+  const [credentialTypeFilter, setCredentialTypeFilter] = useState<
+    "ALL" | CredentialSecretType
+  >("ALL");
+  const [isCredentialFormOpen, setIsCredentialFormOpen] = useState(false);
+  const [editingCredentialId, setEditingCredentialId] = useState<
+    string | undefined
+  >(undefined);
+  const [viewingCredentialId, setViewingCredentialId] = useState<
+    string | undefined
+  >(undefined);
 
   // Selected item states
   const [selectedSnippetId, setSelectedSnippetId] = useState<string | undefined>(undefined);
@@ -380,7 +447,7 @@ export const ProjectDetailView: React.FC = () => {
   // Tags association operations
   const handleAddTag = async (
     itemId: string,
-    itemType: "SNIPPET" | "PROBLEM" | "NOTE" | "LINK",
+    itemType: "SNIPPET" | "PROBLEM" | "NOTE" | "LINK" | "CREDENTIAL",
     tagId: string
   ) => {
     try {
@@ -394,7 +461,7 @@ export const ProjectDetailView: React.FC = () => {
 
   const handleRemoveTag = async (
     itemId: string,
-    itemType: "SNIPPET" | "PROBLEM" | "NOTE" | "LINK",
+    itemType: "SNIPPET" | "PROBLEM" | "NOTE" | "LINK" | "CREDENTIAL",
     tagId: string
   ) => {
     try {
@@ -407,7 +474,7 @@ export const ProjectDetailView: React.FC = () => {
 
   const handleCreateAndAddTag = async (
     itemId: string,
-    itemType: "SNIPPET" | "PROBLEM" | "NOTE" | "LINK"
+    itemType: "SNIPPET" | "PROBLEM" | "NOTE" | "LINK" | "CREDENTIAL"
   ) => {
     if (!tagSearchQuery.trim()) return;
     try {
@@ -584,7 +651,45 @@ export const ProjectDetailView: React.FC = () => {
     (l.description && l.description.toLowerCase().includes(linkSearchQuery.toLowerCase()))
   );
 
-  const handleTabChange = (tab: "snippets" | "problems" | "notes" | "links") => {
+  const credentials = credentialsData?.content || [];
+  const filteredCredentials = credentials.filter((c) => {
+    const matchesSearch =
+      c.title.toLowerCase().includes(credentialSearchQuery.toLowerCase()) ||
+      (c.relatedUrl &&
+        c.relatedUrl.toLowerCase().includes(credentialSearchQuery.toLowerCase()));
+    const matchesType =
+      credentialTypeFilter === "ALL" || c.secretType === credentialTypeFilter;
+    return matchesSearch && matchesType;
+  });
+
+  const handleDeleteCredential = (credId: string, title: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete Vault Credential",
+      message: "Are you sure you want to delete the credential",
+      itemName: title,
+      warningText:
+        "This action cannot be undone. Encrypted secret data will be permanently deleted.",
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+        try {
+          await deleteCredentialMutation.mutateAsync(credId);
+          toast.success("Credential deleted successfully!");
+          closeConfirmModal();
+        } catch (err) {
+          toast.error(
+            err instanceof Error ? err.message : "Failed to delete credential."
+          );
+          setConfirmModal((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+      isLoading: false,
+    });
+  };
+
+  const handleTabChange = (
+    tab: "snippets" | "problems" | "credentials" | "notes" | "links"
+  ) => {
     setActiveTab(tab);
     setShowTagPopoverId(null);
     setTagSearchQuery("");
@@ -653,7 +758,11 @@ export const ProjectDetailView: React.FC = () => {
             )}
           </button>
 
-          <button className={`${styles.workspaceTab} ${styles.workspaceTabDisabled}`} title="Credentials (Coming Soon)" disabled>
+          <button
+            className={`${styles.workspaceTab} ${activeTab === "credentials" ? styles.workspaceTabActive : ""}`}
+            onClick={() => handleTabChange("credentials")}
+            title="Secure Credentials Vault"
+          >
             <Icons.KeyRound size={18} />
             <span className={styles.workspaceTabLabel}>Credentials</span>
           </button>
@@ -1888,6 +1997,254 @@ export const ProjectDetailView: React.FC = () => {
           </>
         )}
 
+        {/* Tab 3: Credentials Workspace */}
+        {activeTab === "credentials" && (
+          <div className="flex-1 flex flex-col h-full overflow-y-auto p-2">
+            {isSetupRequired ? (
+              <MasterPasswordSetupCard />
+            ) : isVaultLocked ? (
+              <UnlockVaultCard />
+            ) : (
+              <div className="flex-1 flex flex-col h-full overflow-hidden">
+                <VaultSecurityBanner secondsLeft={vaultStatus?.secondsLeft} />
+
+                <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <div className="flex items-center gap-3">
+                      <div className={styles.searchBar} style={{ minWidth: "260px" }}>
+                        <Icons.Search className={styles.searchIcon} size={14} />
+                        <input
+                          type="text"
+                          className={styles.searchInput}
+                          placeholder="Search credentials in vault..."
+                          value={credentialSearchQuery}
+                          onChange={(e) => setCredentialSearchQuery(e.target.value)}
+                        />
+                      </div>
+
+                      {/* Type filter tabs */}
+                      <div className={styles.filterTabs}>
+                        {(["ALL", "LOGIN", "API_KEY", "RAW_TEXT"] as const).map((type) => (
+                          <button
+                            key={type}
+                            type="button"
+                            className={`${styles.filterTab} ${credentialTypeFilter === type ? styles.filterTabActive : ""}`}
+                            onClick={() => setCredentialTypeFilter(type)}
+                          >
+                            {type === "ALL" ? "ALL" : type === "RAW_TEXT" ? "TEXT" : type}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="px-4 py-2 text-xs font-mono font-bold bg-primary text-primary-foreground rounded border border-primary hover:brightness-110 transition-all cursor-pointer flex items-center gap-1.5"
+                      onClick={() => {
+                        setEditingCredentialId(undefined);
+                        setIsCredentialFormOpen(true);
+                      }}
+                    >
+                      <Icons.Plus size={14} />
+                      <span>New Credential</span>
+                    </button>
+                  </div>
+
+                  {/* Grid / List of Credential Cards */}
+                  {isCredentialsLoading ? (
+                    <div className="flex flex-col items-center justify-center py-16 gap-3">
+                      <Icons.Loader2 className="animate-spin text-primary" size={28} />
+                      <span className="text-xs text-muted-foreground font-mono">LOADING CREDENTIALS...</span>
+                    </div>
+                  ) : filteredCredentials.length === 0 ? (
+                    <div className={styles.placeholder}>
+                      <Icons.KeyRound size={48} className="text-muted-foreground animate-pulse" />
+                      <div className={styles.placeholderText}>
+                        {credentialSearchQuery || credentialTypeFilter !== "ALL"
+                          ? "No credentials match the active filters."
+                          : "No credentials stored in this project yet. Click 'New Credential' to add one."}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={styles.credentialGrid}>
+                      {filteredCredentials.map((cred) => (
+                        <div
+                          key={cred.id}
+                          className={styles.credentialCard}
+                          onClick={() => setViewingCredentialId(cred.id)}
+                        >
+                          <div className={styles.credentialCardHeader}>
+                            <div className={styles.credentialTitleGroup}>
+                              <span className={styles.credentialTypeBadge}>
+                                {cred.secretType === "LOGIN" && <Icons.UserCheck size={12} />}
+                                {cred.secretType === "API_KEY" && <Icons.KeyRound size={12} />}
+                                {cred.secretType === "RAW_TEXT" && <Icons.Code2 size={12} />}
+                                <span>{cred.secretType}</span>
+                              </span>
+                              <h3 className={styles.credentialCardTitle}>{cred.title}</h3>
+                              {cred.relatedUrl && (
+                                <a
+                                  href={cred.relatedUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={styles.credentialUrl}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Icons.ExternalLink size={12} />
+                                  <span>{cred.relatedUrl.replace(/^https?:\/\//, "")}</span>
+                                </a>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className={styles.credentialCardFooter}>
+                            {/* Tag list & tag popover */}
+                            <div className={styles.tagList} onClick={(e) => e.stopPropagation()}>
+                              {cred.tags && cred.tags.map((tag) => (
+                                <span
+                                  key={tag.id}
+                                  className={styles.tagPill}
+                                  style={{
+                                    backgroundColor: `${tag.color || "#8b5cf6"}15`,
+                                    color: tag.color || "#8b5cf6",
+                                    borderColor: `${tag.color || "#8b5cf6"}30`,
+                                  }}
+                                >
+                                  <span
+                                    className={styles.tagDot}
+                                    style={{ backgroundColor: tag.color || "#8b5cf6" }}
+                                  />
+                                  <span>{tag.name}</span>
+                                  <button
+                                    type="button"
+                                    className={styles.tagRemoveBtn}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemoveTag(cred.id, "CREDENTIAL", tag.id);
+                                    }}
+                                    title="Remove tag"
+                                  >
+                                    <Icons.X size={10} />
+                                  </button>
+                                </span>
+                              ))}
+
+                              {/* Add Tag Popover Button */}
+                              <div className={styles.addTagContainer}>
+                                <button
+                                  type="button"
+                                  className={styles.addTagBtn}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowTagPopoverId(
+                                      showTagPopoverId === `cred-${cred.id}` ? null : `cred-${cred.id}`
+                                    );
+                                  }}
+                                >
+                                  <Icons.Plus size={10} />
+                                  <span>Tag</span>
+                                </button>
+
+                                {showTagPopoverId === `cred-${cred.id}` && (
+                                  <div
+                                    className={styles.tagPopover}
+                                    style={{ bottom: "calc(100% + 6px)", top: "auto", zIndex: 100 }}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <div className={styles.popoverHeader}>
+                                      <input
+                                        type="text"
+                                        placeholder="Filter/create tag..."
+                                        className={styles.tagSearchInput}
+                                        value={tagSearchQuery}
+                                        onChange={(e) => setTagSearchQuery(e.target.value)}
+                                        autoFocus
+                                      />
+                                    </div>
+                                    <div className={styles.popoverList}>
+                                      {tagsData
+                                        .filter(
+                                          (t) =>
+                                            t.name.toLowerCase().includes(tagSearchQuery.toLowerCase()) &&
+                                            (!cred.tags || !cred.tags.some((st) => st.id === t.id))
+                                        )
+                                        .map((t) => (
+                                          <button
+                                            key={t.id}
+                                            type="button"
+                                            className={styles.popoverItem}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleAddTag(cred.id, "CREDENTIAL", t.id);
+                                            }}
+                                          >
+                                            <span
+                                              className={styles.tagColorPreview}
+                                              style={{ backgroundColor: t.color || "var(--color-primary)" }}
+                                            />
+                                            <span>{t.name}</span>
+                                          </button>
+                                        ))}
+
+                                      {tagSearchQuery.trim() &&
+                                        !tagsData.some(
+                                          (t) => t.name.toLowerCase() === tagSearchQuery.toLowerCase()
+                                        ) && (
+                                          <button
+                                            type="button"
+                                            className={styles.popoverItemCreate}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleCreateAndAddTag(cred.id, "CREDENTIAL");
+                                            }}
+                                          >
+                                            <Icons.Plus size={10} />
+                                            <span>Create "{tagSearchQuery}"</span>
+                                          </button>
+                                        )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className={styles.credentialActions} onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                className={styles.actionBtn}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingCredentialId(cred.id);
+                                  setIsCredentialFormOpen(true);
+                                }}
+                                title="Edit"
+                              >
+                                <Icons.Edit2 size={12} />
+                              </button>
+                              <button
+                                type="button"
+                                className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteCredential(cred.id, cred.title);
+                                }}
+                                title="Delete"
+                              >
+                                <Icons.Trash2 size={12} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Tab 4: Links Workspace */}
         {activeTab === "links" && (
           <>
@@ -2186,6 +2543,27 @@ export const ProjectDetailView: React.FC = () => {
         projectId={projectId}
         linkId={editingLinkId}
       />
+
+      {/* Global Credential Form Modal */}
+      <CredentialForm
+        isOpen={isCredentialFormOpen}
+        onClose={() => {
+          setIsCredentialFormOpen(false);
+          setEditingCredentialId(undefined);
+        }}
+        projectId={projectId}
+        credentialId={editingCredentialId}
+      />
+
+      {/* Global Credential Detail Modal */}
+      {viewingCredentialId && (
+        <CredentialDetailModal
+          isOpen={!!viewingCredentialId}
+          onClose={() => setViewingCredentialId(undefined)}
+          projectId={projectId}
+          credentialId={viewingCredentialId}
+        />
+      )}
 
       {/* Global Confirm Delete Modal */}
       <ConfirmModal

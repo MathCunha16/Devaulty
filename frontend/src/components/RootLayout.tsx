@@ -9,7 +9,7 @@ import { SidebarProvider } from "../contexts/SidebarProvider";
 import { useSidebar } from "../hooks/useSidebar";
 import * as Icons from "lucide-react";
 import styles from "../routes/__root.module.css";
-import { LogoDevaulty } from "./LogoDevaulty";
+import { HackerLogo } from "./HackerLogo";
 import { getIconComponent } from "../utils/icons";
 
 // ──────────────────────────────────────────────────────────────
@@ -64,7 +64,7 @@ const NavigationSidebar: React.FC = () => {
       >
         <div className={styles.sidebarHeader}>
           <Link to="/" className={styles.appLogo} title="Devaulty Home">
-            <LogoDevaulty height={52} />
+            <HackerLogo height={52} />
           </Link>
         </div>
 
@@ -168,7 +168,7 @@ const RootLayoutInner: React.FC = () => {
             <aside className={`${styles.sidebar} ${styles.sidebarOpen}`}>
               <div className={styles.sidebarHeader}>
                 <div className={styles.appLogo}>
-                  <LogoDevaulty height={52} />
+                  <HackerLogo height={52} />
                 </div>
               </div>
               <div className="flex-1 flex items-center justify-center p-4">
@@ -189,7 +189,7 @@ const RootLayoutInner: React.FC = () => {
         {/* Centered logo top bar — appears when sidebar is closed */}
         <div className={`${styles.topBar} ${isOpen ? styles.topBarHidden : ""}`}>
           <Link to="/" className={styles.appLogo} title="Devaulty Home">
-            <LogoDevaulty height={48} />
+            <HackerLogo height={48} />
           </Link>
         </div>
 

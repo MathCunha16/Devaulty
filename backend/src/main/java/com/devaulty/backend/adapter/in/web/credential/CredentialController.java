@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/ap1/v1/projects/{projectId}/credentials")
+@RequestMapping("/api/v1/projects/{projectId}/credentials")
 public class CredentialController implements CredentialApi{
 
     private final CreateCredentialUseCase createCredentialUseCase;
