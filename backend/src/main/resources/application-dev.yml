@@ -6,3 +6,9 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  devtools:
+    restart:
+      additional-exclude: static/**,jpackage/**,db/**
+devaulty:
+  dev:
+    token: "dev-secret-token"
