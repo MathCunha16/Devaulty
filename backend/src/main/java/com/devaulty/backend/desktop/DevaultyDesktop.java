@@ -107,6 +107,9 @@ public class DevaultyDesktop extends Application {
         } else if (newState == Worker.State.SUCCEEDED) {
             injectInternalToken(webView);
             showMainStageAndCloseSplash(primaryStage);
+        } else if(newState == Worker.State.FAILED || newState == Worker.State.CANCELLED) {
+            showErrorAndExit("Failed to load Devaulty Interface",
+                    webView.getEngine().getLoadWorker().getException());
         }
     }
 
