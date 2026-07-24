@@ -31,7 +31,7 @@ public class InternalAppTokenFilter extends OncePerRequestFilter {
         if (requestToken == null || !requestToken.equals(AppTokenContext.PROCESS_TOKEN)) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.setContentType("application/json");
-            response.getWriter().write("{\\\"error\\\": \\\"Forbidden: Unauthorized local process request.\\\"}");
+            response.getWriter().write("{\"error\": \"Forbidden: Unauthorized local process request.\"}");
             return;
         }
 

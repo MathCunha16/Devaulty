@@ -5,6 +5,7 @@ import com.devaulty.backend.desktop.listener.ServerPortListener;
 import com.devaulty.backend.infrastructure.security.AppTokenContext;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.concurrent.Worker;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
@@ -22,6 +23,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.concurrent.TimeUnit;
 
 public class DevaultyDesktop extends Application {
 
@@ -56,23 +58,24 @@ public class DevaultyDesktop extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-
-        // 1. Create and show the splash screen immediately
         createAndShowSplashScreen();
 
-        // 2. Prepares the main WebView window but does not display yet
         WebView webView = new WebView();
         webView.setContextMenuEnabled(false);
 
-        Screen screen = Screen.getPrimary();
-        Rectangle2D bounds = screen.getVisualBounds();
+        Rectangle2D bounds = Screen.getPrimary().getVisualBounds();
+        configurePrimaryStage(primaryStage, webView, bounds);
 
-        // Window is sized/positioned to cover the primary screen entirely,
-        // simulating a maximized state manually instead of calling
-        // setMaximized(true). On several Linux/GTK window managers,
-        // setMaximized(true) decides which monitor to maximize onto based on
-        // cursor position / "active" monitor, ignoring the Stage's X/Y — which
-        // is what was causing the window to jump to the wrong screen.
+        ServerPortListener.serverPortFuture
+                .orTimeout(60, TimeUnit.SECONDS)
+                .thenAccept(port -> Platform.runLater(() -> loadApplication(webView, primaryStage, port)))
+                .exceptionally(ex -> {
+                    Platform.runLater(() -> showErrorAndExit("Failed to obtain server port", ex));
+                    return null;
+                });
+    }
+
+    private void configurePrimaryStage(Stage primaryStage, WebView webView, Rectangle2D bounds) {
         Scene mainScene = new Scene(webView, bounds.getWidth(), bounds.getHeight());
         primaryStage.setTitle("Devaulty");
         primaryStage.setScene(mainScene);
@@ -84,41 +87,43 @@ public class DevaultyDesktop extends Application {
 
         primaryStage.setMinWidth(1000);
         primaryStage.setMinHeight(650);
-
         primaryStage.setX(bounds.getMinX());
         primaryStage.setY(bounds.getMinY());
         primaryStage.setWidth(bounds.getWidth());
         primaryStage.setHeight(bounds.getHeight());
+    }
 
-        // 3. Waits for the server port to be available
-        ServerPortListener.serverPortFuture.thenAccept(port -> {
-            String appUrl = "http://localhost:" + port;
+    private void loadApplication(WebView webView, Stage primaryStage, Integer port) {
+        String appUrl = "http://localhost:" + port;
+        webView.getEngine().load(appUrl);
 
-            Platform.runLater(() -> {
-                webView.getEngine().load(appUrl);
+        webView.getEngine().getLoadWorker().stateProperty()
+                .addListener((obs, oldState, newState) -> handleWorkerStateChange(webView, primaryStage, newState));
+    }
 
-                // When HTML is loaded, injects the internal token
-                webView.getEngine().getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
-                    if (newState == javafx.concurrent.Worker.State.SUCCEEDED) {
+    private void handleWorkerStateChange(WebView webView, Stage primaryStage, Worker.State newState) {
+        if (newState == Worker.State.RUNNING) {
+            injectInternalToken(webView);
+        } else if (newState == Worker.State.SUCCEEDED) {
+            injectInternalToken(webView);
+            showMainStageAndCloseSplash(primaryStage);
+        }
+    }
 
-                        // Injects the internal token into the WebView
-                        String script = String.format("window.DEVAULTY_INTERNAL_TOKEN = '%s';", AppTokenContext.PROCESS_TOKEN);
-                        webView.getEngine().executeScript(script);
+    private void injectInternalToken(WebView webView) {
+        try {
+            String script = String.format("window.DEVAULTY_INTERNAL_TOKEN = '%s';", AppTokenContext.PROCESS_TOKEN);
+            webView.getEngine().executeScript(script);
+        } catch (Exception ignored) {
+            // Safe to ignore if JavaScript execution context is not yet available or already disposed
+        }
+    }
 
-                        primaryStage.show();
-                        // No setMaximized(true) here — size/position were
-                        // already set above to cover the full primary screen.
-
-                        if (splashStage != null) {
-                            splashStage.close();
-                        }
-                    }
-                });
-            });
-        }).exceptionally(ex -> {
-            Platform.runLater(() -> showErrorAndExit("Failed to obtain server port", ex));
-            return null;
-        });
+    private void showMainStageAndCloseSplash(Stage primaryStage) {
+        primaryStage.show();
+        if (splashStage != null) {
+            splashStage.close();
+        }
     }
 
     @Override
