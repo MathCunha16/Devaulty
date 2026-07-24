@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Devaulty
+Comment=Devaulty - Secure Local Vault
+Exec=/opt/devaulty/bin/devaulty
+Icon=/opt/devaulty/lib/devaulty.png
+Terminal=false
+Type=Application
+Categories=Utility;
+StartupWMClass=com.devaulty.backend.desktop.DevaultyDesktop

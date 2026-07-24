@@ -1,6 +1,12 @@
 import axios, { AxiosError } from "axios";
 import type { ApiErrorResponse } from "../types/api";
 
+declare global {
+  interface Window {
+    DEVAULTY_INTERNAL_TOKEN?: string;
+  }
+}
+
 export class ApiError extends Error {
   status: number;
   payload: ApiErrorResponse | null;
@@ -14,10 +20,21 @@ export class ApiError extends Error {
 }
 
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api/v1",
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? "/api/v1",
   headers: {
     "Content-Type": "application/json",
   },
+});
+
+apiClient.interceptors.request.use((config) => {
+  // Reads DEVAULTY_INTERNAL_TOKEN from window (set by JavaFX)
+  const internalToken = window.DEVAULTY_INTERNAL_TOKEN;
+
+  if (internalToken) {
+    config.headers["X-Devaulty-Internal-Token"] = internalToken;
+  }
+
+  return config;
 });
 
 apiClient.interceptors.response.use(

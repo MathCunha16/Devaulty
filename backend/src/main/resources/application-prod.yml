@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: jdbc:sqlite:${user.home}/.config/devaulty/devaulty.db?foreign_keys=on
+  jpa:
+    show-sql: false
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+logging:
+  level:
+    com.devaulty: INFO
+    org.springframework: ERROR
