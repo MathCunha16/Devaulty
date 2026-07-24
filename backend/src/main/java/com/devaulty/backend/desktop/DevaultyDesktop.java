@@ -10,6 +10,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.web.WebView;
 import javafx.stage.Screen;
@@ -18,7 +19,9 @@ import javafx.stage.StageStyle;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 
+import java.io.File;
 import java.io.InputStream;
+import java.net.URL;
 
 public class DevaultyDesktop extends Application {
 
@@ -30,6 +33,12 @@ public class DevaultyDesktop extends Application {
 
     @Override
     public void init() {
+        // Ensures user configuration directory exists before Spring Boot initializes SQLite
+        File devaultyDir = new File(System.getProperty("user.home"), ".config/devaulty");
+        if (!devaultyDir.exists()) {
+            devaultyDir.mkdirs();
+        }
+
         // Starts Spring Boot in background without blocking JavaFX UI Thread
         Thread springThread = new Thread(() -> {
             try {
@@ -68,9 +77,9 @@ public class DevaultyDesktop extends Application {
         primaryStage.setTitle("Devaulty");
         primaryStage.setScene(mainScene);
 
-        InputStream iconStream = getClass().getResourceAsStream("/static/devaulty-icon.png");
-        if (iconStream != null) {
-            primaryStage.getIcons().add(new Image(iconStream));
+        URL iconUrl = getClass().getResource("/static/icon/devaulty-icon.png");
+        if (iconUrl != null) {
+            primaryStage.getIcons().add(new Image(iconUrl.toExternalForm()));
         }
 
         primaryStage.setMinWidth(1000);
@@ -123,7 +132,12 @@ public class DevaultyDesktop extends Application {
         splashStage = new Stage();
         splashStage.initStyle(StageStyle.TRANSPARENT);
 
-        javafx.scene.layout.StackPane root = new javafx.scene.layout.StackPane();
+        URL iconUrl = getClass().getResource("/static/icon/devaulty-icon.png");
+        if (iconUrl != null) {
+            splashStage.getIcons().add(new Image(iconUrl.toExternalForm()));
+        }
+
+        StackPane root = new StackPane();
         root.setStyle("-fx-background-color: transparent;");
 
         InputStream logoStream = getClass().getResourceAsStream("/static/devaulty-splash-screen-logo.png");
@@ -138,6 +152,7 @@ public class DevaultyDesktop extends Application {
         Scene splashScene = new Scene(root, SPLASH_WIDTH, SPLASH_HEIGHT);
         splashScene.setFill(Color.TRANSPARENT);
 
+        splashStage.setTitle("Devaulty");
         splashStage.setScene(splashScene);
 
         Rectangle2D bounds = Screen.getPrimary().getVisualBounds();
