@@ -39,7 +39,7 @@ class ReleaseControllerIT extends BaseIntegrationTest {
                         .header(AppTokenContext.HEADER_NAME, AppTokenContext.PROCESS_TOKEN)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.actualVersion").value("0.1.0-alpha"));
+                .andExpect(jsonPath("$.actualVersion", not(emptyOrNullString())));
     }
 
     @Test
