@@ -46,40 +46,58 @@
 
 .particleCanvas {
   position: absolute;
-  inset: -25px -35px;
+  inset: -20px -30px;
   pointer-events: none;
   overflow: visible;
   z-index: 10;
 }
 
-.particle {
+@keyframes float-particle {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.85);
+  }
+  25% {
+    opacity: 0.9;
+  }
+  75% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-32px) scale(1.1);
+  }
+}
+
+.cssParticle {
   position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   color: #10b981;
-  filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.9)) drop-shadow(0 0 10px rgba(16, 185, 129, 0.5));
+  font-family: var(--font-mono);
+  font-weight: 750;
   pointer-events: none;
   user-select: none;
+  animation: float-particle 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.8));
   will-change: transform, opacity;
 }
 
-:global(:root[data-theme="light"]) .particle {
+
+:global(:root[data-theme="light"]) .cssParticle {
   color: #059669;
-  filter: drop-shadow(0 0 5px rgba(5, 150, 105, 0.8));
+  filter: drop-shadow(0 0 4px rgba(5, 150, 105, 0.7));
 }
 
 .logoSvg {
   position: relative;
   z-index: 1;
-  transition: color 0.4s cubic-bezier(0.16, 1, 0.3, 1), filter 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  filter: none !important;
+  transition: color 0.3s ease;
 }
 
 .greenLogo {
   color: #10b981 !important;
   filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.8))
-          drop-shadow(0 0 12px rgba(16, 185, 129, 0.5))
-          drop-shadow(0 0 22px rgba(16, 185, 129, 0.25)) !important;
+          drop-shadow(0 0 12px rgba(16, 185, 129, 0.5)) !important;
 }
 
 :global(:root[data-theme="light"]) .greenLogo {
