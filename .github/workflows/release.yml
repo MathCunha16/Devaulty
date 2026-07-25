@@ -254,10 +254,10 @@ jobs:
         with:
           tag_name: ${{ inputs.tag || github.ref_name }}
           files: |
-            release-assets/*.deb
-            release-assets/*.rpm
-            release-assets/*.msi
-            release-assets/*.dmg
+            release-assets/**/*.deb
+            release-assets/**/*.rpm
+            release-assets/**/*.msi
+            release-assets/**/*.dmg
           generate_release_notes: true
           draft: false
           prerelease: false
