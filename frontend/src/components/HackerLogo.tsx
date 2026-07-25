@@ -1,19 +1,15 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { LogoDevaulty } from "./LogoDevaulty";
 import styles from "./HackerLogo.module.css";
 
-const BINARY_DIGITS = ["00", "01"];
-
-interface Particle {
-  id: number;
-  digit: string;
-  x: number;
-  y: number;
-  size: number;
-  speedY: number;
-  speedX: number;
-  opacity: number;
-}
+const STATIC_PARTICLES = [
+  { id: 1, digit: "01", left: "12%", top: "50%", size: "11px", delay: "0s", duration: "2.8s" },
+  { id: 2, digit: "00", left: "38%", top: "55%", size: "13px", delay: "0.9s", duration: "3.2s" },
+  { id: 3, digit: "01", left: "64%", top: "48%", size: "10px", delay: "1.7s", duration: "2.6s" },
+  { id: 4, digit: "00", left: "82%", top: "52%", size: "12px", delay: "0.4s", duration: "3.0s" },
+  { id: 5, digit: "01", left: "25%", top: "58%", size: "12px", delay: "2.1s", duration: "3.4s" },
+  { id: 6, digit: "00", left: "52%", top: "45%", size: "11px", delay: "1.3s", duration: "2.9s" },
+];
 
 interface HackerLogoProps {
   height?: number | string;
@@ -29,8 +25,6 @@ export const HackerLogo: React.FC<HackerLogoProps> = ({
   const [isVaultActive, setIsVaultActive] = useState(
     () => typeof document !== "undefined" && document.documentElement.dataset.vaultActive === "true"
   );
-  const [particles, setParticles] = useState<Particle[]>([]);
-  const nextIdRef = useRef(0);
 
   useEffect(() => {
     const checkActive = () => {
@@ -49,62 +43,22 @@ export const HackerLogo: React.FC<HackerLogoProps> = ({
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (!isVaultActive) return;
-
-    const interval = setInterval(() => {
-      setParticles((prev) => {
-        const newParticle: Particle = {
-          id: nextIdRef.current++,
-          digit: BINARY_DIGITS[Math.floor(Math.random() * BINARY_DIGITS.length)],
-          x: Math.random() * 85 + 5,
-          y: Math.random() * 20 + 45,
-          size: Math.floor(Math.random() * 5 + 10), // 10px to 14px font
-          speedY: Math.random() * 0.7 + 0.5,
-          speedX: (Math.random() - 0.5) * 0.6,
-          opacity: 0.9,
-        };
-
-        const updated = prev
-          .map((p) => ({
-            ...p,
-            y: p.y - p.speedY * 1.8,
-            x: p.x + p.speedX * 1.2,
-            opacity: p.opacity - 0.025,
-          }))
-          .filter((p) => p.opacity > 0 && p.y > -35);
-
-        if (updated.length < 14) {
-          updated.push(newParticle);
-        }
-
-        return updated;
-      });
-    }, 70);
-
-    return () => {
-      clearInterval(interval);
-      setParticles([]);
-    };
-  }, [isVaultActive]);
-
   return (
     <div className={`${styles.container} ${className || ""}`}>
       {isVaultActive && <div className={styles.organicAura} aria-hidden="true" />}
 
       {isVaultActive && (
         <div className={styles.particleCanvas} aria-hidden="true">
-          {particles.map((p) => (
+          {STATIC_PARTICLES.map((p) => (
             <span
               key={p.id}
-              className={styles.particle}
+              className={styles.cssParticle}
               style={{
-                left: `${p.x}%`,
-                top: `${p.y}%`,
-                fontSize: `${p.size}px`,
-                fontFamily: "var(--font-mono)",
-                fontWeight: 750,
-                opacity: p.opacity,
+                left: p.left,
+                top: p.top,
+                fontSize: p.size,
+                animationDelay: p.delay,
+                animationDuration: p.duration,
               }}
             >
               {p.digit}
