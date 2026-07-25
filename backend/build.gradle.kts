@@ -150,7 +150,12 @@ runtime {
     }
 }
 
-val appImageDir = layout.buildDirectory.dir("jpackage/devaulty")
+val isMac = org.gradle.internal.os.OperatingSystem.current().isMacOsX
+val appImageDir = if (isMac) {
+    layout.buildDirectory.dir("jpackage/devaulty.app")
+} else {
+    layout.buildDirectory.dir("jpackage/devaulty")
+}
 
 fun getResourceDirArgs(dirPath: String): List<String> {
     val dir = file(dirPath)
