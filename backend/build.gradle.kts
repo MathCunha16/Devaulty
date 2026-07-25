@@ -136,6 +136,7 @@ runtime {
 
     jpackage {
         imageName = "devaulty"
+        appVersion = packageVersion
         imageOptions = listOf("--java-options", "-Dspring.profiles.active=prod")
     }
 }

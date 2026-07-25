@@ -163,7 +163,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Install Wix Toolset 3.x (Chocolatey)
-        run: choco install wix --version 3.11.2 -y
+        run: choco install wixtoolset -y
 
       - name: Build Windows Package Installer (.msi)
         working-directory: ./backend
