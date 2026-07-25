@@ -72,27 +72,84 @@ public class CheckForUpdatesImpl implements CheckForUpdatesUseCase {
             return false;
         }
 
-        String currentClean = currentVersion.split("-")[0];
-        String latestClean = latestVersion.split("-")[0];
+        int hyphenCurrent = currentVersion.indexOf('-');
+        int hyphenLatest = latestVersion.indexOf('-');
 
-        String[] currentParts = currentClean.split("\\.");
-        String[] latestParts = latestClean.split("\\.");
+        String currentCore = hyphenCurrent >= 0 ? currentVersion.substring(0, hyphenCurrent) : currentVersion;
+        String latestCore  = hyphenLatest  >= 0 ? latestVersion.substring(0, hyphenLatest)   : latestVersion;
 
-        int length = Math.max(currentParts.length, latestParts.length);
-        for (int i = 0; i < length; i++) {
-            int vCurrent = i < currentParts.length ? parseVersionPart(currentParts[i]) : 0;
-            int vLatest = i < latestParts.length ? parseVersionPart(latestParts[i]) : 0;
+        String currentPre = hyphenCurrent >= 0 ? currentVersion.substring(hyphenCurrent + 1) : null;
+        String latestPre  = hyphenLatest  >= 0 ? latestVersion.substring(hyphenLatest + 1)   : null;
 
-            if (vLatest > vCurrent) {
-                return true;
-            }
-            if (vLatest < vCurrent) {
-                return false;
-            }
+        // 1. Compare numeric core (major.minor.patch)
+        int coreComparison = compareCore(currentCore, latestCore);
+        if (coreComparison != 0) {
+            return coreComparison < 0;
         }
 
-        return currentVersion.contains("-") && !latestVersion.contains("-");
+        // 2. Same core: stable (no pre-release) > any pre-release (SemVer spec)
+        if (currentPre == null && latestPre != null) {
+            return false; // current is stable, latest is pre-release → not newer
+        }
+        if (currentPre != null && latestPre == null) {
+            return true;  // current is pre-release, latest is stable → newer
+        }
+        if (currentPre == null) {
+            return false; // both stable, same version
+        }
+
+        // 3. Both have pre-release identifiers: compare dot-separated identifiers
+        return comparePreRelease(currentPre, latestPre) < 0;
     }
+
+    private int compareCore(String a, String b) {
+        String[] aParts = a.split("\\.");
+        String[] bParts = b.split("\\.");
+        int length = Math.max(aParts.length, bParts.length);
+        for (int i = 0; i < length; i++) {
+            int va = i < aParts.length ? parseVersionPart(aParts[i]) : 0;
+            int vb = i < bParts.length ? parseVersionPart(bParts[i]) : 0;
+            if (va != vb) return Integer.compare(va, vb);
+        }
+        return 0;
+    }
+
+    /**
+     * Compares two pre-release strings per SemVer 2.0 spec:
+     * - Numeric identifiers are compared numerically.
+     * - Alphanumeric identifiers are compared lexically (ASCII).
+     * - A numeric identifier always has lower precedence than alphanumeric.
+     * Returns negative if a < b, positive if a > b, 0 if equal.
+     */
+    private int comparePreRelease(String a, String b) {
+        String[] aIds = a.split("\\.");
+        String[] bIds = b.split("\\.");
+        int length = Math.max(aIds.length, bIds.length);
+        for (int i = 0; i < length; i++) {
+            if (i >= aIds.length) return -1; // a has fewer identifiers → a is smaller
+            if (i >= bIds.length) return  1;
+
+            String ai = aIds[i];
+            String bi = bIds[i];
+
+            boolean aNum = ai.chars().allMatch(Character::isDigit);
+            boolean bNum = bi.chars().allMatch(Character::isDigit);
+
+            int cmp;
+            if (aNum && bNum) {
+                cmp = Integer.compare(Integer.parseInt(ai), Integer.parseInt(bi));
+            } else if (aNum) {
+                cmp = -1; // numeric < alphanumeric
+            } else if (bNum) {
+                cmp = 1;
+            } else {
+                cmp = ai.compareTo(bi);
+            }
+            if (cmp != 0) return cmp;
+        }
+        return 0;
+    }
+
 
     private int parseVersionPart(String part) {
         try {

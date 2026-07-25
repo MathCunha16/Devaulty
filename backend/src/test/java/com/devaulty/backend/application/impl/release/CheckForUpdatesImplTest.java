@@ -9,6 +9,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -181,4 +183,40 @@ class CheckForUpdatesImplTest {
 
         verify(releasePort, times(1)).getLatestRelease();
     }
+
+    @ParameterizedTest(name = "{0} -> {1} should be recognised as an update")
+    @CsvSource({
+            "0.1.0-alpha.1, v0.1.0-alpha.2",
+            "0.1.0-alpha,   v0.1.0-beta",
+            "0.1.0-alpha,   v0.1.0"
+    })
+    void shouldReturnUpdateAvailable_whenPreReleaseProgresses(String currentVersion, String latestTag) {
+        when(devaultyProperties.getVersion()).thenReturn(currentVersion);
+        LatestReleaseInfo latestRelease = new LatestReleaseInfo(
+                latestTag, "Release " + latestTag, "", "",
+                Instant.now(), false, List.of()
+        );
+        when(releasePort.getLatestRelease()).thenReturn(latestRelease);
+
+        AppUpdateInfo result = checkForUpdatesUseCase.execute();
+
+        assertTrue(result.updateAvailable());
+    }
+
+    @Test
+    @DisplayName("Should return updateAvailable = false when stable is not superseded by a pre-release")
+    void shouldReturnNoUpdateAvailable_whenStableIsNotSupersededByPreRelease() {
+        // Arrange: current = 0.1.0 (stable), latest = 0.1.0-beta (pre-release)
+        when(devaultyProperties.getVersion()).thenReturn("0.1.0");
+        LatestReleaseInfo latestRelease = new LatestReleaseInfo(
+                "v0.1.0-beta", "Release 0.1.0-beta", "", "",
+                Instant.now(), false, List.of()
+        );
+        when(releasePort.getLatestRelease()).thenReturn(latestRelease);
+
+        AppUpdateInfo result = checkForUpdatesUseCase.execute();
+
+        assertFalse(result.updateAvailable());
+    }
 }
+

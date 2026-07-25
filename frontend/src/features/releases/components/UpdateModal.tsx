@@ -85,7 +85,13 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
         const last = focusable[focusable.length - 1];
 
         if (e.shiftKey) {
-          if (document.activeElement === first) {
+          // Treat the modal container itself as the lower boundary so that
+          // Shift+Tab from the very first focusable position (or from the
+          // modal container that receives initial focus) wraps to the last.
+          if (
+            document.activeElement === first ||
+            document.activeElement === modalRef.current
+          ) {
             e.preventDefault();
             last.focus();
           }
