@@ -1,6 +1,6 @@
 import React, { Suspense, useState } from "react";
 import { Link, Outlet } from "@tanstack/react-router";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { ThemeProvider } from "./ThemeProvider";
 import { useTheme } from "../hooks/useTheme";
 import { useProjectsQuery } from "~features/projects/hooks/useProjects";
@@ -11,6 +11,13 @@ import * as Icons from "lucide-react";
 import styles from "../routes/__root.module.css";
 import { HackerLogo } from "./HackerLogo";
 import { getIconComponent } from "../utils/icons";
+import {
+  useCurrentVersionQuery,
+  useCheckUpdatesQuery,
+  useCheckUpdatesMutation,
+} from "~features/releases/hooks/useReleases";
+import { UpdateModal } from "~features/releases/components/UpdateModal";
+import type { AppUpdateInfoResponse } from "~types/api";
 
 // ──────────────────────────────────────────────────────────────
 // Edge toggle button — floats half in / half out of the sidebar.
@@ -43,14 +50,34 @@ const SidebarEdgeButton: React.FC = () => {
 // ──────────────────────────────────────────────────────────────
 // Main navigation sidebar content
 // ──────────────────────────────────────────────────────────────
-const NavigationSidebar: React.FC = () => {
+const NavigationSidebar: React.FC<{
+  onOpenUpdateModal: (info: AppUpdateInfoResponse) => void;
+}> = ({ onOpenUpdateModal }) => {
   const { theme, toggleTheme } = useTheme();
   const { data: projectsData } = useProjectsQuery();
+  const { data: versionData } = useCurrentVersionQuery();
+  const checkUpdatesMutation = useCheckUpdatesMutation();
+
   const { isOpen } = useSidebar();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const projects = projectsData?.content || [];
   const activeProjects = projects.filter((p) => !p.archived);
+
+  const handleManualCheck = async () => {
+    try {
+      const res = await checkUpdatesMutation.mutateAsync();
+      if (res.updateAvailable) {
+        onOpenUpdateModal(res);
+      } else {
+        toast.success(
+          `Devaulty is up to date (v${res.currentVersion || versionData?.actualVersion || ""})`
+        );
+      }
+    } catch {
+      toast.error("Failed to check for application updates.");
+    }
+  };
 
   return (
     // wrapper: transitions the visible width
@@ -63,9 +90,25 @@ const NavigationSidebar: React.FC = () => {
         className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : styles.sidebarClosed}`}
       >
         <div className={styles.sidebarHeader}>
-          <Link to="/" className={styles.appLogo} title="Devaulty Home">
-            <HackerLogo height={52} />
-          </Link>
+          <div className="flex flex-col items-center justify-center gap-1">
+            <Link to="/" className={styles.appLogo} title="Devaulty Home">
+              <HackerLogo height={46} />
+            </Link>
+            {versionData?.actualVersion && (
+              <button
+                type="button"
+                onClick={handleManualCheck}
+                disabled={checkUpdatesMutation.isPending}
+                className="text-[10px] font-mono text-muted-foreground/70 hover:text-foreground transition-colors border border-border/40 px-2 py-0.5 rounded-full bg-secondary/20 cursor-pointer flex items-center gap-1"
+                title="Click to check for updates"
+              >
+                <span>v{versionData.actualVersion}</span>
+                {checkUpdatesMutation.isPending && (
+                  <Icons.Loader2 size={10} className="animate-spin text-primary" />
+                )}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className={styles.sidebarContent}>
@@ -158,6 +201,28 @@ const NavigationSidebar: React.FC = () => {
 const RootLayoutInner: React.FC = () => {
   const { theme } = useTheme();
   const { isOpen } = useSidebar();
+  const { data: autoUpdateData } = useCheckUpdatesQuery(true);
+
+  const [dismissedVersion, setDismissedVersion] = useState<string | null>(null);
+  const [manualUpdateInfo, setManualUpdateInfo] = useState<AppUpdateInfoResponse | null>(null);
+
+  const currentUpdateInfo =
+    manualUpdateInfo || (autoUpdateData?.updateAvailable ? autoUpdateData : null);
+
+  const isModalOpen =
+    !!currentUpdateInfo && currentUpdateInfo.latestVersion !== dismissedVersion;
+
+  const handleOpenUpdateModal = (info: AppUpdateInfoResponse) => {
+    setManualUpdateInfo(info);
+    setDismissedVersion(null);
+  };
+
+  const handleCloseUpdateModal = () => {
+    if (currentUpdateInfo) {
+      setDismissedVersion(currentUpdateInfo.latestVersion);
+    }
+    setManualUpdateInfo(null);
+  };
 
   return (
     <div className={styles.appContainer}>
@@ -168,7 +233,7 @@ const RootLayoutInner: React.FC = () => {
             <aside className={`${styles.sidebar} ${styles.sidebarOpen}`}>
               <div className={styles.sidebarHeader}>
                 <div className={styles.appLogo}>
-                  <HackerLogo height={52} />
+                  <HackerLogo height={46} />
                 </div>
               </div>
               <div className="flex-1 flex items-center justify-center p-4">
@@ -178,7 +243,7 @@ const RootLayoutInner: React.FC = () => {
           </div>
         }
       >
-        <NavigationSidebar />
+        <NavigationSidebar onOpenUpdateModal={handleOpenUpdateModal} />
       </Suspense>
 
       {/* Edge toggle button — always rendered, transitions in sync with sidebar */}
@@ -189,7 +254,7 @@ const RootLayoutInner: React.FC = () => {
         {/* Centered logo top bar — appears when sidebar is closed */}
         <div className={`${styles.topBar} ${isOpen ? styles.topBarHidden : ""}`}>
           <Link to="/" className={styles.appLogo} title="Devaulty Home">
-            <HackerLogo height={48} />
+            <HackerLogo height={44} />
           </Link>
         </div>
 
@@ -207,6 +272,12 @@ const RootLayoutInner: React.FC = () => {
       </main>
 
       <Toaster position="bottom-right" theme={theme} closeButton />
+
+      <UpdateModal
+        isOpen={isModalOpen}
+        onClose={handleCloseUpdateModal}
+        updateInfo={currentUpdateInfo}
+      />
     </div>
   );
 };

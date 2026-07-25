@@ -11,11 +11,23 @@ val mapStructVersion = "1.6.3"
 val swaggerOpenAPIVersion = "3.0.3"
 val bouncyCastleVersion = "1.84"
 
-group = "com.devaulty"
-version = "0.1.0-alpha"
+val yamlVersion = file("src/main/resources/application.yaml")
+    .readLines()
+    .firstOrNull { it.trim().startsWith("version:") }
+    ?.substringAfter("version:")
+    ?.trim()
+    ?.removeSurrounding("\"")
+    ?.removeSurrounding("'")
+    ?: "0.1.0-alpha"
 
-val packageVersion = "0.1.0"
-val macPackageVersion = "1.0.0"
+group = "com.devaulty"
+version = yamlVersion
+
+// Clean version for Linux/Windows (e.g. "0.1.0-alpha" -> "0.1.0")
+val packageVersion = yamlVersion.replace(Regex("(?i)-.*$"), "")
+
+// Numeric 3-part version for macOS (e.g. "0.1.0")
+val macPackageVersion = if (packageVersion.split(".").size >= 3) packageVersion else "$packageVersion.0"
 
 java {
     toolchain {
@@ -36,6 +48,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-liquibase")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
+    implementation("org.springframework.boot:spring-boot-starter-webclient")
     implementation("org.springframework.security:spring-security-crypto")
     implementation("org.mapstruct:mapstruct:${mapStructVersion}")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:${swaggerOpenAPIVersion}")
@@ -81,7 +94,7 @@ val buildFrontend by tasks.registering(Exec::class) {
 
     workingDir = file("../frontend")
 
-    val isWindows = org.gradle.internal.os.OperatingSystem.current().isWindows()
+    val isWindows = org.gradle.internal.os.OperatingSystem.current().isWindows
     if (isWindows) {
         commandLine("cmd", "/c", "npm run build")
     } else {

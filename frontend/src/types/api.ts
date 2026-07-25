@@ -357,3 +357,29 @@ export interface PagedModelCredentialSummaryResponse {
   page: PageMetadata;
 }
 
+// Release / Auto-Updater Models
+export interface CurrentVersionResponse {
+  actualVersion: string;
+}
+
+export interface AppUpdateInfoResponse {
+  updateAvailable: boolean;
+  currentVersion: string;
+  latestVersion: string;
+  releaseTitle?: string;
+  releaseNotes?: string;
+  downloadUrl?: string;
+  downloadSizeInBytes?: number;
+  publishedAt?: string;
+}
+
+export type UpdateDownloadStatus = "DOWNLOADING" | "COMPLETED" | "FAILED" | "INSTALLING";
+
+export interface UpdateDownloadProgressResponse {
+  status: UpdateDownloadStatus;
+  percentage: number;
+  downloadedBytes: number;
+  totalBytes: number;
+  errorMessage?: string;
+}
+

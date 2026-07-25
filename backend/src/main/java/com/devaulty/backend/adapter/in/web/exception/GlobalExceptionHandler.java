@@ -41,6 +41,11 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
     }
 
+    @ExceptionHandler(UpdateNotAvailableException.class)
+    public ResponseEntity<ApiErrorResponse> handleUpdateNotAvailableException(UpdateNotAvailableException exception) {
+        return buildResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
     @ExceptionHandler(InvalidMasterPasswordException.class)
     public ResponseEntity<ApiErrorResponse> handleInvalidMasterPasswordException(InvalidMasterPasswordException exception) {
         return buildResponse(HttpStatus.UNAUTHORIZED, exception.getMessage());

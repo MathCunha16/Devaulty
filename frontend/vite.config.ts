@@ -26,4 +26,12 @@ export default defineConfig({
       '~features': path.resolve(__dirname, './src/features'),
     },
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+    },
+  },
 })

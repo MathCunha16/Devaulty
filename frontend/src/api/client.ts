@@ -19,16 +19,27 @@ export class ApiError extends Error {
   }
 }
 
+export const getInternalToken = (): string | undefined => {
+  if (typeof window !== "undefined" && window.DEVAULTY_INTERNAL_TOKEN) {
+    return window.DEVAULTY_INTERNAL_TOKEN;
+  }
+  // Strictly in development mode (import.meta.env.DEV), fallback to dev secret token.
+  // In production builds, Vite tree-shakes and completely eliminates this fallback.
+  if (import.meta.env.DEV) {
+    return "dev-secret-token";
+  }
+  return undefined;
+};
+
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? "/api/v1",
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api/v1",
   headers: {
     "Content-Type": "application/json",
   },
 });
 
 apiClient.interceptors.request.use((config) => {
-  // Reads DEVAULTY_INTERNAL_TOKEN from window (set by JavaFX)
-  const internalToken = window.DEVAULTY_INTERNAL_TOKEN;
+  const internalToken = getInternalToken();
 
   if (internalToken) {
     config.headers["X-Devaulty-Internal-Token"] = internalToken;

@@ -1,0 +1,265 @@
+name: Release CI/CD Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag name to release (e.g. v0.1.0-alpha)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  # ===========================================
+  # STAGE 0: Tests & Version Sanity Check
+  # ===========================================
+  verify:
+    name: Run Tests & Verify Version
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+          persist-credentials: false
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Setup Java 21 (Temurin)
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Run Backend Tests
+        working-directory: ./backend
+        run: |
+          chmod +x gradlew
+          ./gradlew test --no-daemon
+
+      - name: Verify Tag Matches Gradle Version
+        working-directory: ./backend
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          TAG_VERSION="${RELEASE_TAG#v}"
+          GRADLE_VERSION=$(./gradlew properties -q | grep "^version:" | awk '{print $2}')
+          if [ "$TAG_VERSION" != "$GRADLE_VERSION" ]; then
+            echo "Tag version ($TAG_VERSION) does not match Gradle version ($GRADLE_VERSION)"
+            exit 1
+          fi
+          echo "Tag version matches Gradle version: $TAG_VERSION"
+
+  # ===========================================
+  # STAGE 1: Linux Packaging
+  # ===========================================
+  build-linux:
+    name: Package Linux Installers (.deb, .rpm)
+    needs: verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+          persist-credentials: false
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Setup Java 21 (Temurin)
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Install Linux Package Utilities (rpm, dpkg-dev)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm dpkg-dev
+
+      - name: Build Linux Package Installers (.deb, .rpm)
+        working-directory: ./backend
+        run: |
+          chmod +x gradlew
+          ./gradlew packageDeb packageRpm --no-daemon
+
+      - name: Upload Linux Installer Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-installers
+          path: |
+            backend/build/jpackage/deb/*.deb
+            backend/build/jpackage/rpm/*.rpm
+          if-no-files-found: error
+
+  # ===========================================
+  # STAGE 2: Windows Packaging
+  # ===========================================
+  build-windows:
+    name: Package Windows Installer (.msi)
+    needs: verify
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+          persist-credentials: false
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Setup Java 21 (Temurin)
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Install Wix Toolset 3.x (Chocolatey)
+        run: choco install wix --version 3.11.2 -y
+
+      - name: Build Windows Package Installer (.msi)
+        working-directory: ./backend
+        run: .\gradlew.bat packageMsi --no-daemon
+
+      - name: Upload Windows Installer Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: backend/build/jpackage/msi/*.msi
+          if-no-files-found: error
+
+  # ===========================================
+  # STAGE 3: macOS Packaging
+  # ===========================================
+  build-macos:
+    name: Package macOS Installer (.dmg)
+    needs: verify
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+          persist-credentials: false
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Setup Java 21 (Temurin)
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build macOS Package Installer (.dmg)
+        working-directory: ./backend
+        run: |
+          chmod +x gradlew
+          ./gradlew packageDmg --no-daemon
+
+      - name: Upload macOS Installer Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-installer
+          path: backend/build/jpackage/dmg/*.dmg
+          if-no-files-found: error
+
+  # ===========================================
+  # STAGE 4: Publish on GitHub Releases
+  # ===========================================
+  publish-release:
+    name: Publish GitHub Release Assets
+    needs:
+      - build-linux
+      - build-windows
+      - build-macos
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download All Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Display Collected Release Assets
+        run: |
+          echo "=== Executables Collected for Release ==="
+          ls -la release-assets/
+
+      - name: Publish GitHub Release (softprops/action-gh-release)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          files: |
+            release-assets/*.deb
+            release-assets/*.rpm
+            release-assets/*.msi
+            release-assets/*.dmg
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

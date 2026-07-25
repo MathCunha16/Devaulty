@@ -1,0 +1,23 @@
+changelog:
+  categories:
+    - title: "Features"
+      labels:
+        - "feature"
+        - "enhancement"
+    - title: "Bug Fixes"
+      labels:
+        - "fix"
+        - "bug"
+    - title: "Performance Improvements"
+      labels:
+        - "performance"
+        - "perf"
+    - title: "Documentation"
+      labels:
+        - "documentation"
+        - "docs"
+    - title: "Maintenance & Infrastructure"
+      labels:
+        - "chore"
+        - "ci"
+        - "dependencies"
