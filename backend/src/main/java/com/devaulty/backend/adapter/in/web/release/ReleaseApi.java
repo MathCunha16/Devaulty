@@ -2,6 +2,7 @@ package com.devaulty.backend.adapter.in.web.release;
 
 import com.devaulty.backend.adapter.in.web.exception.ApiErrorResponse;
 import com.devaulty.backend.adapter.in.web.release.dto.AppUpdateInfoResponse;
+import com.devaulty.backend.adapter.in.web.release.dto.CurrentVersionResponse;
 import com.devaulty.backend.adapter.in.web.release.dto.UpdateDownloadProgressResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -71,4 +72,23 @@ public interface ReleaseApi {
     })
     @GetMapping(value = "/download-and-install", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     ResponseEntity<Flux<UpdateDownloadProgressResponse>> downloadUpdate();
+
+    @Operation(
+            summary = "Get current running application version",
+            description = "Returns the local application version (`app.version`) instantly from DevaultyProperties without querying external services."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Returns current application version string.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = CurrentVersionResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden. Request missing or containing an invalid `X-Devaulty-Internal-Token` header.",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ApiErrorResponse.class))
+            )
+    })
+    @GetMapping("/current-app-version")
+    ResponseEntity<CurrentVersionResponse> getAppInfo();
 }

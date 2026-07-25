@@ -2,9 +2,11 @@ package com.devaulty.backend.infrastructure.configuration;
 
 import com.devaulty.backend.application.impl.release.CheckForUpdatesImpl;
 import com.devaulty.backend.application.impl.release.DownloadUpdateImpl;
+import com.devaulty.backend.application.impl.release.GetCurrentVersionImpl;
 import com.devaulty.backend.application.impl.release.InstallUpdateImpl;
 import com.devaulty.backend.application.port.in.release.CheckForUpdatesUseCase;
 import com.devaulty.backend.application.port.in.release.DownloadUpdateUseCase;
+import com.devaulty.backend.application.port.in.release.GetCurrentVersionUseCase;
 import com.devaulty.backend.application.port.in.release.InstallUpdateUseCase;
 import com.devaulty.backend.application.port.out.external.release.ReleasePort;
 import com.devaulty.backend.infrastructure.properties.DevaultyProperties;
@@ -44,6 +46,15 @@ public class ReleaseConfig {
     ){
         return new InstallUpdateImpl(
                 configurableApplicationContext
+        );
+    }
+
+    @Bean
+    public GetCurrentVersionUseCase getActualVersionUseCase(
+            DevaultyProperties devaultyProperties
+    ){
+        return new GetCurrentVersionImpl(
+                devaultyProperties
         );
     }
 }

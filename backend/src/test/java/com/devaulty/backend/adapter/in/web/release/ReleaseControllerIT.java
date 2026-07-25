@@ -1,5 +1,6 @@
 package com.devaulty.backend.adapter.in.web.release;
 
+import com.devaulty.backend.application.port.in.release.InstallUpdateUseCase;
 import com.devaulty.backend.application.port.out.external.release.ReleasePort;
 import com.devaulty.backend.application.port.out.external.release.dto.LatestReleaseInfo;
 import com.devaulty.backend.application.port.out.external.release.dto.ReleaseAssetInfo;
@@ -28,7 +29,17 @@ class ReleaseControllerIT extends BaseIntegrationTest {
     private ReleasePort releasePort;
 
     @MockitoBean
-    private com.devaulty.backend.application.port.in.release.InstallUpdateUseCase installUpdateUseCase;
+    private InstallUpdateUseCase installUpdateUseCase;
+
+    @Test
+    @DisplayName("GET /api/v1/releases/current-app-version should return 200 OK with actual version payload")
+    void getAppInfo_shouldReturn200OK_withActualVersion() throws Exception {
+        mockMvc.perform(get("/api/v1/releases/current-app-version")
+                        .header(AppTokenContext.HEADER_NAME, AppTokenContext.PROCESS_TOKEN)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.actualVersion").value("0.1.0-alpha"));
+    }
 
     @Test
     @DisplayName("GET /api/v1/releases/check should return 200 OK with update response payload")
