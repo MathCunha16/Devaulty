@@ -29,6 +29,15 @@ val packageVersion = yamlVersion.replace(Regex("(?i)-.*$"), "")
 // Numeric 3-part version for macOS (e.g. "0.1.0")
 val macPackageVersion = if (packageVersion.split(".").size >= 3) packageVersion else "$packageVersion.0"
 
+// macOS jpackage requires the first version component to be >= 1 (CFBundleVersion spec).
+// Map 0.x.y → 1.x.y for the jpackageImage task so the image build succeeds on all platforms.
+// Each platform installer task already passes its own --app-version independently.
+val jpackageImageVersion = run {
+    val parts = packageVersion.split(".")
+    val major = parts.getOrElse(0) { "1" }.toIntOrNull() ?: 1
+    (if (major == 0) listOf("1") + parts.drop(1) else parts).joinToString(".")
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
@@ -136,29 +145,44 @@ runtime {
 
     jpackage {
         imageName = "devaulty"
-        appVersion = packageVersion
+        appVersion = jpackageImageVersion
         imageOptions = listOf("--java-options", "-Dspring.profiles.active=prod")
     }
 }
 
 val appImageDir = layout.buildDirectory.dir("jpackage/devaulty")
 
+fun getResourceDirArgs(dirPath: String): List<String> {
+    val dir = file(dirPath)
+    return if (dir.exists() && (dir.listFiles()?.isNotEmpty() == true)) {
+        listOf("--resource-dir", dir.absolutePath)
+    } else {
+        emptyList()
+    }
+}
+
 val packageDeb by tasks.registering(Exec::class) {
     group = "distribution"
     dependsOn("jpackageImage")
     onlyIf { org.gradle.internal.os.OperatingSystem.current().isLinux }
     commandLine(
-        "jpackage",
-        "--type", "deb",
-        "--app-image", appImageDir.get().asFile.path,
-        "--name", "devaulty",
-        "--app-version", packageVersion,
-        "--vendor", "Devaulty",
-        "--icon", file("src/main/resources/static/icon/devaulty-icon.png").absolutePath,
-        "--resource-dir", file("src/main/resources/jpackage/linux").absolutePath,
-        "--linux-shortcut",
-        "--linux-menu-group", "Utility",
-        "--dest", layout.buildDirectory.dir("jpackage/deb").get().asFile.path
+        buildList {
+            addAll(listOf(
+                "jpackage",
+                "--type", "deb",
+                "--app-image", appImageDir.get().asFile.path,
+                "--name", "devaulty",
+                "--app-version", packageVersion,
+                "--vendor", "Devaulty",
+                "--icon", file("src/main/resources/static/icon/devaulty-icon.png").absolutePath
+            ))
+            addAll(getResourceDirArgs("src/main/resources/jpackage/linux"))
+            addAll(listOf(
+                "--linux-shortcut",
+                "--linux-menu-group", "Utility",
+                "--dest", layout.buildDirectory.dir("jpackage/deb").get().asFile.path
+            ))
+        }
     )
 }
 
@@ -167,17 +191,23 @@ val packageRpm by tasks.registering(Exec::class) {
     dependsOn("jpackageImage")
     onlyIf { org.gradle.internal.os.OperatingSystem.current().isLinux }
     commandLine(
-        "jpackage",
-        "--type", "rpm",
-        "--app-image", appImageDir.get().asFile.path,
-        "--name", "devaulty",
-        "--app-version", packageVersion,
-        "--vendor", "Devaulty",
-        "--icon", file("src/main/resources/static/icon/devaulty-icon.png").absolutePath,
-        "--resource-dir", file("src/main/resources/jpackage/linux").absolutePath,
-        "--linux-shortcut",
-        "--linux-menu-group", "Utility",
-        "--dest", layout.buildDirectory.dir("jpackage/rpm").get().asFile.path
+        buildList {
+            addAll(listOf(
+                "jpackage",
+                "--type", "rpm",
+                "--app-image", appImageDir.get().asFile.path,
+                "--name", "devaulty",
+                "--app-version", packageVersion,
+                "--vendor", "Devaulty",
+                "--icon", file("src/main/resources/static/icon/devaulty-icon.png").absolutePath
+            ))
+            addAll(getResourceDirArgs("src/main/resources/jpackage/linux"))
+            addAll(listOf(
+                "--linux-shortcut",
+                "--linux-menu-group", "Utility",
+                "--dest", layout.buildDirectory.dir("jpackage/rpm").get().asFile.path
+            ))
+        }
     )
 }
 
@@ -186,18 +216,24 @@ val packageMsi by tasks.registering(Exec::class) {
     dependsOn("jpackageImage")
     onlyIf { org.gradle.internal.os.OperatingSystem.current().isWindows }
     commandLine(
-        "jpackage",
-        "--type", "msi",
-        "--app-image", appImageDir.get().asFile.path,
-        "--name", "devaulty",
-        "--app-version", packageVersion,
-        "--vendor", "Devaulty",
-        "--icon", file("src/main/resources/static/icon/devaulty-icon.ico").absolutePath,
-        "--resource-dir", file("src/main/resources/jpackage/windows").absolutePath,
-        "--win-shortcut",
-        "--win-menu",
-        "--win-menu-group", "Utility",
-        "--dest", layout.buildDirectory.dir("jpackage/msi").get().asFile.path
+        buildList {
+            addAll(listOf(
+                "jpackage",
+                "--type", "msi",
+                "--app-image", appImageDir.get().asFile.path,
+                "--name", "devaulty",
+                "--app-version", packageVersion,
+                "--vendor", "Devaulty",
+                "--icon", file("src/main/resources/static/icon/devaulty-icon.ico").absolutePath
+            ))
+            addAll(getResourceDirArgs("src/main/resources/jpackage/windows"))
+            addAll(listOf(
+                "--win-shortcut",
+                "--win-menu",
+                "--win-menu-group", "Utility",
+                "--dest", layout.buildDirectory.dir("jpackage/msi").get().asFile.path
+            ))
+        }
     )
 }
 
@@ -206,16 +242,22 @@ val packageDmg by tasks.registering(Exec::class) {
     dependsOn("jpackageImage")
     onlyIf { org.gradle.internal.os.OperatingSystem.current().isMacOsX }
     commandLine(
-        "jpackage",
-        "--type", "dmg",
-        "--app-image", appImageDir.get().asFile.path,
-        "--name", "devaulty",
-        "--app-version", macPackageVersion,
-        "--vendor", "Devaulty",
-        "--icon", file("src/main/resources/static/icon/devaulty-icon.icns").absolutePath,
-        "--resource-dir", file("src/main/resources/jpackage/macos").absolutePath,
-        "--mac-package-name", "Devaulty",
-        "--dest", layout.buildDirectory.dir("jpackage/dmg").get().asFile.path
+        buildList {
+            addAll(listOf(
+                "jpackage",
+                "--type", "dmg",
+                "--app-image", appImageDir.get().asFile.path,
+                "--name", "devaulty",
+                "--app-version", macPackageVersion,
+                "--vendor", "Devaulty",
+                "--icon", file("src/main/resources/static/icon/devaulty-icon.icns").absolutePath
+            ))
+            addAll(getResourceDirArgs("src/main/resources/jpackage/macos"))
+            addAll(listOf(
+                "--mac-package-name", "Devaulty",
+                "--dest", layout.buildDirectory.dir("jpackage/dmg").get().asFile.path
+            ))
+        }
     )
 }
 
