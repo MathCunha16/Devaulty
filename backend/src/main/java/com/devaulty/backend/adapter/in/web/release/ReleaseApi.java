@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import reactor.core.publisher.Flux;
 
@@ -22,7 +23,8 @@ public interface ReleaseApi {
 
     @Operation(
             summary = "Check for application updates",
-            description = "Fetches the latest official release published on GitHub Releases and compares its tag version with the local running application version (`app.version`). Dynamically detects the current host OS (Linux .deb vs .rpm, Windows .msi, macOS .dmg) and resolves the matching asset download URL and file size."
+            description = "Fetches the latest official relea" +
+                    "se published on GitHub Releases and compares its tag version with the local running application version (`app.version`). Dynamically detects the current host OS (Linux .deb vs .rpm, Windows .msi, macOS .dmg) and resolves the matching asset download URL and file size."
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -70,7 +72,7 @@ public interface ReleaseApi {
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ApiErrorResponse.class))
             )
     })
-    @GetMapping(value = "/download-and-install", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/download-and-install", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     ResponseEntity<Flux<UpdateDownloadProgressResponse>> downloadUpdate();
 
     @Operation(

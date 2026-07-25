@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag name to release (e.g. v0.1.0-alpha)'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -24,6 +29,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js 20
         uses: actions/setup-node@v6
@@ -43,7 +50,7 @@ jobs:
           java-version: '21'
 
       - name: Setup Gradle
-        uses: actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Run Backend Tests
         working-directory: ./backend
@@ -52,10 +59,11 @@ jobs:
           ./gradlew test --no-daemon
 
       - name: Verify Tag Matches Gradle Version
-        if: github.event_name == 'push'
         working-directory: ./backend
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          TAG_VERSION="${RELEASE_TAG#v}"
           GRADLE_VERSION=$(./gradlew properties -q | grep "^version:" | awk '{print $2}')
           if [ "$TAG_VERSION" != "$GRADLE_VERSION" ]; then
             echo "Tag version ($TAG_VERSION) does not match Gradle version ($GRADLE_VERSION)"
@@ -74,6 +82,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js 20
         uses: actions/setup-node@v6
@@ -93,7 +103,7 @@ jobs:
           java-version: '21'
 
       - name: Setup Gradle
-        uses: actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Install Linux Package Utilities (rpm, dpkg-dev)
         run: |
@@ -126,6 +136,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js 20
         uses: actions/setup-node@v6
@@ -145,7 +157,7 @@ jobs:
           java-version: '21'
 
       - name: Setup Gradle
-        uses: actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Install Wix Toolset 3.x (Chocolatey)
         run: choco install wix --version 3.11.2 -y
@@ -172,6 +184,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js 20
         uses: actions/setup-node@v6
@@ -191,7 +205,7 @@ jobs:
           java-version: '21'
 
       - name: Setup Gradle
-        uses: actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Build macOS Package Installer (.dmg)
         working-directory: ./backend
@@ -234,6 +248,7 @@ jobs:
       - name: Publish GitHub Release (softprops/action-gh-release)
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
           files: |
             release-assets/*.deb
             release-assets/*.rpm

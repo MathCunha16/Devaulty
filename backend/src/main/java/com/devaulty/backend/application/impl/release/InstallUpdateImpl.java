@@ -47,7 +47,7 @@ public class InstallUpdateImpl implements InstallUpdateUseCase {
             throw new UpdateNotAvailableException("No downloaded installer file found for: " + installerFile);
         }
 
-        File verifiedInstaller = verifyWithinTempDir(installerFile.toFile(), getTempFolder());
+        File verifiedInstaller = verifyWithinTempDir(installerFile.toFile(), ReleaseTempFolder.resolve());
 
         logger.info("Starting installer for file: {}", verifiedInstaller.getAbsolutePath());
         launchInstallerProcess(verifiedInstaller);
@@ -115,8 +115,8 @@ public class InstallUpdateImpl implements InstallUpdateUseCase {
         String executablePath = installDir + "\\devaulty.exe";
 
         String script =
-                "param($Pid, $File, $ExePath) " +
-                        "Wait-Process -Id $Pid -ErrorAction SilentlyContinue; " +
+                "param($ProcId, $File, $ExePath) " +
+                        "Wait-Process -Id $ProcId -ErrorAction SilentlyContinue; " +
                         "Start-Process msiexec.exe -ArgumentList '/i', $File, '/qb' -Wait; " +
                         "Start-Process $ExePath";
 
@@ -150,20 +150,8 @@ public class InstallUpdateImpl implements InstallUpdateUseCase {
         }
     }
 
-    private File getTempFolder() {
-        String userHome = System.getProperty("user.home");
-        String os = System.getProperty("os.name").toLowerCase();
-
-        if (os.contains("win")) {
-            String localAppData = System.getenv("LOCALAPPDATA");
-            File base = localAppData != null ? new File(localAppData) : new File(userHome, "AppData/Local");
-            return new File(base, "devaulty/temp");
-        } else if (os.contains("mac")) {
-            return new File(userHome, "Library/Caches/devaulty/temp");
-        } else {
-            return new File(userHome, ".config/devaulty/temp");
-        }
-    }
+    // Temp folder resolution delegated to ReleaseTempFolder to ensure both
+    // DownloadUpdateImpl and InstallUpdateImpl always use the same directory.
 
     private void scheduleApplicationShutdown() {
         scheduler.schedule(() -> {

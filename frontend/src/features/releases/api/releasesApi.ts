@@ -33,7 +33,7 @@ export const releasesApi = {
     }
 
     fetch(url, {
-      method: "GET",
+      method: "POST",
       headers,
       signal: controller.signal,
     })

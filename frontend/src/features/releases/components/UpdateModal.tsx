@@ -50,18 +50,59 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
     };
   }, []);
 
-  // Trap focus & escape listener
+  // Focus trap: save previously focused element, move focus to modal on open,
+  // restore on close/unmount, and keep Tab navigation inside the modal.
   useEffect(() => {
     if (!isOpen) return;
+
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+
+    // Move focus to the modal container on open
+    modalRef.current?.focus();
+
+    const getFocusableElements = (): HTMLElement[] => {
+      if (!modalRef.current) return [];
+      return Array.from(
+        modalRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((el) => !el.closest("[aria-hidden='true']"));
+    };
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !isDownloading && progress?.status !== "INSTALLING") {
         onClose();
+        return;
+      }
+
+      if (e.key === "Tab") {
+        const focusable = getFocusableElements();
+        if (focusable.length === 0) {
+          e.preventDefault();
+          return;
+        }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused?.focus();
+    };
   }, [isOpen, isDownloading, progress?.status, onClose]);
 
   if (!isOpen || !updateInfo) return null;

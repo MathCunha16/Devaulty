@@ -2,14 +2,14 @@ package com.devaulty.backend.adapter.out.external.github;
 
 import com.devaulty.backend.adapter.out.external.github.dto.GitHubReleaseResponse;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
-
 
 @Component
 public class GitHubClient {
@@ -27,7 +27,10 @@ public class GitHubClient {
                 .uri(LATEST_RELEASES_URL)
                 .retrieve()
                 .bodyToMono(GitHubReleaseResponse.class)
-                .onErrorResume(WebClientException.class, ex -> Mono.empty())
+                .onErrorResume(
+                        WebClientResponseException.class,
+                        ex -> ex.getStatusCode() == HttpStatus.NOT_FOUND ? Mono.empty() : Mono.error(ex)
+                )
                 .block();
     }
 

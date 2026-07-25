@@ -9,6 +9,7 @@ import com.devaulty.backend.application.port.in.release.GetCurrentVersionUseCase
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
@@ -36,7 +37,7 @@ public class ReleaseController implements ReleaseApi {
     }
 
     @Override
-    @GetMapping(value = "/download-and-install", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/download-and-install", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public ResponseEntity<Flux<UpdateDownloadProgressResponse>> downloadUpdate() {
         Flux<UpdateDownloadProgressResponse> stream = downloadUpdateUseCase.execute()
                 .map(releaseWebMapper::toProgressResponse);

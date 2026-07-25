@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 class ReleaseControllerIT extends BaseIntegrationTest {
@@ -81,7 +82,7 @@ class ReleaseControllerIT extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/releases/download-and-install should return 200 OK with SSE stream")
+    @DisplayName("POST /api/v1/releases/download-and-install should return 200 OK with SSE stream")
     void downloadUpdate_shouldReturn200OK_withSSEStream() throws Exception {
         // Arrange
         String currentOs = System.getProperty("os.name").toLowerCase();
@@ -106,7 +107,7 @@ class ReleaseControllerIT extends BaseIntegrationTest {
         when(releasePort.downloadAsset(anyString())).thenReturn(Flux.just(buffer));
 
         // Act & Assert
-        mockMvc.perform(get("/api/v1/releases/download-and-install")
+        mockMvc.perform(post("/api/v1/releases/download-and-install")
                         .header(AppTokenContext.HEADER_NAME, AppTokenContext.PROCESS_TOKEN)
                         .accept(MediaType.TEXT_EVENT_STREAM))
                 .andExpect(status().isOk())

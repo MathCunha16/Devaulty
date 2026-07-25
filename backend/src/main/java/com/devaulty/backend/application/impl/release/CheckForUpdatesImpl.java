@@ -28,16 +28,15 @@ public class CheckForUpdatesImpl implements CheckForUpdatesUseCase {
         this.devaultyProperties = devaultyProperties;
     }
 
-
     @Override
     public AppUpdateInfo execute() {
 
         LatestReleaseInfo latestRelease = releasePort.getLatestRelease();
 
-        if(latestRelease == null){
+        if (latestRelease == null) {
             return new AppUpdateInfo(
                     false,
-                    "0.1.0-alpha",
+                    devaultyProperties != null ? devaultyProperties.getVersion() : null,
                     null,
                     null,
                     null,
@@ -48,12 +47,9 @@ public class CheckForUpdatesImpl implements CheckForUpdatesUseCase {
         }
 
         String cleanLatestVersion = latestRelease.tagName().replaceAll("(?i)^v", "").trim();
-        String currentVersion = devaultyProperties.getVersion();
+        String currentVersion = devaultyProperties != null ? devaultyProperties.getVersion() : null;
 
-        boolean updateAvailable = false;
-        if (currentVersion != null) {
-            updateAvailable = !currentVersion.equals(cleanLatestVersion);
-        }
+        boolean updateAvailable = isNewerVersion(currentVersion, cleanLatestVersion);
 
         ReleaseAssetInfo targetAsset = findAssetForCurrentOs(latestRelease.assets());
         String downloadUrl = targetAsset != null ? targetAsset.downloadUrl() : null;
@@ -71,7 +67,46 @@ public class CheckForUpdatesImpl implements CheckForUpdatesUseCase {
         );
     }
 
+    private boolean isNewerVersion(String currentVersion, String latestVersion) {
+        if (currentVersion == null || latestVersion == null) {
+            return false;
+        }
+
+        String currentClean = currentVersion.split("-")[0];
+        String latestClean = latestVersion.split("-")[0];
+
+        String[] currentParts = currentClean.split("\\.");
+        String[] latestParts = latestClean.split("\\.");
+
+        int length = Math.max(currentParts.length, latestParts.length);
+        for (int i = 0; i < length; i++) {
+            int vCurrent = i < currentParts.length ? parseVersionPart(currentParts[i]) : 0;
+            int vLatest = i < latestParts.length ? parseVersionPart(latestParts[i]) : 0;
+
+            if (vLatest > vCurrent) {
+                return true;
+            }
+            if (vLatest < vCurrent) {
+                return false;
+            }
+        }
+
+        return currentVersion.contains("-") && !latestVersion.contains("-");
+    }
+
+    private int parseVersionPart(String part) {
+        try {
+            return Integer.parseInt(part);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
     private ReleaseAssetInfo findAssetForCurrentOs(List<ReleaseAssetInfo> assets) {
+        if (assets == null) {
+            return null;
+        }
+
         String os = System.getProperty("os.name").toLowerCase();
 
         String extension;
@@ -82,7 +117,7 @@ public class CheckForUpdatesImpl implements CheckForUpdatesUseCase {
         } else {
             extension = detectLinuxExtension();
             if (extension == null) {
-                return null; // No suitable asset found
+                return null;
             }
         }
 

@@ -15,10 +15,14 @@ jobs:
     name: Run Backend Test Suite
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js 20
         uses: actions/setup-node@v6
@@ -38,7 +42,7 @@ jobs:
           java-version: '21'
 
       - name: Setup Gradle
-        uses: actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Run Backend Tests
         working-directory: ./backend

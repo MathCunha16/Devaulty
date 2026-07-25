@@ -106,10 +106,20 @@ class CheckForUpdatesImplTest {
     }
 
     @Test
-    @DisplayName("Should return updateAvailable = false when GitHub release is null")
-    void shouldReturnNoUpdateAvailable_whenNoReleaseExistsOnGitHub() {
+    @DisplayName("Should return updateAvailable = false when local version is newer than GitHub release tag (prevents downgrade)")
+    void shouldReturnNoUpdateAvailable_whenLocalVersionIsNewerThanGitHubRelease() {
         // Arrange
-        when(releasePort.getLatestRelease()).thenReturn(null);
+        LatestReleaseInfo olderRelease = new LatestReleaseInfo(
+                "v0.0.9",
+                "Release 0.0.9",
+                "Older release",
+                "https://github.com/MathCunha16/Devaulty/releases/tag/v0.0.9",
+                Instant.now(),
+                false,
+                List.of()
+        );
+
+        when(releasePort.getLatestRelease()).thenReturn(olderRelease);
 
         // Act
         AppUpdateInfo result = checkForUpdatesUseCase.execute();
@@ -118,6 +128,53 @@ class CheckForUpdatesImplTest {
         assertNotNull(result);
         assertFalse(result.updateAvailable());
         assertEquals("0.1.0-alpha", result.currentVersion());
+        assertEquals("v0.0.9", result.latestVersion());
+
+        verify(releasePort, times(1)).getLatestRelease();
+    }
+
+    @Test
+    @DisplayName("Should return null downloadUrl without throwing NullPointerException when release assets is null")
+    void shouldHandleNullAssets_withoutThrowingNullPointerException() {
+        // Arrange
+        LatestReleaseInfo nullAssetsRelease = new LatestReleaseInfo(
+                "v0.2.0",
+                "Release 0.2.0",
+                "Release notes",
+                "https://github.com/MathCunha16/Devaulty/releases/tag/v0.2.0",
+                Instant.now(),
+                false,
+                null
+        );
+
+        when(releasePort.getLatestRelease()).thenReturn(nullAssetsRelease);
+
+        // Act
+        AppUpdateInfo result = checkForUpdatesUseCase.execute();
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result.updateAvailable());
+        assertNull(result.downloadUrl());
+        assertEquals(0L, result.downloadSizeInBytes());
+
+        verify(releasePort, times(1)).getLatestRelease();
+    }
+
+    @Test
+    @DisplayName("Should return updateAvailable = false and dynamic currentVersion when GitHub release is null")
+    void shouldReturnNoUpdateAvailable_whenNoReleaseExistsOnGitHub() {
+        // Arrange
+        when(devaultyProperties.getVersion()).thenReturn("2.5.0-beta");
+        when(releasePort.getLatestRelease()).thenReturn(null);
+
+        // Act
+        AppUpdateInfo result = checkForUpdatesUseCase.execute();
+
+        // Assert
+        assertNotNull(result);
+        assertFalse(result.updateAvailable());
+        assertEquals("2.5.0-beta", result.currentVersion());
         assertNull(result.latestVersion());
         assertNull(result.downloadUrl());
         assertEquals(0L, result.downloadSizeInBytes());

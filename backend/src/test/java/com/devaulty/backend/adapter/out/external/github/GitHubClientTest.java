@@ -82,8 +82,8 @@ class GitHubClientTest {
     }
 
     @Test
-    @DisplayName("getLatestRelease should return null when WebClientException occurs")
-    void getLatestRelease_shouldReturnNull_whenWebClientExceptionOccurs() {
+    @DisplayName("getLatestRelease should return null when 404 Not Found WebClientResponseException occurs")
+    void getLatestRelease_shouldReturnNull_when404NotFoundOccurs() {
         // Arrange
         when(webClient.get()).thenReturn(requestHeadersUriSpec);
         when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
@@ -96,6 +96,21 @@ class GitHubClientTest {
 
         // Assert
         assertNull(actualResponse);
+        verify(webClient, times(1)).get();
+    }
+
+    @Test
+    @DisplayName("getLatestRelease should rethrow exception when 500 Server Error WebClientResponseException occurs")
+    void getLatestRelease_shouldThrowException_whenServerErrorOccurs() {
+        // Arrange
+        when(webClient.get()).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(GitHubReleaseResponse.class))
+                .thenReturn(Mono.error(WebClientResponseException.create(500, "Internal Server Error", null, null, null)));
+
+        // Act & Assert
+        assertThrows(WebClientResponseException.class, () -> gitHubClient.getLatestRelease());
         verify(webClient, times(1)).get();
     }
 

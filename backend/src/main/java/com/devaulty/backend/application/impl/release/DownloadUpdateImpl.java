@@ -10,6 +10,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,6 +21,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class DownloadUpdateImpl implements DownloadUpdateUseCase {
 
     private static final Duration PROGRESS_SAMPLE_INTERVAL = Duration.ofMillis(200);
+    private static final Duration DOWNLOAD_TIMEOUT = Duration.ofMinutes(15);
 
     private final ReleasePort releasePort;
     private final CheckForUpdatesUseCase checkForUpdatesUseCase;
@@ -45,11 +47,42 @@ public class DownloadUpdateImpl implements DownloadUpdateUseCase {
         String downloadUrl = updateInfo.downloadUrl();
         long totalBytes = updateInfo.downloadSizeInBytes();
 
-        File tempDir = createTempFolder();
-        String fileName = downloadUrl.substring(downloadUrl.lastIndexOf('/') + 1);
+        File tempDir = ReleaseTempFolder.resolve();
+        String rawFileName = downloadUrl.substring(downloadUrl.lastIndexOf('/') + 1);
+        String fileName = sanitizeFileName(rawFileName);
+
         Path targetPath = new File(tempDir, fileName).toPath();
+        verifyWithinTempDir(targetPath, tempDir);
 
         return startDownloadProcess(downloadUrl, totalBytes, targetPath);
+    }
+
+    private String sanitizeFileName(String rawFileName) {
+        // Strip any directory separators or null bytes to prevent path traversal
+        String sanitized = rawFileName
+                .replace("/", "")
+                .replace("\\", "")
+                .replace("\0", "")
+                .trim();
+
+        if (sanitized.isEmpty()) {
+            throw new IllegalArgumentException("Derived installer file name is empty after sanitization.");
+        }
+
+        return sanitized;
+    }
+
+    private void verifyWithinTempDir(Path targetPath, File tempDir) {
+        try {
+            Path canonicalTarget = targetPath.toFile().getCanonicalFile().toPath();
+            Path canonicalTempDir = tempDir.getCanonicalFile().toPath();
+
+            if (!canonicalTarget.startsWith(canonicalTempDir)) {
+                throw new IllegalStateException("Installer target path resolved outside of the expected temp directory.");
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to resolve installer target path.", e);
+        }
     }
 
     private Flux<UpdateProgressInfo> startDownloadProcess(String downloadUrl, long totalBytes, Path targetPath) {
@@ -70,6 +103,7 @@ public class DownloadUpdateImpl implements DownloadUpdateUseCase {
 
                 fileChannel -> {
                     Flux<UpdateProgressInfo> downloadProgress = releasePort.downloadAsset(downloadUrl)
+                            .timeout(DOWNLOAD_TIMEOUT)
                             .concatMap(dataBuffer -> {
                                 int chunkSize = dataBuffer.readableByteCount();
                                 long currentTotal = downloadedBytes.addAndGet(chunkSize);
@@ -123,27 +157,6 @@ public class DownloadUpdateImpl implements DownloadUpdateUseCase {
                         UpdateStatus.FAILED, 0, downloadedBytes.get(), totalBytes, ex.getMessage()
                 )))
         );
-    }
-
-    private File createTempFolder() {
-        String userHome = System.getProperty("user.home");
-        String os = System.getProperty("os.name").toLowerCase();
-
-        File tempDir;
-        if (os.contains("win")) {
-            String localAppData = System.getenv("LOCALAPPDATA");
-            File base = localAppData != null ? new File(localAppData) : new File(userHome, "AppData/Local");
-            tempDir = new File(base, "devaulty/temp");
-        } else if (os.contains("mac")) {
-            tempDir = new File(userHome, "Library/Caches/devaulty/temp");
-        } else {
-            tempDir = new File(userHome, ".config/devaulty/temp");
-        }
-
-        if (!tempDir.exists()) {
-            tempDir.mkdirs();
-        }
-        return tempDir;
     }
 
     private Mono<Void> deleteQuietly(Path path) {
