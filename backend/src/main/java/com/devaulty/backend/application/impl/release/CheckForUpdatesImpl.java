@@ -17,12 +17,11 @@ import java.util.Optional;
 
 public class CheckForUpdatesImpl implements CheckForUpdatesUseCase {
 
-    private final Logger logger = LoggerFactory.getLogger(CheckForUpdatesImpl.class);
-
     private final ReleasePort releasePort;
     private final DevaultyProperties devaultyProperties;
 
     private static final String OS_RELEASE_FILE = "/etc/os-release";
+    private static final Logger logger = LoggerFactory.getLogger(CheckForUpdatesImpl.class);
 
     public CheckForUpdatesImpl(ReleasePort releasePort, DevaultyProperties devaultyProperties) {
         this.releasePort = releasePort;

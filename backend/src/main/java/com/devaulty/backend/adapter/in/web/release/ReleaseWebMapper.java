@@ -1,7 +1,9 @@
 package com.devaulty.backend.adapter.in.web.release;
 
 import com.devaulty.backend.adapter.in.web.release.dto.AppUpdateInfoResponse;
+import com.devaulty.backend.adapter.in.web.release.dto.UpdateDownloadProgressResponse;
 import com.devaulty.backend.application.port.in.release.AppUpdateInfo;
+import com.devaulty.backend.application.port.in.release.UpdateProgressInfo;
 import org.mapstruct.Mapper;
 
 import java.time.Instant;
@@ -12,6 +14,8 @@ import java.time.ZoneId;
 public interface ReleaseWebMapper {
 
     AppUpdateInfoResponse toAppUpdateInfoResponse(AppUpdateInfo appUpdateInfo);
+
+    UpdateDownloadProgressResponse toProgressResponse(UpdateProgressInfo info);
 
     default LocalDateTime toLocalDateTime(Instant instant) {
         if(instant == null) return null;
