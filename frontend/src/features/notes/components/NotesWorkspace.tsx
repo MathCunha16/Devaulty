@@ -161,16 +161,28 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
       const checkboxes = Array.from(container.querySelectorAll('input[type="checkbox"]'));
       const index = checkboxes.indexOf(checkbox);
       if (index !== -1 && noteDetail?.content) {
-        let count = 0;
-        const updatedContent = noteDetail.content.replace(/-\s*\[([ xX])\]/g, (match, p1) => {
-          if (count === index) {
-            count++;
-            const isChecked = p1.toLowerCase() === "x";
-            return isChecked ? "- [ ]" : "- [x]";
+        const lines = noteDetail.content.split("\n");
+        let inCodeBlock = false;
+        let taskListIndex = 0;
+        const newLines = lines.map((line) => {
+          if (line.trim().startsWith("```")) {
+            inCodeBlock = !inCodeBlock;
+            return line;
           }
-          count++;
-          return match;
+          if (!inCodeBlock && /^\s*[-*+]\s*\[([ xX])\]/.test(line)) {
+            if (taskListIndex === index) {
+              taskListIndex++;
+              return line.replace(/^(\s*[-*+]\s*\[)([ xX])(\])/, (_, p1, p2, p3) => {
+                const isChecked = p2.toLowerCase() === "x";
+                return `${p1}${isChecked ? " " : "x"}${p3}`;
+              });
+            }
+            taskListIndex++;
+          }
+          return line;
         });
+
+        const updatedContent = newLines.join("\n");
 
         if (updatedContent !== noteDetail.content) {
           try {
@@ -193,11 +205,13 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
     }
     try {
       const rawHtml = marked.parse(content, { breaks: true, gfm: true }) as string;
-      return DOMPurify.sanitize(rawHtml);
+      const sanitized = DOMPurify.sanitize(rawHtml);
+      return sanitized.replace(/<input([^>]*)\sdisabled(=["']?["']?)?/gi, '<input$1');
     } catch {
       return DOMPurify.sanitize(content);
     }
   };
+
 
   const formattedUpdatedDate = noteDetail
     ? formatUpdatedDate(noteDetail.updatedAt, noteDetail.createdAt)

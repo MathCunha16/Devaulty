@@ -8,10 +8,10 @@
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  animation: fadeIn 0.15s ease-out;
+  animation: fade-in 0.15s ease-out;
 }
 
-@keyframes fadeIn {
+@keyframes fade-in {
   from {
     opacity: 0;
   }
@@ -31,10 +31,10 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slide-up 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes slideUp {
+@keyframes slide-up {
   from {
     opacity: 0;
     transform: translateY(12px) scale(0.98);
@@ -44,6 +44,7 @@
     transform: translateY(0) scale(1);
   }
 }
+
 
 .header {
   display: flex;

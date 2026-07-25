@@ -202,9 +202,18 @@ export const CredentialsWorkspace: React.FC<CredentialsWorkspaceProps> = ({
                 {filteredCredentials.map((cred) => (
                   <div
                     key={cred.id}
+                    role="button"
+                    tabIndex={0}
                     className={styles.credentialCard}
                     onClick={() => setViewingCredentialId(cred.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setViewingCredentialId(cred.id);
+                      }
+                    }}
                   >
+
                     <div className={styles.credentialCardHeader}>
                       <div className={styles.credentialTitleGroup}>
                         <span className={styles.credentialTypeBadge}>

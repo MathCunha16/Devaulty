@@ -73,13 +73,20 @@ export const TagManagerSection: React.FC<TagManagerSectionProps> = ({
 
   const handleCreateAndAddTag = async () => {
     if (!tagSearchQuery.trim()) return;
+    let newTag;
     try {
       const presetColors = ["#8b5cf6", "#10b981", "#f43f5e", "#f59e0b", "#0ea5e9"];
       const randomColor = presetColors[Math.floor(Math.random() * presetColors.length)];
-      const newTag = await createTagMutation.mutateAsync({
+      newTag = await createTagMutation.mutateAsync({
         name: tagSearchQuery.trim(),
         color: randomColor,
       });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create tag");
+      return;
+    }
+
+    try {
       await associateTagMutation.mutateAsync({
         itemType,
         itemId,
@@ -88,10 +95,11 @@ export const TagManagerSection: React.FC<TagManagerSectionProps> = ({
       setTagSearchQuery("");
       setIsPopoverOpen(false);
       toast.success(`Tag "${newTag.name}" created and associated`);
-    } catch {
-      toast.error("Failed to create tag");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : `Tag "${newTag.name}" created, but failed to associate`);
     }
   };
+
 
   const unassociatedTags = tagsData.filter(
     (t) =>

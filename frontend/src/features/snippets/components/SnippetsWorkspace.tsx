@@ -12,82 +12,10 @@ import {
   useSnippetQuery,
   useDeleteSnippetMutation,
 } from "../hooks/useSnippets";
-import type { SnippetLanguage, SnippetType } from "~types/api";
+import { mapLanguageToMonaco } from "../utils/languageUtils";
+import type { SnippetType } from "~types/api";
 import styles from "../../../routes/projects.$projectId.module.css";
 
-const mapLanguageToMonaco = (lang: SnippetLanguage): string => {
-  switch (lang) {
-    case "JAVASCRIPT":
-    case "JSX":
-    case "MONGODB":
-      return "javascript";
-    case "TYPESCRIPT":
-    case "TSX":
-      return "typescript";
-    case "PYTHON":
-      return "python";
-    case "GO":
-      return "go";
-    case "RUST":
-      return "rust";
-    case "JAVA":
-      return "java";
-    case "KOTLIN":
-      return "kotlin";
-    case "CSHARP":
-      return "csharp";
-    case "CPP":
-      return "cpp";
-    case "C":
-      return "c";
-    case "BASH":
-    case "FISH":
-    case "ZSH":
-    case "SH":
-      return "shell";
-    case "POWERSHELL":
-      return "powershell";
-    case "BATCH":
-      return "bat";
-    case "HTML":
-    case "VUE":
-    case "SVELTE":
-      return "html";
-    case "CSS":
-      return "css";
-    case "SCSS":
-      return "scss";
-    case "LESS":
-      return "less";
-    case "JSON":
-      return "json";
-    case "YAML":
-    case "DOCKER_COMPOSE":
-    case "KUBERNETES_YAML":
-      return "yaml";
-    case "XML":
-    case "MAVEN_POM":
-      return "xml";
-    case "TOML":
-    case "INI":
-    case "ENV":
-    case "PROPERTIES":
-      return "ini";
-    case "MARKDOWN":
-      return "markdown";
-    case "DOCKERFILE":
-      return "dockerfile";
-    case "SQL":
-    case "PLSQL":
-      return "sql";
-    case "GRAPHQL":
-      return "graphql";
-    case "DIFF":
-      return "diff";
-    default:
-      return "plaintext";
-  }
-};
 
 interface SnippetsWorkspaceProps {
   projectId: string;

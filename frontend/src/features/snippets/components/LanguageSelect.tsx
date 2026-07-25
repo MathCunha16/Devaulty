@@ -79,6 +79,8 @@ interface LanguageSelectProps {
   value: SnippetLanguage;
   onChange: (value: SnippetLanguage) => void;
   disabled?: boolean;
+  triggerId?: string;
+  ariaLabelledBy?: string;
 }
 
 export const LanguageSelect: React.FC<LanguageSelectProps> = ({
@@ -86,9 +88,12 @@ export const LanguageSelect: React.FC<LanguageSelectProps> = ({
   value,
   onChange,
   disabled = false,
+  triggerId,
+  ariaLabelledBy,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [focusedIndex, setFocusedIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -128,17 +133,41 @@ export const LanguageSelect: React.FC<LanguageSelectProps> = ({
     if (disabled) return;
     if (!isOpen) {
       setSearchQuery("");
+      setFocusedIndex(0);
     }
     setIsOpen(!isOpen);
+  };
+
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      setIsOpen(false);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setFocusedIndex((prev) => (filteredLanguages.length > 0 ? (prev + 1) % filteredLanguages.length : 0));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setFocusedIndex((prev) =>
+        filteredLanguages.length > 0 ? (prev - 1 + filteredLanguages.length) % filteredLanguages.length : 0
+      );
+    } else if (e.key === "Enter" && filteredLanguages.length > 0) {
+      e.preventDefault();
+      const targetLang = filteredLanguages[focusedIndex] || filteredLanguages[0];
+      handleSelect(targetLang);
+    }
   };
 
   return (
     <div className={styles.container} ref={containerRef}>
       <button
+        id={triggerId}
         type="button"
         className={styles.trigger}
         onClick={handleToggleOpen}
         disabled={disabled}
+        aria-labelledby={ariaLabelledBy}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
       >
         <div className={styles.triggerContent}>
           <SelectedIcon size={14} className={styles.icon} />
@@ -160,31 +189,33 @@ export const LanguageSelect: React.FC<LanguageSelectProps> = ({
               className={styles.searchInput}
               placeholder="Search language (e.g., Python, TS, Bash, SQL...)"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") setIsOpen(false);
-                if (e.key === "Enter" && filteredLanguages.length > 0) {
-                  e.preventDefault();
-                  handleSelect(filteredLanguages[0]);
-                }
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setFocusedIndex(0);
               }}
+              onKeyDown={handleKeyDown}
             />
           </div>
 
-          <div className={styles.list}>
+          <div className={styles.list} role="listbox">
             {filteredLanguages.length === 0 ? (
               <div className={styles.empty}>No matching languages found</div>
             ) : (
-              filteredLanguages.map((lang) => {
+              filteredLanguages.map((lang, idx) => {
                 const info = LANGUAGE_MAP[lang] || { label: lang, icon: Icons.Code2 };
                 const IconComp = info.icon;
                 const isSelected = lang === value;
+                const isFocused = idx === focusedIndex;
 
                 return (
                   <button
                     key={lang}
                     type="button"
-                    className={`${styles.item} ${isSelected ? styles.itemSelected : ""}`}
+                    role="option"
+                    aria-selected={isSelected}
+                    className={`${styles.item} ${isSelected ? styles.itemSelected : ""} ${
+                      isFocused ? styles.itemFocused : ""
+                    }`}
                     onClick={() => handleSelect(lang)}
                   >
                     <div className={styles.itemLeft}>

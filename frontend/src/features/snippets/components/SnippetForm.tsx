@@ -10,153 +10,9 @@ import {
   useUpdateSnippetMutation,
   useSnippetQuery,
 } from "../hooks/useSnippets";
+import { mapLanguageToMonaco, ALL_LANGUAGES } from "../utils/languageUtils";
 import type { SnippetLanguage, SnippetType } from "~types/api";
 import styles from "./SnippetForm.module.css";
-
-const ALL_LANGUAGES: SnippetLanguage[] = [
-  "PLAIN_TEXT",
-  "BASH",
-  "FISH",
-  "ZSH",
-  "SH",
-  "POWERSHELL",
-  "BATCH",
-  "JAVA",
-  "KOTLIN",
-  "JAVASCRIPT",
-  "TYPESCRIPT",
-  "PYTHON",
-  "GO",
-  "RUST",
-  "C",
-  "CPP",
-  "CSHARP",
-  "PHP",
-  "RUBY",
-  "SWIFT",
-  "DART",
-  "SCALA",
-  "LUA",
-  "PERL",
-  "R",
-  "ELIXIR",
-  "HASKELL",
-  "CLOJURE",
-  "GROOVY",
-  "HTML",
-  "CSS",
-  "SCSS",
-  "LESS",
-  "JSX",
-  "TSX",
-  "VUE",
-  "SVELTE",
-  "JSON",
-  "YAML",
-  "XML",
-  "TOML",
-  "INI",
-  "ENV",
-  "CSV",
-  "MARKDOWN",
-  "PROPERTIES",
-  "DOCKERFILE",
-  "DOCKER_COMPOSE",
-  "NGINX",
-  "APACHE",
-  "TERRAFORM",
-  "ANSIBLE",
-  "KUBERNETES_YAML",
-  "HELM",
-  "MAKEFILE",
-  "CMAKE",
-  "GRADLE",
-  "MAVEN_POM",
-  "SQL",
-  "PLSQL",
-  "GRAPHQL",
-  "MONGODB",
-  "GITHUB_ACTIONS",
-  "GITLAB_CI",
-  "JENKINSFILE",
-  "REGEX",
-  "DIFF",
-  "LOG",
-];
-
-const mapLanguageToMonaco = (lang: SnippetLanguage): string => {
-  switch (lang) {
-    case "JAVASCRIPT":
-    case "JSX":
-    case "MONGODB":
-      return "javascript";
-    case "TYPESCRIPT":
-    case "TSX":
-      return "typescript";
-    case "PYTHON":
-      return "python";
-    case "GO":
-      return "go";
-    case "RUST":
-      return "rust";
-    case "JAVA":
-      return "java";
-    case "KOTLIN":
-      return "kotlin";
-    case "CSHARP":
-      return "csharp";
-    case "CPP":
-      return "cpp";
-    case "C":
-      return "c";
-    case "BASH":
-    case "FISH":
-    case "ZSH":
-    case "SH":
-      return "shell";
-    case "POWERSHELL":
-      return "powershell";
-    case "BATCH":
-      return "bat";
-    case "HTML":
-    case "VUE":
-    case "SVELTE":
-      return "html";
-    case "CSS":
-      return "css";
-    case "SCSS":
-      return "scss";
-    case "LESS":
-      return "less";
-    case "JSON":
-      return "json";
-    case "YAML":
-    case "DOCKER_COMPOSE":
-    case "KUBERNETES_YAML":
-      return "yaml";
-    case "XML":
-    case "MAVEN_POM":
-      return "xml";
-    case "TOML":
-    case "INI":
-    case "ENV":
-    case "PROPERTIES":
-      return "ini";
-    case "MARKDOWN":
-      return "markdown";
-    case "DOCKERFILE":
-      return "dockerfile";
-    case "SQL":
-    case "PLSQL":
-      return "sql";
-    case "GRAPHQL":
-      return "graphql";
-    case "DIFF":
-      return "diff";
-    default:
-      return "plaintext";
-  }
-};
 
 interface SnippetFormProps {
   isOpen: boolean;
@@ -223,6 +79,33 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
       if (e.key === "Escape") {
         if (!isSubmitting) onClose();
         return;
+      }
+      if (e.key === "Tab") {
+        const modal = modalRef.current;
+        if (!modal) return;
+
+        // If focus is currently inside Monaco editor, let Monaco handle Tab key natively
+        if (document.activeElement?.closest(".monaco-editor")) return;
+
+        const focusables = modal.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusables.length === 0) return;
+
+        const firstElement = focusables[0];
+        const lastElement = focusables[focusables.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
       }
     };
 
@@ -321,8 +204,12 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
             </div>
 
             <div className={styles.field}>
-              <label className={styles.label}>Language</label>
+              <label id="snippet-language-label" className={styles.label}>
+                Language
+              </label>
               <LanguageSelect
+                triggerId="snippet-language-trigger"
+                ariaLabelledBy="snippet-language-label"
                 languages={ALL_LANGUAGES}
                 value={formLanguage}
                 onChange={setFormLanguage}
@@ -332,7 +219,9 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Source Code Content</label>
+            <label id="snippet-content-label" className={styles.label}>
+              Source Code Content
+            </label>
             <div className={styles.editorWrapper}>
               <Editor
                 height="280px"
@@ -346,6 +235,7 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
                   </div>
                 }
                 options={{
+                  ariaLabel: "Source Code Content",
                   minimap: { enabled: false },
                   fontSize: 13,
                   lineNumbers: "on",
@@ -433,7 +323,7 @@ const EditSnippetFormModal: React.FC<{
       toast.success("Snippet updated successfully");
       onClose();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update snippet");
+      toast.error(error instanceof Error ? error.message : "Failed to update note");
     }
   };
 
