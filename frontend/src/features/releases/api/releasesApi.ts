@@ -1,4 +1,4 @@
-import { apiClient, getInternalToken } from "../../../api/client";
+import { apiClient, getInternalToken, getApiBaseUrl } from "../../../api/client";
 import type {
   CurrentVersionResponse,
   AppUpdateInfoResponse,
@@ -21,7 +21,7 @@ export const releasesApi = {
     onError: (errorMessage: string) => void
   ): (() => void) => {
     const controller = new AbortController();
-    const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api/v1";
+    const baseUrl = getApiBaseUrl();
     const url = `${baseUrl}/releases/download-and-install`;
 
     const headers: Record<string, string> = {
