@@ -77,10 +77,14 @@ public class InstallUpdateImpl implements InstallUpdateUseCase {
         String installProgram = filePath.endsWith(".rpm") ? "rpm" : "dpkg";
         String installFlag = filePath.endsWith(".rpm") ? "-Uvh" : "-i";
 
+        // Wait for the current process to exit, install the package with pkexec,
+        // then relaunch the app fully detached (nohup + setsid) so it survives
+        // after the installer script exits.
         String script =
                 "PID=\"$1\"; FILE=\"$2\"; PROGRAM=\"$3\"; FLAG=\"$4\"; " +
                         "while kill -0 \"$PID\" 2>/dev/null; do sleep 0.2; done; " +
-                        "pkexec \"$PROGRAM\" \"$FLAG\" \"$FILE\" && devaulty";
+                        "pkexec \"$PROGRAM\" \"$FLAG\" \"$FILE\" && " +
+                        "nohup setsid devaulty >/dev/null 2>&1 &";
 
         List<String> command = List.of(
                 "bash", "-c", script, "bash",

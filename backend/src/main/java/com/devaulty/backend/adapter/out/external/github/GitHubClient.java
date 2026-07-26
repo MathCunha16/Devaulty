@@ -1,6 +1,7 @@
 package com.devaulty.backend.adapter.out.external.github;
 
 import com.devaulty.backend.adapter.out.external.github.dto.GitHubReleaseResponse;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -16,10 +17,19 @@ public class GitHubClient {
 
     private final WebClient githubWebClient;
 
+    /**
+     * A separate WebClient used exclusively for downloading binary release assets.
+     * It has no base URL, no GitHub-specific Accept header, and a much longer
+     * read/write timeout to handle large file downloads without timing out.
+     */
+    private final WebClient downloadWebClient;
+
     private static final String LATEST_RELEASES_URL = "/repos/MathCunha16/Devaulty/releases/latest";
 
-    public GitHubClient(WebClient githubWebClient) {
+    public GitHubClient(@Qualifier("githubWebClient") WebClient githubWebClient,
+                        @Qualifier("downloadWebClient") WebClient downloadWebClient) {
         this.githubWebClient = githubWebClient;
+        this.downloadWebClient = downloadWebClient;
     }
 
     public GitHubReleaseResponse getLatestRelease() {
@@ -34,9 +44,14 @@ public class GitHubClient {
                 .block();
     }
 
+    /**
+     * Downloads a binary release asset from an absolute URL (e.g. GitHub CDN).
+     * Uses a dedicated WebClient with no GitHub API headers and a generous
+     * timeout so that large installers (.deb, .rpm, .msi) are not truncated.
+     */
     public Flux<DataBuffer> downloadAsset(String downloadUrl) {
-        return githubWebClient.get()
-                .uri(URI.create(downloadUrl)) // Clean URL
+        return downloadWebClient.get()
+                .uri(URI.create(downloadUrl))
                 .retrieve()
                 .bodyToFlux(DataBuffer.class);
     }

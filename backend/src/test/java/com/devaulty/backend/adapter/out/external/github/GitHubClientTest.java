@@ -33,6 +33,9 @@ class GitHubClientTest {
     private WebClient webClient;
 
     @Mock
+    private WebClient downloadWebClient;
+
+    @Mock
     private WebClient.RequestHeadersUriSpec requestHeadersUriSpec;
 
     @Mock
@@ -41,11 +44,20 @@ class GitHubClientTest {
     @Mock
     private WebClient.ResponseSpec responseSpec;
 
+    @Mock
+    private WebClient.RequestHeadersUriSpec downloadRequestHeadersUriSpec;
+
+    @Mock
+    private WebClient.RequestHeadersSpec downloadRequestHeadersSpec;
+
+    @Mock
+    private WebClient.ResponseSpec downloadResponseSpec;
+
     private GitHubClient gitHubClient;
 
     @BeforeEach
     void setUp() {
-        gitHubClient = new GitHubClient(webClient);
+        gitHubClient = new GitHubClient(webClient, downloadWebClient);
     }
 
     @Test
@@ -122,10 +134,10 @@ class GitHubClientTest {
         DefaultDataBufferFactory factory = new DefaultDataBufferFactory();
         DataBuffer mockBuffer = factory.wrap("binary content".getBytes(StandardCharsets.UTF_8));
 
-        when(webClient.get()).thenReturn(requestHeadersUriSpec);
-        when(requestHeadersUriSpec.uri(any(URI.class))).thenReturn(requestHeadersSpec);
-        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.bodyToFlux(DataBuffer.class)).thenReturn(Flux.just(mockBuffer));
+        when(downloadWebClient.get()).thenReturn(downloadRequestHeadersUriSpec);
+        when(downloadRequestHeadersUriSpec.uri(any(URI.class))).thenReturn(downloadRequestHeadersSpec);
+        when(downloadRequestHeadersSpec.retrieve()).thenReturn(downloadResponseSpec);
+        when(downloadResponseSpec.bodyToFlux(DataBuffer.class)).thenReturn(Flux.just(mockBuffer));
 
         // Act
         Flux<DataBuffer> resultFlux = gitHubClient.downloadAsset(downloadUrl);
@@ -134,6 +146,7 @@ class GitHubClientTest {
         // Assert
         assertNotNull(buffers);
         assertEquals(1, buffers.size());
-        verify(webClient, times(1)).get();
+        verify(downloadWebClient, times(1)).get();
+        verify(webClient, never()).get();
     }
 }
