@@ -5,7 +5,9 @@ import Editor from "@monaco-editor/react";
 import { ConfirmModal } from "../../../components/ConfirmModal";
 import { TagManagerSection } from "../../../components/TagManagerSection";
 import { formatUpdatedDate } from "../../../utils/dateUtils";
+import { copyToClipboard } from "../../../utils/clipboardUtils";
 import { ProblemForm } from "../components/ProblemForm";
+
 import {
   useProblemsQuery,
   useProblemQuery,
@@ -82,15 +84,17 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
   );
 
   const handleCopy = async (content: string, id: string) => {
-    try {
-      await navigator.clipboard.writeText(content);
+
+    const success = await copyToClipboard(content);
+    if (success) {
       setCopiedId(id);
       toast.success("Copied to clipboard!");
       setTimeout(() => setCopiedId(null), 2000);
-    } catch {
+    } else {
       toast.error("Failed to copy content");
     }
   };
+
 
   const handleStatusChange = async (problemId: string, status: ProblemStatus) => {
     try {

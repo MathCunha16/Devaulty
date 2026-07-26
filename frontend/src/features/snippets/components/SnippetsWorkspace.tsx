@@ -6,7 +6,9 @@ import { useTheme } from "../../../hooks/useTheme";
 import { ConfirmModal } from "../../../components/ConfirmModal";
 import { TagManagerSection } from "../../../components/TagManagerSection";
 import { formatUpdatedDate } from "../../../utils/dateUtils";
+import { copyToClipboard } from "../../../utils/clipboardUtils";
 import { SnippetForm } from "./SnippetForm";
+
 import {
   useSnippetsQuery,
   useSnippetQuery,
@@ -106,15 +108,17 @@ export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
   };
 
   const handleCopy = async (content: string, id: string) => {
-    try {
-      await navigator.clipboard.writeText(content);
+
+    const success = await copyToClipboard(content);
+    if (success) {
       setCopiedId(id);
       toast.success("Copied to clipboard!");
       setTimeout(() => setCopiedId(null), 2000);
-    } catch {
+    } else {
       toast.error("Failed to copy content");
     }
   };
+
 
   return (
     <>

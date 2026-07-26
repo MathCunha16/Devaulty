@@ -1,4 +1,5 @@
-import { useQuery, useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 import { snippetsApi } from "../api/snippetsApi";
 import type { CreateSnippetRequest, UpdateSnippetRequest } from "~types/api";
 
@@ -9,11 +10,13 @@ export const snippetsKeys = {
 };
 
 export const useSnippetsQuery = (projectId: string, page = 0, size = 100) => {
-  return useSuspenseQuery({
+  return useQuery({
     queryKey: [...snippetsKeys.all(projectId), { page, size }],
     queryFn: () => snippetsApi.getAllByProject(projectId, page, size),
+    enabled: !!projectId,
   });
 };
+
 
 export const useSnippetQuery = (projectId: string, snippetId?: string) => {
   return useQuery({

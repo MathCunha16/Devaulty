@@ -13,7 +13,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCredentialQuery } from "../hooks/useCredentials";
+import { copyToClipboard as copyTextToClipboard } from "../../../utils/clipboardUtils";
 import styles from "./CredentialDetailModal.module.css";
+
+
+
 
 interface CredentialDetailModalProps {
   isOpen: boolean;
@@ -102,13 +106,14 @@ export const CredentialDetailModal: React.FC<CredentialDetailModalProps> = ({
   if (!isOpen) return null;
 
   const copyToClipboard = async (text: string, label: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
+    const success = await copyTextToClipboard(text);
+    if (success) {
       toast.success(`${label} copied to clipboard!`);
-    } catch {
+    } else {
       toast.error(`Failed to copy ${label.toLowerCase()} to clipboard`);
     }
   };
+
 
   const payload = cred?.decryptedPayload || {};
 
