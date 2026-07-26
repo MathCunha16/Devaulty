@@ -17,7 +17,9 @@ import {
   useCheckUpdatesMutation,
 } from "~features/releases/hooks/useReleases";
 import { UpdateModal } from "~features/releases/components/UpdateModal";
+import { formatVersionTag } from "../utils/versionUtils";
 import type { AppUpdateInfoResponse } from "~types/api";
+
 
 // ──────────────────────────────────────────────────────────────
 // Edge toggle button — floats half in / half out of the sidebar.
@@ -65,13 +67,14 @@ const NavigationSidebar: React.FC<{
   const activeProjects = projects.filter((p) => !p.archived);
 
   const handleManualCheck = async () => {
+
     try {
       const res = await checkUpdatesMutation.mutateAsync();
       if (res.updateAvailable) {
         onOpenUpdateModal(res);
       } else {
         toast.success(
-          `Devaulty is up to date (v${res.currentVersion || versionData?.actualVersion || ""})`
+          `Devaulty is up to date (${formatVersionTag(res.currentVersion || versionData?.actualVersion)})`
         );
       }
     } catch {
@@ -102,7 +105,8 @@ const NavigationSidebar: React.FC<{
                 className="text-[10px] font-mono text-muted-foreground/70 hover:text-foreground transition-colors border border-border/40 px-2 py-0.5 rounded-full bg-secondary/20 cursor-pointer flex items-center gap-1"
                 title="Click to check for updates"
               >
-                <span>v{versionData.actualVersion}</span>
+                <span>{formatVersionTag(versionData.actualVersion)}</span>
+
                 {checkUpdatesMutation.isPending && (
                   <Icons.Loader2 size={10} className="animate-spin text-primary" />
                 )}

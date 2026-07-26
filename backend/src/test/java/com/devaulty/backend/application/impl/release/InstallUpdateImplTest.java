@@ -1,11 +1,13 @@
 package com.devaulty.backend.application.impl.release;
 
 import com.devaulty.backend.application.exception.UpdateNotAvailableException;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -21,11 +23,24 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class InstallUpdateImplTest {
 
+    @TempDir
+    Path tempFolder;
+
     @Mock
     private ConfigurableApplicationContext applicationContext;
 
-    @Spy
-    private InstallUpdateImpl installUpdateUseCase = new InstallUpdateImpl(applicationContext);
+    private InstallUpdateImpl installUpdateUseCase;
+
+    @BeforeEach
+    void setUp() {
+        System.setProperty("devaulty.temp.dir", tempFolder.toString());
+        installUpdateUseCase = spy(new InstallUpdateImpl(applicationContext));
+    }
+
+    @AfterEach
+    void tearDown() {
+        System.clearProperty("devaulty.temp.dir");
+    }
 
     @Test
     @DisplayName("Should throw UpdateNotAvailableException when installer file does not exist")
@@ -52,32 +67,18 @@ class InstallUpdateImplTest {
     @DisplayName("Should launch installer process without executing real system commands during unit tests")
     void shouldLaunchInstallerProcess_withoutExecutingRealSystemCommands() throws IOException {
         // Arrange
-        String userHome = System.getProperty("user.home");
-        String os = System.getProperty("os.name").toLowerCase();
-        File tempDir;
-        if (os.contains("win")) {
-            String localAppData = System.getenv("LOCALAPPDATA");
-            File base = localAppData != null ? new File(localAppData) : new File(userHome, "AppData/Local");
-            tempDir = new File(base, "devaulty/temp");
-        } else if (os.contains("mac")) {
-            tempDir = new File(userHome, "Library/Caches/devaulty/temp");
-        } else {
-            tempDir = new File(userHome, ".config/devaulty/temp");
-        }
-
-        if (!tempDir.exists()) {
-            tempDir.mkdirs();
-        }
-
+        File tempDir = tempFolder.toFile();
         File testInstaller = new File(tempDir, "test_installer.deb");
         testInstaller.createNewFile();
-        testInstaller.deleteOnExit();
 
-        // Prevent real pkexec / msiexec execution during unit test by mocking startDetached
+        // Prevent real pkexec / msiexec execution and System.exit during unit test
         doNothing().when(installUpdateUseCase).startDetached(anyList());
+        doNothing().when(installUpdateUseCase).scheduleApplicationShutdown();
 
         // Act & Assert
         assertDoesNotThrow(() -> installUpdateUseCase.execute(testInstaller.toPath()));
         verify(installUpdateUseCase, times(1)).startDetached(anyList());
+        verify(installUpdateUseCase, times(1)).scheduleApplicationShutdown();
     }
 }
+

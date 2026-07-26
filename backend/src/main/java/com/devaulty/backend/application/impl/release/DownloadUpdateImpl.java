@@ -11,7 +11,7 @@ import reactor.core.scheduler.Schedulers;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.channels.AsynchronousFileChannel;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -94,28 +94,33 @@ public class DownloadUpdateImpl implements DownloadUpdateUseCase {
         );
 
         return Flux.using(
-                () -> AsynchronousFileChannel.open(
+                () -> Files.newOutputStream(
                         targetPath,
                         StandardOpenOption.CREATE,
                         StandardOpenOption.WRITE,
                         StandardOpenOption.TRUNCATE_EXISTING
                 ),
 
-                fileChannel -> {
+                outputStream -> {
                     Flux<UpdateProgressInfo> downloadProgress = releasePort.downloadAsset(downloadUrl)
                             .timeout(DOWNLOAD_TIMEOUT)
-                            .concatMap(dataBuffer -> {
-                                int chunkSize = dataBuffer.readableByteCount();
-                                long currentTotal = downloadedBytes.addAndGet(chunkSize);
-                                int percentage = knownSize ? (int) ((currentTotal * 100) / totalBytes) : 0;
+                            .concatMap(dataBuffer -> Mono.fromCallable(() -> {
+                                        int chunkSize = dataBuffer.readableByteCount();
 
-                                UpdateProgressInfo progressInfo = new UpdateProgressInfo(
-                                        UpdateStatus.DOWNLOADING, percentage, currentTotal, totalBytes, null
-                                );
+                                        byte[] bytes = new byte[chunkSize];
+                                        dataBuffer.read(bytes);
+                                        outputStream.write(bytes);
 
-                                return DataBufferUtils.write(Flux.just(dataBuffer), fileChannel)
-                                        .then(Mono.just(progressInfo));
-                            })
+                                        long currentTotal = downloadedBytes.addAndGet(chunkSize);
+                                        int percentage = knownSize ? (int) ((currentTotal * 100) / totalBytes) : 0;
+
+                                        return new UpdateProgressInfo(
+                                                UpdateStatus.DOWNLOADING, percentage, currentTotal, totalBytes, null
+                                        );
+                                    })
+                                    .subscribeOn(Schedulers.boundedElastic())
+                                    .doFinally(signal -> DataBufferUtils.release(dataBuffer))
+                            )
                             .distinctUntilChanged(p -> knownSize ? p.percentage() : p.downloadedBytes())
                             .sample(PROGRESS_SAMPLE_INTERVAL)
                             .concatWith(Mono.defer(() -> Mono.just(new UpdateProgressInfo(
@@ -125,7 +130,6 @@ public class DownloadUpdateImpl implements DownloadUpdateUseCase {
                                     totalBytes,
                                     null
                             ))));
-
 
                     Mono<UpdateProgressInfo> installAndComplete = Mono
                             .fromRunnable(() -> installUpdateUseCase.execute(targetPath))
@@ -151,7 +155,7 @@ public class DownloadUpdateImpl implements DownloadUpdateUseCase {
                             .concatWith(installAndComplete);
                 },
 
-                this::closeChannel
+                this::closeOutputStream
         ).onErrorResume(ex -> deleteQuietly(targetPath)
                 .then(Mono.just(new UpdateProgressInfo(
                         UpdateStatus.FAILED, 0, downloadedBytes.get(), totalBytes, ex.getMessage()
@@ -169,12 +173,13 @@ public class DownloadUpdateImpl implements DownloadUpdateUseCase {
         });
     }
 
-    private void closeChannel(AsynchronousFileChannel channel) {
-        if (channel != null && channel.isOpen()) {
+    private void closeOutputStream(OutputStream outputStream) {
+        if (outputStream != null) {
             try {
-                channel.close();
+                outputStream.flush();
+                outputStream.close();
             } catch (Exception ignored) {
-                // Defensive channel closure
+                // Defensive stream closure
             }
         }
     }
