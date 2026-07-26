@@ -3,14 +3,18 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .organicAura {
   position: absolute;
-  width: 150%;
-  height: 150%;
-  left: -25%;
-  top: -25%;
+  width: 140%;
+  height: 140%;
+  left: -20%;
+  top: -20%;
   border-radius: 50%;
   background: radial-gradient(
     ellipse at center,
@@ -18,10 +22,13 @@
     rgba(16, 185, 129, 0.1) 50%,
     rgba(16, 185, 129, 0) 75%
   );
-  filter: blur(14px);
+  filter: blur(12px);
+  -webkit-filter: blur(12px);
   pointer-events: none;
   z-index: 0;
   animation: organic-pulse 3s ease-in-out infinite alternate;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 :global(:root[data-theme="light"]) .organicAura {
@@ -36,11 +43,11 @@
 @keyframes organic-pulse {
   0% {
     opacity: 0.5;
-    transform: scale(0.9) rotate(0deg);
+    transform: scale(0.9) rotate(0deg) translateZ(0);
   }
   100% {
     opacity: 0.95;
-    transform: scale(1.15) rotate(5deg);
+    transform: scale(1.1) rotate(4deg) translateZ(0);
   }
 }
 
@@ -50,12 +57,14 @@
   pointer-events: none;
   overflow: visible;
   z-index: 10;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 @keyframes float-particle {
   0% {
     opacity: 0;
-    transform: translateY(8px) scale(0.85);
+    transform: translateY(8px) scale(0.85) translateZ(0);
   }
   25% {
     opacity: 0.9;
@@ -65,7 +74,7 @@
   }
   100% {
     opacity: 0;
-    transform: translateY(-32px) scale(1.1);
+    transform: translateY(-32px) scale(1.1) translateZ(0);
   }
 }
 
@@ -77,14 +86,17 @@
   pointer-events: none;
   user-select: none;
   animation: float-particle 3s ease-in-out infinite;
-  filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.8));
+  filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.7));
+  -webkit-filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.7));
   will-change: transform, opacity;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
-
 
 :global(:root[data-theme="light"]) .cssParticle {
   color: #059669;
-  filter: drop-shadow(0 0 4px rgba(5, 150, 105, 0.7));
+  filter: drop-shadow(0 0 4px rgba(5, 150, 105, 0.6));
+  -webkit-filter: drop-shadow(0 0 4px rgba(5, 150, 105, 0.6));
 }
 
 .logoSvg {
@@ -92,16 +104,20 @@
   z-index: 1;
   filter: none !important;
   transition: color 0.3s ease;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .greenLogo {
   color: #10b981 !important;
-  filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.8))
-          drop-shadow(0 0 12px rgba(16, 185, 129, 0.5)) !important;
+  filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.6)) !important;
+  -webkit-filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.6)) !important;
 }
 
 :global(:root[data-theme="light"]) .greenLogo {
   color: #059669 !important;
-  filter: drop-shadow(0 0 4px rgba(5, 150, 105, 0.7))
-          drop-shadow(0 0 10px rgba(5, 150, 105, 0.4)) !important;
+  filter: drop-shadow(0 0 5px rgba(5, 150, 105, 0.6)) !important;
+  -webkit-filter: drop-shadow(0 0 5px rgba(5, 150, 105, 0.6)) !important;
 }

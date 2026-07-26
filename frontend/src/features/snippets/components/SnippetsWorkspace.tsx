@@ -5,8 +5,10 @@ import Editor from "@monaco-editor/react";
 import { useTheme } from "../../../hooks/useTheme";
 import { ConfirmModal } from "../../../components/ConfirmModal";
 import { TagManagerSection } from "../../../components/TagManagerSection";
-import { formatUpdatedDate } from "../../../utils/dateUtils";
 import { copyToClipboard } from "../../../utils/clipboardUtils";
+import { formatUpdatedDate } from "../../../utils/dateUtils";
+
+
 import { SnippetForm } from "./SnippetForm";
 
 import {
@@ -177,12 +179,12 @@ export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
               >
                 <div className={styles.snippetItemHeader}>
                   <span className={styles.snippetItemTitle}>{s.title}</span>
-                  <span className="text-[10px] text-muted-foreground font-mono">
-                    {formatUpdatedDate(s.updatedAt, s.createdAt)
-                      ? `Upd: ${formatUpdatedDate(s.updatedAt, s.createdAt)}`
-                      : new Date(s.createdAt).toLocaleDateString()}
+                  <span className="text-[10px] text-muted-foreground font-mono shrink-0 ml-auto pt-0.5">
+                    {new Date(s.createdAt).toLocaleDateString()}
                   </span>
                 </div>
+
+
                 {s.description && <p className={styles.snippetItemDesc}>{s.description}</p>}
                 <div className={styles.snippetItemFooter}>
                   <span className={styles.badgeType}>{s.snippetType}</span>
@@ -211,7 +213,16 @@ export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
                   {selectedSnippet.description && (
                     <p className={styles.detailDesc}>{selectedSnippet.description}</p>
                   )}
+                  <div className={styles.problemMetadataRow}>
+                    <span>Created: {new Date(selectedSnippet.createdAt).toLocaleDateString()}</span>
+                    {formatUpdatedDate(selectedSnippet.updatedAt, selectedSnippet.createdAt) && (
+                      <span>
+                        Updated: {formatUpdatedDate(selectedSnippet.updatedAt, selectedSnippet.createdAt)}
+                      </span>
+                    )}
+                  </div>
                 </div>
+
 
                 <div className={styles.detailActions}>
                   <button

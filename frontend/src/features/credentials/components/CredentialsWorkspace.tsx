@@ -207,11 +207,13 @@ export const CredentialsWorkspace: React.FC<CredentialsWorkspaceProps> = ({
                     className={styles.credentialCard}
                     onClick={() => setViewingCredentialId(cred.id)}
                     onKeyDown={(e) => {
+                      if (e.target !== e.currentTarget) return;
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
                         setViewingCredentialId(cred.id);
                       }
                     }}
+
                   >
 
                     <div className={styles.credentialCardHeader}>
@@ -236,9 +238,22 @@ export const CredentialsWorkspace: React.FC<CredentialsWorkspaceProps> = ({
                           </a>
                         )}
                       </div>
+                      <div
+                        className={styles.credentialUnlockHint}
+                        title="Click card to unlock vault payload"
+                      >
+                        <Icons.Lock size={13} />
+                      </div>
                     </div>
 
+                    {cred.notes && (
+                      <p className={styles.credentialNotes}>{cred.notes}</p>
+                    )}
+
+
+
                     <div className={styles.credentialCardFooter}>
+
                       <div onClick={(e) => e.stopPropagation()}>
                         <TagManagerSection
                           itemId={cred.id}
@@ -247,6 +262,7 @@ export const CredentialsWorkspace: React.FC<CredentialsWorkspaceProps> = ({
                           projectId={projectId}
                           onOpenManageTagsModal={onOpenManageTagsModal}
                           title=""
+                          noBorder={true}
                         />
                       </div>
 

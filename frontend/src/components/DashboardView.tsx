@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
+
 import * as Icons from "lucide-react";
 import {
   useProjectsQuery,
@@ -13,15 +14,20 @@ import { ConfirmModal } from "./ConfirmModal";
 import { getIconComponent } from "../utils/icons";
 import styles from "../routes/index.module.css";
 
+type TabFilter = "ACTIVE" | "ARCHIVED" | "ALL";
+
 export const DashboardView: React.FC = () => {
-  const { data: projectsData } = useProjectsQuery();
+  const navigate = useNavigate();
+  const { data: projectsData, isLoading } = useProjectsQuery();
+
   const archiveMutation = useArchiveProjectMutation();
   const unarchiveMutation = useUnarchiveProjectMutation();
   const deleteMutation = useDeleteProjectMutation();
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [tabFilter, setTabFilter] = useState<TabFilter>("ACTIVE");
   const [editingProjectId, setEditingProjectId] = useState<string | undefined>(undefined);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [showArchived, setShowArchived] = useState(false);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     itemId: string;
@@ -30,10 +36,29 @@ export const DashboardView: React.FC = () => {
   }>({ isOpen: false, itemId: "", itemName: "", isLoading: false });
 
   const projects = projectsData?.content || [];
-  const activeProjects = projects.filter((p) => !p.archived);
-  const archivedProjects = projects.filter((p) => p.archived);
+  const activeProjectsCount = projects.filter((p) => !p.archived).length;
+  const archivedProjectsCount = projects.filter((p) => p.archived).length;
 
-  const isMutationPending = archiveMutation.isPending || unarchiveMutation.isPending || deleteMutation.isPending;
+  const effectiveTab: TabFilter =
+    tabFilter === "ARCHIVED" && archivedProjectsCount === 0 ? "ACTIVE" : tabFilter;
+
+  const isMutationPending =
+    archiveMutation.isPending || unarchiveMutation.isPending || deleteMutation.isPending;
+
+  const filteredProjects = projects.filter((project) => {
+    // Filter by effective tab
+    if (effectiveTab === "ACTIVE" && project.archived) return false;
+    if (effectiveTab === "ARCHIVED" && !project.archived) return false;
+
+    // Filter by search query
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      project.name.toLowerCase().includes(q) ||
+      (project.description && project.description.toLowerCase().includes(q))
+    );
+  });
+
 
   const handleArchive = async (id: string, name: string) => {
     try {
@@ -71,183 +96,315 @@ export const DashboardView: React.FC = () => {
 
   return (
     <div className={styles.container}>
+      {/* Header section */}
       <div className={styles.header}>
-        <h1 className={styles.title}>DASHBOARD</h1>
-        <p className={styles.subtitle}>Manage your projects, snippets, and credentials</p>
+        <div className={styles.headerTitleGroup}>
+          <div className={styles.headerBadge}>
+            <Icons.FolderGit2 size={14} />
+            <span>WORKSPACES</span>
+          </div>
+          <h1 className={styles.title}>PROJECTS</h1>
+          <p className={styles.subtitle}>
+            Select a project workspace to manage snippets, vault credentials, notes, and links.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className={styles.createBtn}
+          onClick={() => setIsCreateOpen(true)}
+          disabled={isMutationPending}
+        >
+          <Icons.Plus size={16} />
+          <span>New Project</span>
+        </button>
       </div>
 
-      <div className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <span className={styles.statLabel}>Active Projects</span>
-          <span className={styles.statValue}>{activeProjects.length}</span>
+      {/* Control Bar: Search & Tab Filters */}
+      <div className={styles.controlBar}>
+        <div className={styles.searchBox}>
+          <Icons.Search size={14} className={styles.searchIcon} />
+          <input
+            type="text"
+            className={styles.searchInput}
+            placeholder="Filter projects by name or description..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              className={styles.clearSearchBtn}
+              onClick={() => setSearchQuery("")}
+            >
+              <Icons.X size={12} />
+            </button>
+          )}
         </div>
-        <div className={styles.statCard}>
-          <span className={styles.statLabel}>Archived Projects</span>
-          <span className={styles.statValue}>{archivedProjects.length}</span>
+
+        <div className={styles.filterTabs}>
+          <button
+            type="button"
+            className={`${styles.filterTab} ${effectiveTab === "ACTIVE" ? styles.filterTabActive : ""}`}
+            onClick={() => setTabFilter("ACTIVE")}
+          >
+            Active ({activeProjectsCount})
+          </button>
+          {archivedProjectsCount > 0 && (
+            <button
+              type="button"
+              className={`${styles.filterTab} ${effectiveTab === "ARCHIVED" ? styles.filterTabActive : ""}`}
+              onClick={() => setTabFilter("ARCHIVED")}
+            >
+              Archived ({archivedProjectsCount})
+            </button>
+          )}
+          <button
+            type="button"
+            className={`${styles.filterTab} ${effectiveTab === "ALL" ? styles.filterTabActive : ""}`}
+            onClick={() => setTabFilter("ALL")}
+          >
+            All ({projects.length})
+          </button>
         </div>
       </div>
 
-      <div>
-        <h2 className={styles.sectionTitle}>Active Projects</h2>
+      {/* Projects Grid */}
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <Icons.Loader2 size={32} className="animate-spin text-primary" />
+          <span className="text-xs font-mono text-muted-foreground">LOADING WORKSPACES...</span>
+        </div>
+      ) : filteredProjects.length === 0 ? (
+        <div className={styles.emptyState}>
+          <Icons.FolderSearch size={44} className="text-muted-foreground animate-pulse" />
+          <h3 className={styles.emptyTitle}>
+            {searchQuery
+              ? `No projects matching "${searchQuery}"`
+              : effectiveTab === "ARCHIVED"
+              ? "No archived projects found"
+              : "No projects created yet"}
+          </h3>
+          <p className={styles.emptySubtitle}>
+            {searchQuery
+              ? "Try adjusting your search filter."
+              : "Get started by creating your first dev project workspace."}
+          </p>
+          {searchQuery ? (
+            <button
+              type="button"
+              className={styles.secondaryBtn}
+              onClick={() => setSearchQuery("")}
+            >
+              Clear Search
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={styles.primaryBtn}
+              onClick={() => setIsCreateOpen(true)}
+            >
+              <Icons.Plus size={14} />
+              <span>Create Project</span>
+            </button>
+          )}
+        </div>
+      ) : (
         <div className={styles.projectsGrid}>
-          {activeProjects.map((project) => {
+          {filteredProjects.map((project) => {
             const ProjectIcon = getIconComponent(project.icon);
+            const cardColor = project.color || "var(--color-primary, #6366f1)";
+
             return (
-              <Link
+              <div
                 key={project.id}
-                to="/projects/$projectId"
-                params={{ projectId: project.id }}
-                className={styles.projectCard}
-                style={{ textDecoration: "none" }}
+                role="button"
+                tabIndex={0}
+                className={`${styles.projectCard} ${project.archived ? styles.projectCardArchived : ""}`}
+                onClick={() =>
+                  navigate({
+                    to: "/projects/$projectId",
+                    params: { projectId: project.id },
+                  })
+                }
+                onKeyDown={(e) => {
+                  if (e.target !== e.currentTarget) return;
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    navigate({
+                      to: "/projects/$projectId",
+                      params: { projectId: project.id },
+                    });
+                  }
+                }}
               >
+                {/* Top Accent Strip */}
                 <div
-                  className="h-1 w-full absolute top-0 left-0"
-                  style={{ backgroundColor: project.color || "var(--color-primary)" }}
+                  className={styles.cardAccentBar}
+                  style={{ backgroundColor: cardColor }}
                 />
+
+                {/* Card Header */}
                 <div className={styles.cardHeader}>
-                  <div className={styles.cardTitleSection}>
-                    <div className={styles.cardIcon}>
-                      <ProjectIcon
-                        size={18}
-                        style={{ color: project.color || "var(--color-primary)" }}
-                      />
-                    </div>
+                  <div
+                    className={styles.cardIconBox}
+                    style={{
+                      borderColor: `color-mix(in srgb, ${cardColor} 25%, transparent)`,
+                      backgroundColor: `color-mix(in srgb, ${cardColor} 10%, transparent)`,
+                    }}
+                  >
+                    <ProjectIcon size={20} style={{ color: cardColor }} />
+                  </div>
+
+                  <div className={styles.cardTitleBox}>
                     <h3 className={styles.cardTitle}>{project.name}</h3>
+                    {project.archived && (
+                      <span className={styles.archivedBadge}>ARCHIVED</span>
+                    )}
                   </div>
                 </div>
 
+                {/* Card Body */}
                 <p className={styles.cardDesc}>
                   {project.description || "No description provided."}
                 </p>
 
+                {/* Direct Shortcut Feature Badges */}
+                <div className={styles.shortcutRow} onClick={(e) => e.stopPropagation()}>
+                  <Link
+                    to="/projects/$projectId"
+                    params={{ projectId: project.id }}
+                    search={{ tab: "snippets" }}
+                    className={styles.shortcutTag}
+                    title="Code Snippets"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Icons.Code2 size={11} />
+                    <span>Snippets</span>
+                  </Link>
+                  <Link
+                    to="/projects/$projectId"
+                    params={{ projectId: project.id }}
+                    search={{ tab: "credentials" }}
+                    className={styles.shortcutTag}
+                    title="Vault Credentials"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Icons.KeyRound size={11} />
+                    <span>Vault</span>
+                  </Link>
+                  <Link
+                    to="/projects/$projectId"
+                    params={{ projectId: project.id }}
+                    search={{ tab: "problems" }}
+                    className={styles.shortcutTag}
+                    title="Problems & Solutions"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Icons.AlertCircle size={11} />
+                    <span>Problems</span>
+                  </Link>
+                  <Link
+                    to="/projects/$projectId"
+                    params={{ projectId: project.id }}
+                    search={{ tab: "notes" }}
+                    className={styles.shortcutTag}
+                    title="Notes"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Icons.FileText size={11} />
+                    <span>Notes</span>
+                  </Link>
+                  <Link
+                    to="/projects/$projectId"
+                    params={{ projectId: project.id }}
+                    search={{ tab: "links" }}
+                    className={styles.shortcutTag}
+                    title="Links"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Icons.Link2 size={11} />
+                    <span>Links</span>
+                  </Link>
+                </div>
+
+                {/* Card Footer */}
                 <div className={styles.cardFooter}>
-                  <div className={styles.cardActions}>
+                  <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
+                    {project.archived ? (
+                      <button
+                        type="button"
+                        className={styles.actionBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUnarchive(project.id, project.name);
+                        }}
+                        title="Restore Project"
+                        disabled={isMutationPending}
+                      >
+                        <Icons.ArchiveRestore size={13} />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.actionBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleArchive(project.id, project.name);
+                        }}
+                        title="Archive Project"
+                        disabled={isMutationPending}
+                      >
+                        <Icons.Archive size={13} />
+                      </button>
+                    )}
                     <button
-                      className={styles.actionBtn}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        handleArchive(project.id, project.name);
-                      }}
-                      title="Archive Project"
-                      disabled={isMutationPending}
-                    >
-                      <Icons.Archive size={12} />
-                    </button>
-                    <button
+                      type="button"
                       className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        e.preventDefault();
                         handleDelete(project.id, project.name);
                       }}
                       title="Delete Project"
                       disabled={isMutationPending}
                     >
-                      <Icons.Trash2 size={12} />
+                      <Icons.Trash2 size={13} />
                     </button>
                   </div>
 
                   <button
-                    className={styles.openLink}
+                    type="button"
+                    className={styles.enterLink}
                     onClick={(e) => {
                       e.stopPropagation();
-                      e.preventDefault();
                       setEditingProjectId(project.id);
                     }}
-                    style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
-                    title="Manage Project"
+                    title="View & Edit Project Details"
                   >
-                    <span>Manage</span>
-                    <Icons.Settings size={12} />
+                    <span>View Details</span>
+                    <Icons.Settings size={13} />
                   </button>
                 </div>
-              </Link>
+              </div>
             );
           })}
 
-          <button className={styles.emptyCard} onClick={() => setIsCreateOpen(true)} disabled={isMutationPending}>
-            <div className="w-10 h-10 rounded-full border border-dashed border-border flex items-center justify-center text-muted-foreground">
-              <Icons.Plus size={18} />
-            </div>
-            <div>
-              <div className={styles.emptyCardTitle}>Create Project</div>
-              <p className={styles.emptyCardText}>Add a new environment node</p>
-            </div>
-          </button>
-        </div>
-      </div>
 
-      {archivedProjects.length > 0 && (
-        <div className={styles.archiveSection}>
+          {/* Create Project Card in Grid */}
           <button
             type="button"
-            className={styles.archiveHeader}
-            style={{ background: "none", border: "none", width: "100%", padding: 0 }}
-            onClick={() => setShowArchived(!showArchived)}
-            aria-expanded={showArchived}
+            className={styles.createCard}
+            onClick={() => setIsCreateOpen(true)}
+            disabled={isMutationPending}
           >
-            <span className={styles.archiveToggleText}>
-              {showArchived ? "Hide Archived Projects" : `Show Archived Projects (${archivedProjects.length})`}
-            </span>
-            <span className={styles.actionBtn}>
-              {showArchived ? <Icons.EyeOff size={12} /> : <Icons.Eye size={12} />}
-            </span>
-          </button>
-
-          {showArchived && (
-            <div className={`${styles.projectsGrid} mt-4`}>
-              {archivedProjects.map((project) => {
-                const ProjectIcon = getIconComponent(project.icon);
-                return (
-                  <div key={project.id} className={styles.projectCard} style={{ opacity: 0.7 }}>
-                    <div className={styles.cardHeader}>
-                      <div className={styles.cardTitleSection}>
-                        <div className={styles.cardIcon}>
-                          <ProjectIcon size={18} className="text-muted-foreground" />
-                        </div>
-                        <h3 className={styles.cardTitle}>{project.name}</h3>
-                      </div>
-                    </div>
-
-                    <p className={styles.cardDesc}>
-                      {project.description || "No description provided."}
-                    </p>
-
-                    <div className={styles.cardFooter}>
-                      <div className={styles.cardActions}>
-                        <button
-                          className={styles.actionBtn}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            handleUnarchive(project.id, project.name);
-                          }}
-                          title="Restore Project"
-                          disabled={isMutationPending}
-                        >
-                          <Icons.ArchiveRestore size={12} />
-                        </button>
-                        <button
-                          className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            handleDelete(project.id, project.name);
-                          }}
-                          title="Delete Project"
-                          disabled={isMutationPending}
-                        >
-                          <Icons.Trash2 size={12} />
-                        </button>
-                      </div>
-                      <span className="text-xs text-muted-foreground font-mono">ARCHIVED</span>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className={styles.createCardBadge}>
+              <Icons.Plus size={20} />
             </div>
-          )}
+            <div className={styles.createCardContent}>
+              <h4 className={styles.createCardTitle}>Create Project</h4>
+              <p className={styles.createCardSub}>Add a new environment workspace</p>
+            </div>
+          </button>
         </div>
       )}
 
@@ -273,7 +430,7 @@ export const DashboardView: React.FC = () => {
         title="Delete Project"
         message="Are you sure you want to permanently delete the project"
         itemName={confirmModal.itemName}
-        warningText="This cannot be undone. All snippets and diagnostics in this project will be permanently deleted."
+        warningText="This cannot be undone. All snippets, credentials, problems, notes, and links in this project will be permanently deleted."
         isLoading={confirmModal.isLoading}
       />
     </div>

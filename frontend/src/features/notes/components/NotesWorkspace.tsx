@@ -6,6 +6,9 @@ import DOMPurify from "dompurify";
 import { ConfirmModal } from "../../../components/ConfirmModal";
 import { TagManagerSection } from "../../../components/TagManagerSection";
 import { formatUpdatedDate } from "../../../utils/dateUtils";
+import { copyToClipboard } from "../../../utils/clipboardUtils";
+
+
 import { NoteForm } from "../components/NoteForm";
 import {
   useNotesQuery,
@@ -282,8 +285,15 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
               >
                 <div className={styles.snippetItemHeader}>
                   <span className={styles.snippetItemTitle}>{n.title}</span>
-                  {n.archived && <span className="text-[10px] text-amber-500 font-mono">ARCHIVED</span>}
+                  <div className="flex items-center gap-1.5 shrink-0 ml-auto pt-0.5">
+                    {n.archived && <span className="text-[10px] text-amber-500 font-mono">ARCHIVED</span>}
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {new Date(n.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
                 </div>
+
+
                 {n.tags && n.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1">
                     {n.tags.map((tag) => (
@@ -325,6 +335,29 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
                 <div className="flex gap-2">
                   <button
                     type="button"
+                    onClick={async () => {
+                      const contentToCopy =
+                        editingNoteContentId === noteDetail.id
+                          ? inlineContent
+                          : noteDetail.content;
+                      if (!contentToCopy) return;
+                      const ok = await copyToClipboard(contentToCopy);
+                      if (ok) {
+                        toast.success("Note content copied to clipboard");
+                      } else {
+                        toast.error("Failed to copy note content");
+                      }
+                    }}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-border px-2.5 py-1.5 rounded bg-card transition-colors cursor-pointer"
+                    title="Copy Note Content"
+                  >
+                    <Icons.Copy size={12} />
+                    <span>Copy</span>
+                  </button>
+
+
+                  <button
+                    type="button"
                     onClick={() => {
                       setEditingNoteId(noteDetail.id);
                       setIsNoteFormOpen(true);
@@ -352,6 +385,7 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
                     <span>Delete</span>
                   </button>
                 </div>
+
               </div>
 
               <div className="p-6 flex flex-col gap-6">

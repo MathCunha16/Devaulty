@@ -13,9 +13,17 @@ import { LinksWorkspace } from "~features/links/components/LinksWorkspace";
 import styles from "../routes/projects.$projectId.module.css";
 import { getIconComponent } from "../utils/icons";
 
+import { getRouteApi } from "@tanstack/react-router";
+import type { ProjectTabType } from "../routes/projects.$projectId";
+
+const routeApi = getRouteApi("/projects/$projectId");
+
 export const ProjectDetailView: React.FC = () => {
   const { projectId } = useParamsHelper();
   const { close: closeSidebar } = useSidebar();
+  const search = routeApi.useSearch();
+  const navigate = routeApi.useNavigate();
+
 
   // Auto-close sidebar when entering a project
   useEffect(() => {
@@ -32,20 +40,16 @@ export const ProjectDetailView: React.FC = () => {
     (p) => p.status === "OPEN" || p.status === "WORKING_ON"
   ).length;
 
-
-
-  // Workspace sub-navigation state
-  const [activeTab, setActiveTab] = useState<
-    "snippets" | "problems" | "credentials" | "notes" | "links"
-  >("snippets");
+  // Workspace sub-navigation state derived directly from URL search params
+  const activeTab = search.tab || "snippets";
 
   const [isTagsManagerOpen, setIsTagsManagerOpen] = useState(false);
 
-  const handleTabChange = (
-    tab: "snippets" | "problems" | "credentials" | "notes" | "links"
-  ) => {
-    setActiveTab(tab);
+  const handleTabChange = (tab: ProjectTabType) => {
+    navigate({ search: { tab }, replace: true });
   };
+
+
 
   const projectIcon = getIconComponent(project?.icon);
 
@@ -158,10 +162,11 @@ export const ProjectDetailView: React.FC = () => {
           <CredentialsWorkspace
             projectId={projectId}
             isActive={activeTab === "credentials"}
-            onNavigateTab={setActiveTab}
+            onNavigateTab={handleTabChange}
             onOpenManageTagsModal={() => setIsTagsManagerOpen(true)}
           />
         )}
+
 
         {activeTab === "notes" && (
           <NotesWorkspace

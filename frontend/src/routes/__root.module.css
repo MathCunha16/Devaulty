@@ -102,13 +102,19 @@
   align-items: center;
   color: var(--color-foreground);
   text-decoration: none;
-  transition: opacity 0.15s ease;
+  transition: transform 0.15s ease, filter 0.15s ease;
   pointer-events: auto;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .appLogo:hover {
-  opacity: 0.8;
+  filter: brightness(1.1);
+  -webkit-filter: brightness(1.1);
 }
+
 
 .themeBtn {
   background: transparent;

@@ -323,7 +323,49 @@ export const CredentialDetailModal: React.FC<CredentialDetailModalProps> = ({
                       </div>
                     );
                   })()}
+
+
+                {/* Generic fallback for any unlisted or custom keys in payload */}
+                {Object.entries(payload)
+                  .filter(
+                    ([key]) =>
+                      ![
+                        "username",
+                        "user",
+                        "email",
+                        "password",
+                        "pass",
+                        "secret",
+                        "apiKey",
+                        "api_key",
+                        "token",
+                        "key",
+                        "rawTextContent",
+                        "rawText",
+                        "content",
+                        "text",
+                      ].includes(key)
+                  )
+                  .map(([key, val]) => (
+                    <div key={key} className={styles.secretField}>
+                      <div className={styles.labelRow}>
+                        <span className={styles.label}>{key}</span>
+                      </div>
+                      <div className={styles.valueRow}>
+                        <span className={styles.valueText}>{val}</span>
+                        <button
+                          type="button"
+                          className={styles.actionBtn}
+                          onClick={() => copyToClipboard(val, key)}
+                          title={`Copy ${key}`}
+                        >
+                          <Copy size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
               </div>
+
 
               {/* Metadata Section */}
               <div className={styles.metaGroup}>
