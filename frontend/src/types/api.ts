@@ -333,11 +333,13 @@ export interface CredentialSummaryResponse {
   projectId: string;
   title: string;
   secretType: CredentialSecretType;
+  notes?: string;
   relatedUrl?: string;
   tags: TagSummaryResponse[];
   createdAt: string;
   updatedAt: string;
 }
+
 
 export interface CredentialViewResponse {
   id: string;

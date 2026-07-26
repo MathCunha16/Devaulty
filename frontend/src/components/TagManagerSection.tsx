@@ -17,6 +17,7 @@ interface TagManagerSectionProps {
   projectId: string;
   onOpenManageTagsModal: () => void;
   title?: string;
+  noBorder?: boolean;
 }
 
 export const TagManagerSection: React.FC<TagManagerSectionProps> = ({
@@ -26,6 +27,7 @@ export const TagManagerSection: React.FC<TagManagerSectionProps> = ({
   projectId,
   onOpenManageTagsModal,
   title = "Associated Tags",
+  noBorder = false,
 }) => {
   const { data: tagsData = [] } = useTagsQuery(projectId);
   const createTagMutation = useCreateTagMutation(projectId);
@@ -108,11 +110,14 @@ export const TagManagerSection: React.FC<TagManagerSectionProps> = ({
   );
 
   return (
-    <div className={styles.tagSection}>
-      <div className={styles.tagHeader}>
-        <Icons.Tag size={12} className="text-muted-foreground" />
-        <span className={styles.tagSectionTitle}>{title}</span>
-      </div>
+    <div className={`${styles.tagSection} ${noBorder ? styles.tagSectionNoBorder : ""}`}>
+      {title && title.trim() !== "" && (
+        <div className={styles.tagHeader}>
+          <Icons.Tag size={12} className="text-muted-foreground" />
+          <span className={styles.tagSectionTitle}>{title}</span>
+        </div>
+      )}
+
       <div className={styles.tagList}>
         {itemTags.map((tag) => (
           <span key={tag.id} className={styles.tagPill}>
@@ -143,7 +148,11 @@ export const TagManagerSection: React.FC<TagManagerSectionProps> = ({
           </button>
 
           {isPopoverOpen && (
-            <div className={styles.tagPopover}>
+            <div
+              className={styles.tagPopover}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
               <div className={styles.popoverHeader}>
                 <input
                   type="text"
@@ -151,9 +160,11 @@ export const TagManagerSection: React.FC<TagManagerSectionProps> = ({
                   className={styles.tagSearchInput}
                   value={tagSearchQuery}
                   onChange={(e) => setTagSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.stopPropagation()}
                   autoFocus
                 />
               </div>
+
               <div className={styles.popoverList}>
                 {unassociatedTags.map((t) => (
                   <button

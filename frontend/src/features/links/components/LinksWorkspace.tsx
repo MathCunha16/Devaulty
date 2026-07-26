@@ -125,8 +125,15 @@ export const LinksWorkspace: React.FC<LinksWorkspaceProps> = ({
               >
                 <div className={styles.snippetItemHeader}>
                   <span className={styles.snippetItemTitle}>{l.title}</span>
-                  <Icons.ExternalLink size={12} className="text-muted-foreground shrink-0" />
+                  <div className="flex items-center gap-1.5 shrink-0 ml-auto pt-0.5">
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {new Date(l.createdAt).toLocaleDateString()}
+                    </span>
+                    <Icons.ExternalLink size={12} className="text-muted-foreground" />
+                  </div>
                 </div>
+
+
                 <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[220px] block">
                   {l.url}
                 </span>
