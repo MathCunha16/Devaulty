@@ -104,28 +104,23 @@ public class DownloadUpdateImpl implements DownloadUpdateUseCase {
                 outputStream -> {
                     Flux<UpdateProgressInfo> downloadProgress = releasePort.downloadAsset(downloadUrl)
                             .timeout(DOWNLOAD_TIMEOUT)
-                            .concatMap(dataBuffer -> {
-                                try {
-                                    int chunkSize = dataBuffer.readableByteCount();
+                            .concatMap(dataBuffer -> Mono.fromCallable(() -> {
+                                        int chunkSize = dataBuffer.readableByteCount();
 
-                                    // Write the buffer contents to the output stream
-                                    byte[] bytes = new byte[chunkSize];
-                                    dataBuffer.read(bytes);
-                                    outputStream.write(bytes);
+                                        byte[] bytes = new byte[chunkSize];
+                                        dataBuffer.read(bytes);
+                                        outputStream.write(bytes);
 
-                                    long currentTotal = downloadedBytes.addAndGet(chunkSize);
-                                    int percentage = knownSize ? (int) ((currentTotal * 100) / totalBytes) : 0;
+                                        long currentTotal = downloadedBytes.addAndGet(chunkSize);
+                                        int percentage = knownSize ? (int) ((currentTotal * 100) / totalBytes) : 0;
 
-                                    return Mono.just(new UpdateProgressInfo(
-                                            UpdateStatus.DOWNLOADING, percentage, currentTotal, totalBytes, null
-                                    ));
-                                } catch (IOException e) {
-                                    return Mono.error(e);
-                                } finally {
-                                    // Always release the DataBuffer to prevent Netty ByteBuf leaks
-                                    DataBufferUtils.release(dataBuffer);
-                                }
-                            })
+                                        return new UpdateProgressInfo(
+                                                UpdateStatus.DOWNLOADING, percentage, currentTotal, totalBytes, null
+                                        );
+                                    })
+                                    .subscribeOn(Schedulers.boundedElastic())
+                                    .doFinally(signal -> DataBufferUtils.release(dataBuffer))
+                            )
                             .distinctUntilChanged(p -> knownSize ? p.percentage() : p.downloadedBytes())
                             .sample(PROGRESS_SAMPLE_INTERVAL)
                             .concatWith(Mono.defer(() -> Mono.just(new UpdateProgressInfo(

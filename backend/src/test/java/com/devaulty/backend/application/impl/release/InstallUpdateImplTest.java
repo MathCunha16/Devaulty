@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -30,12 +29,12 @@ class InstallUpdateImplTest {
     @Mock
     private ConfigurableApplicationContext applicationContext;
 
-    @Spy
-    private InstallUpdateImpl installUpdateUseCase = new InstallUpdateImpl(applicationContext);
+    private InstallUpdateImpl installUpdateUseCase;
 
     @BeforeEach
     void setUp() {
         System.setProperty("devaulty.temp.dir", tempFolder.toString());
+        installUpdateUseCase = spy(new InstallUpdateImpl(applicationContext));
     }
 
     @AfterEach
@@ -72,11 +71,14 @@ class InstallUpdateImplTest {
         File testInstaller = new File(tempDir, "test_installer.deb");
         testInstaller.createNewFile();
 
-        // Prevent real pkexec / msiexec execution during unit test by mocking startDetached
+        // Prevent real pkexec / msiexec execution and System.exit during unit test
         doNothing().when(installUpdateUseCase).startDetached(anyList());
+        doNothing().when(installUpdateUseCase).scheduleApplicationShutdown();
 
         // Act & Assert
         assertDoesNotThrow(() -> installUpdateUseCase.execute(testInstaller.toPath()));
         verify(installUpdateUseCase, times(1)).startDetached(anyList());
+        verify(installUpdateUseCase, times(1)).scheduleApplicationShutdown();
     }
 }
+

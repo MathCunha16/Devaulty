@@ -165,7 +165,7 @@ public class InstallUpdateImpl implements InstallUpdateUseCase {
     // Temp folder resolution delegated to ReleaseTempFolder to ensure both
     // DownloadUpdateImpl and InstallUpdateImpl always use the same directory.
 
-    private void scheduleApplicationShutdown() {
+    protected void scheduleApplicationShutdown() {
         scheduler.schedule(() -> {
             logger.info("Shutting down current application instance for update replacement...");
             int exitCode = SpringApplication.exit(applicationContext, () -> 0);

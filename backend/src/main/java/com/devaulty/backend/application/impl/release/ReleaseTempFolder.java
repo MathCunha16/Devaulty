@@ -21,6 +21,10 @@ public final class ReleaseTempFolder {
             if (!tempDir.exists()) {
                 tempDir.mkdirs();
             }
+            if (!tempDir.isDirectory()) {
+                throw new IllegalStateException(
+                        "Configured devaulty.temp.dir is not a valid directory: " + customDir);
+            }
             return tempDir;
         }
 
