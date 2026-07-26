@@ -13,7 +13,10 @@ import type {
   AppUpdateInfoResponse,
   UpdateDownloadProgressResponse,
 } from "~types/api";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
 import { releasesApi } from "../api/releasesApi";
+import { formatVersionTag } from "../../../utils/versionUtils";
 import styles from "./UpdateModal.module.css";
 
 interface UpdateModalProps {
@@ -29,6 +32,19 @@ const formatBytes = (bytes?: number): string => {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 };
+
+const renderReleaseNotes = (notes?: string): string => {
+  if (!notes) return "";
+  const cleaned = notes.replace(/<!--[\s\S]*?-->/g, "").trim();
+  if (!cleaned) return "";
+  try {
+    const rawHtml = marked.parse(cleaned, { breaks: true, gfm: true }) as string;
+    return DOMPurify.sanitize(rawHtml);
+  } catch {
+    return DOMPurify.sanitize(cleaned);
+  }
+};
+
 
 export const UpdateModal: React.FC<UpdateModalProps> = ({
   isOpen,
@@ -194,11 +210,11 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
           {/* Version badge row */}
           <div className={styles.versionBadgeRow}>
             <span className={`${styles.versionPill} ${styles.versionCurrent}`}>
-              Current: v{updateInfo.currentVersion}
+              Current: {formatVersionTag(updateInfo.currentVersion)}
             </span>
             <ArrowRight size={14} className={styles.versionArrow} />
             <span className={`${styles.versionPill} ${styles.versionNew}`}>
-              New: v{updateInfo.latestVersion}
+              New: {formatVersionTag(updateInfo.latestVersion)}
             </span>
           </div>
 
@@ -208,11 +224,13 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
               <span className={styles.releaseNotesLabel}>
                 {updateInfo.releaseTitle ? updateInfo.releaseTitle : "RELEASE NOTES"}
               </span>
-              <div className={styles.releaseNotesContent}>
-                {updateInfo.releaseNotes}
-              </div>
+              <div
+                className={styles.releaseNotesContent}
+                dangerouslySetInnerHTML={{ __html: renderReleaseNotes(updateInfo.releaseNotes) }}
+              />
             </div>
           )}
+
 
           {/* Stream Error Box */}
           {streamError && (

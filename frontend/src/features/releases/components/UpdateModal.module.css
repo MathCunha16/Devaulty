@@ -158,13 +158,71 @@
   border-radius: var(--radius-md, 8px);
   padding: 1rem;
   font-size: 0.82rem;
-  line-height: 1.5;
+  line-height: 1.6;
   color: var(--color-foreground, #cbd5e1);
-  max-height: 180px;
+  max-height: 220px;
   overflow-y: auto;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+.releaseNotesContent p {
+  margin: 0 0 0.5rem 0;
+}
+
+.releaseNotesContent p:last-child {
+  margin-bottom: 0;
+}
+
+.releaseNotesContent a {
+  color: var(--color-primary, #6366f1);
+  text-decoration: underline;
+  word-break: break-all;
+  transition: color 0.15s ease;
+}
+
+.releaseNotesContent a:hover {
+  color: #818cf8;
+}
+
+.releaseNotesContent strong,
+.releaseNotesContent b {
+  color: #f3f4f6;
+  font-weight: 600;
+}
+
+.releaseNotesContent ul,
+.releaseNotesContent ol {
+  margin: 0.25rem 0 0.5rem 1.25rem;
+  padding: 0;
+}
+
+.releaseNotesContent li {
+  margin-bottom: 0.25rem;
+}
+
+.releaseNotesContent code {
+  font-family: var(--font-mono, monospace);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  color: #a5b4fc;
+}
+
+.releaseNotesContent pre {
+  background: #090d16;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 0.75rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+.releaseNotesContent pre code {
+  background: transparent;
+  padding: 0;
+}
+
 
 /* Progress & Installation State */
 .progressSection {
