@@ -39,13 +39,16 @@ export const DashboardView: React.FC = () => {
   const activeProjectsCount = projects.filter((p) => !p.archived).length;
   const archivedProjectsCount = projects.filter((p) => p.archived).length;
 
+  const effectiveTab: TabFilter =
+    tabFilter === "ARCHIVED" && archivedProjectsCount === 0 ? "ACTIVE" : tabFilter;
+
   const isMutationPending =
     archiveMutation.isPending || unarchiveMutation.isPending || deleteMutation.isPending;
 
   const filteredProjects = projects.filter((project) => {
-    // Filter by tab
-    if (tabFilter === "ACTIVE" && project.archived) return false;
-    if (tabFilter === "ARCHIVED" && !project.archived) return false;
+    // Filter by effective tab
+    if (effectiveTab === "ACTIVE" && project.archived) return false;
+    if (effectiveTab === "ARCHIVED" && !project.archived) return false;
 
     // Filter by search query
     if (!searchQuery.trim()) return true;
@@ -55,6 +58,7 @@ export const DashboardView: React.FC = () => {
       (project.description && project.description.toLowerCase().includes(q))
     );
   });
+
 
   const handleArchive = async (id: string, name: string) => {
     try {
@@ -141,7 +145,7 @@ export const DashboardView: React.FC = () => {
         <div className={styles.filterTabs}>
           <button
             type="button"
-            className={`${styles.filterTab} ${tabFilter === "ACTIVE" ? styles.filterTabActive : ""}`}
+            className={`${styles.filterTab} ${effectiveTab === "ACTIVE" ? styles.filterTabActive : ""}`}
             onClick={() => setTabFilter("ACTIVE")}
           >
             Active ({activeProjectsCount})
@@ -149,7 +153,7 @@ export const DashboardView: React.FC = () => {
           {archivedProjectsCount > 0 && (
             <button
               type="button"
-              className={`${styles.filterTab} ${tabFilter === "ARCHIVED" ? styles.filterTabActive : ""}`}
+              className={`${styles.filterTab} ${effectiveTab === "ARCHIVED" ? styles.filterTabActive : ""}`}
               onClick={() => setTabFilter("ARCHIVED")}
             >
               Archived ({archivedProjectsCount})
@@ -157,7 +161,7 @@ export const DashboardView: React.FC = () => {
           )}
           <button
             type="button"
-            className={`${styles.filterTab} ${tabFilter === "ALL" ? styles.filterTabActive : ""}`}
+            className={`${styles.filterTab} ${effectiveTab === "ALL" ? styles.filterTabActive : ""}`}
             onClick={() => setTabFilter("ALL")}
           >
             All ({projects.length})
@@ -177,7 +181,7 @@ export const DashboardView: React.FC = () => {
           <h3 className={styles.emptyTitle}>
             {searchQuery
               ? `No projects matching "${searchQuery}"`
-              : tabFilter === "ARCHIVED"
+              : effectiveTab === "ARCHIVED"
               ? "No archived projects found"
               : "No projects created yet"}
           </h3>
@@ -244,10 +248,14 @@ export const DashboardView: React.FC = () => {
                 <div className={styles.cardHeader}>
                   <div
                     className={styles.cardIconBox}
-                    style={{ borderColor: `${cardColor}40`, backgroundColor: `${cardColor}15` }}
+                    style={{
+                      borderColor: `color-mix(in srgb, ${cardColor} 25%, transparent)`,
+                      backgroundColor: `color-mix(in srgb, ${cardColor} 10%, transparent)`,
+                    }}
                   >
                     <ProjectIcon size={20} style={{ color: cardColor }} />
                   </div>
+
                   <div className={styles.cardTitleBox}>
                     <h3 className={styles.cardTitle}>{project.name}</h3>
                     {project.archived && (

@@ -336,8 +336,12 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
                   <button
                     type="button"
                     onClick={async () => {
-                      if (!noteDetail.content) return;
-                      const ok = await copyToClipboard(noteDetail.content);
+                      const contentToCopy =
+                        editingNoteContentId === noteDetail.id
+                          ? inlineContent
+                          : noteDetail.content;
+                      if (!contentToCopy) return;
+                      const ok = await copyToClipboard(contentToCopy);
                       if (ok) {
                         toast.success("Note content copied to clipboard");
                       } else {
@@ -350,6 +354,7 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
                     <Icons.Copy size={12} />
                     <span>Copy</span>
                   </button>
+
 
                   <button
                     type="button"

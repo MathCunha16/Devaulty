@@ -13,14 +13,17 @@ import { LinksWorkspace } from "~features/links/components/LinksWorkspace";
 import styles from "../routes/projects.$projectId.module.css";
 import { getIconComponent } from "../utils/icons";
 
-import { Route, type ProjectTabType } from "../routes/projects.$projectId";
+import { getRouteApi } from "@tanstack/react-router";
+import type { ProjectTabType } from "../routes/projects.$projectId";
 
+const routeApi = getRouteApi("/projects/$projectId");
 
 export const ProjectDetailView: React.FC = () => {
   const { projectId } = useParamsHelper();
   const { close: closeSidebar } = useSidebar();
-  const search = Route.useSearch();
-  const navigate = Route.useNavigate();
+  const search = routeApi.useSearch();
+  const navigate = routeApi.useNavigate();
+
 
   // Auto-close sidebar when entering a project
   useEffect(() => {
