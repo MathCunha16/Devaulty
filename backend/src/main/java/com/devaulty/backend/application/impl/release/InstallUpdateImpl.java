@@ -80,10 +80,13 @@ public class InstallUpdateImpl implements InstallUpdateUseCase {
         // Wait for the current process to exit, install the package with pkexec,
         // then relaunch the app fully detached (nohup + setsid) so it survives
         // after the installer script exits.
+        // Uses ";" instead of "&&" so the app always relaunches, even if the
+        // installation fails — the previous version is still installed and
+        // should remain usable.
         String script =
                 "PID=\"$1\"; FILE=\"$2\"; PROGRAM=\"$3\"; FLAG=\"$4\"; " +
                         "while kill -0 \"$PID\" 2>/dev/null; do sleep 0.2; done; " +
-                        "pkexec \"$PROGRAM\" \"$FLAG\" \"$FILE\" && " +
+                        "pkexec \"$PROGRAM\" \"$FLAG\" \"$FILE\"; " +
                         "nohup setsid devaulty >/dev/null 2>&1 &";
 
         List<String> command = List.of(
@@ -95,11 +98,16 @@ public class InstallUpdateImpl implements InstallUpdateUseCase {
     }
 
     private void launchMacInstaller(String filePath, long currentPid) throws IOException {
-        // Read the note about limitations at the top of the class
+        // Read the note about limitations at the top of the class.
+        // After mounting the DMG the app is always relaunched so the user is
+        // not left without a running instance.  The relaunch starts the
+        // currently-installed version; the user still needs to manually copy
+        // the new .app from the mounted image into /Applications.
         String script =
                 "PID=\"$1\"; FILE=\"$2\"; " +
                         "while kill -0 \"$PID\" 2>/dev/null; do sleep 0.2; done; " +
-                        "open \"$FILE\"";
+                        "open \"$FILE\"; " +
+                        "sleep 2; open -a Devaulty";
 
         List<String> command = List.of(
                 "bash", "-c", script, "bash",
