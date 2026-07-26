@@ -26,11 +26,12 @@ export const ProjectDetailView: React.FC = () => {
   const { data: project } = useProjectQuery(projectId);
 
   // Load problems for badge counter
-  const { data: problemsData } = useProblemsQuery(projectId, 0, 1000);
+  const { data: problemsData } = useProblemsQuery(projectId);
   const problems = problemsData?.content || [];
   const openProblemsCount = problems.filter(
     (p) => p.status === "OPEN" || p.status === "WORKING_ON"
   ).length;
+
 
 
   // Workspace sub-navigation state

@@ -1,4 +1,5 @@
-import { useQuery, useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 import { problemsApi } from "../api/problemsApi";
 import type {
   CreateProblemRequest,
@@ -13,11 +14,13 @@ export const problemsKeys = {
 };
 
 export const useProblemsQuery = (projectId: string, page = 0, size = 100) => {
-  return useSuspenseQuery({
+  return useQuery({
     queryKey: [...problemsKeys.all(projectId), { page, size }],
     queryFn: () => problemsApi.getAllByProject(projectId, page, size),
+    enabled: !!projectId,
   });
 };
+
 
 export const useProblemQuery = (projectId: string, problemId: string) => {
   return useQuery({
