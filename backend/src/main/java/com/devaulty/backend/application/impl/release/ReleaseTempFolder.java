@@ -8,12 +8,22 @@ import java.io.File;
  * {@link InstallUpdateImpl} must resolve the same directory so that the
  * installer file written by the download step can be located by the install
  * step without path mismatches.
+ * Can be overridden via {@code -Ddevaulty.temp.dir} (e.g. in tests for isolation).
  */
 public final class ReleaseTempFolder {
 
     private ReleaseTempFolder() {}
 
     public static File resolve() {
+        String customDir = System.getProperty("devaulty.temp.dir");
+        if (customDir != null && !customDir.isBlank()) {
+            File tempDir = new File(customDir);
+            if (!tempDir.exists()) {
+                tempDir.mkdirs();
+            }
+            return tempDir;
+        }
+
         String userHome = System.getProperty("user.home");
         String os = System.getProperty("os.name").toLowerCase();
 
