@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
 import * as Icons from "lucide-react";
-import Editor from "@monaco-editor/react";
+import { CodeViewer } from "../../../components/CodeViewer";
 import { ConfirmModal } from "../../../components/ConfirmModal";
 import { TagManagerSection } from "../../../components/TagManagerSection";
 import { formatUpdatedDate } from "../../../utils/dateUtils";
@@ -435,25 +435,11 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
                   </div>
                   <div className={styles.shellEditorWrapper}>
                     {problemDetail.errorDescription ? (
-                      <div className="border border-border/50 rounded overflow-hidden">
-                        <Editor
-                          key={`err-${problemDetail.id}`}
-                          height="220px"
-                          language="plaintext"
-                          theme="vs-dark"
-                          value={problemDetail.errorDescription}
-                          options={{
-                            readOnly: true,
-                            minimap: { enabled: false },
-                            fontSize: 12,
-                            lineNumbers: "on",
-                            scrollBeyondLastLine: false,
-                            automaticLayout: true,
-                            domReadOnly: true,
-                            padding: { top: 6, bottom: 6 },
-                          }}
-                        />
-                      </div>
+                      <CodeViewer
+                        height="220px"
+                        language="log"
+                        code={problemDetail.errorDescription}
+                      />
                     ) : (
                       <div className="text-xs text-muted-foreground p-8 text-center font-mono">
                         No stack trace logs documented for this error.
@@ -488,25 +474,11 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
                   </div>
                   <div className={styles.shellEditorWrapper}>
                     {problemDetail.solution ? (
-                      <div className="border border-border/50 rounded overflow-hidden">
-                        <Editor
-                          key={`sol-${problemDetail.id}`}
-                          height="220px"
-                          language="plaintext"
-                          theme="vs-dark"
-                          value={problemDetail.solution}
-                          options={{
-                            readOnly: true,
-                            minimap: { enabled: false },
-                            fontSize: 12,
-                            lineNumbers: "on",
-                            scrollBeyondLastLine: false,
-                            automaticLayout: true,
-                            domReadOnly: true,
-                            padding: { top: 6, bottom: 6 },
-                          }}
-                        />
-                      </div>
+                      <CodeViewer
+                        height="220px"
+                        language="plaintext"
+                        code={problemDetail.solution}
+                      />
                     ) : (
                       <div className="text-xs text-muted-foreground p-8 text-center font-mono">
                         No resolution script documented. Edit details to attach a code fix.

@@ -30,6 +30,7 @@ const queryClient = new QueryClient({
       retry: 1,
       refetchOnWindowFocus: false,
       staleTime: 5000,
+      gcTime: 60000, // Purge unmounted inactive cache entries after 1 minute
     },
   },
 });

@@ -60,18 +60,45 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
   const previousActiveElement = useRef<HTMLElement | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const editorRef = useRef<any>(null);
 
   useEffect(() => {
     previousActiveElement.current = document.activeElement as HTMLElement;
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       firstInputRef.current?.focus();
     }, 50);
 
     return () => {
+      clearTimeout(timer);
       if (previousActiveElement.current) {
         previousActiveElement.current.focus();
       }
     };
+  }, []);
+
+  // Dispose Monaco editor and model on unmount to prevent WebKitGTK leaks
+  useEffect(() => {
+    return () => {
+      if (editorRef.current) {
+        try {
+          editorRef.current.getModel()?.dispose();
+          editorRef.current.dispose();
+        } catch {
+          // ignore if already disposed
+        }
+        editorRef.current = null;
+      }
+    };
+  }, []);
+
+  // Manual layout calculation for automaticLayout: false
+  useEffect(() => {
+    const handleResize = () => {
+      editorRef.current?.layout();
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
@@ -229,6 +256,10 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
                 theme={theme === "dark" ? "vs-dark" : "light"}
                 value={formContent}
                 onChange={(val) => setFormContent(val || "")}
+                onMount={(editor) => {
+                  editorRef.current = editor;
+                  setTimeout(() => editor.layout(), 100);
+                }}
                 loading={
                   <div className="flex items-center justify-center h-48 text-xs text-muted-foreground font-mono">
                     Loading Editor Environment...
@@ -240,7 +271,7 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
                   fontSize: 13,
                   lineNumbers: "on",
                   scrollBeyondLastLine: false,
-                  automaticLayout: true,
+                  automaticLayout: false,
                   readOnly: isSubmitting,
                   padding: { top: 8, bottom: 8 },
                 }}

@@ -1,15 +1,16 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
 import * as Icons from "lucide-react";
-import Editor from "@monaco-editor/react";
-import { useTheme } from "../../../hooks/useTheme";
+import { CodeViewer } from "../../../components/CodeViewer";
 import { ConfirmModal } from "../../../components/ConfirmModal";
 import { TagManagerSection } from "../../../components/TagManagerSection";
 import { copyToClipboard } from "../../../utils/clipboardUtils";
 import { formatUpdatedDate } from "../../../utils/dateUtils";
 
 
-import { SnippetForm } from "./SnippetForm";
+const SnippetForm = React.lazy(() =>
+  import("./SnippetForm").then((m) => ({ default: m.SnippetForm }))
+);
 
 import {
   useSnippetsQuery,
@@ -30,8 +31,6 @@ export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
   projectId,
   onOpenManageTagsModal,
 }) => {
-  const { theme } = useTheme();
-
   const { data: snippetsData } = useSnippetsQuery(projectId);
   const deleteSnippetMutation = useDeleteSnippetMutation(projectId);
 
@@ -276,24 +275,11 @@ export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
                   </button>
                 </div>
 
-                <div className="border border-border rounded overflow-hidden bg-[#0b0b0c]">
-                  <Editor
-                    height="380px"
-                    language={mapLanguageToMonaco(selectedSnippet.language)}
-                    theme={theme === "dark" ? "vs-dark" : "light"}
-                    value={selectedSnippet.content}
-                    options={{
-                      readOnly: true,
-                      minimap: { enabled: false },
-                      fontSize: 13,
-                      lineNumbers: "on",
-                      scrollBeyondLastLine: false,
-                      automaticLayout: true,
-                      domReadOnly: true,
-                      padding: { top: 8, bottom: 8 },
-                    }}
-                  />
-                </div>
+                <CodeViewer
+                  height="380px"
+                  language={mapLanguageToMonaco(selectedSnippet.language)}
+                  code={selectedSnippet.content}
+                />
               </div>
             </div>
           </div>
@@ -308,15 +294,17 @@ export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
         )}
       </div>
 
-      <SnippetForm
-        isOpen={isSnippetFormOpen}
-        onClose={() => {
-          setIsSnippetFormOpen(false);
-          setEditingSnippetId(undefined);
-        }}
-        projectId={projectId}
-        snippetId={editingSnippetId}
-      />
+      <React.Suspense fallback={null}>
+        <SnippetForm
+          isOpen={isSnippetFormOpen}
+          onClose={() => {
+            setIsSnippetFormOpen(false);
+            setEditingSnippetId(undefined);
+          }}
+          projectId={projectId}
+          snippetId={editingSnippetId}
+        />
+      </React.Suspense>
 
       <ConfirmModal
         isOpen={confirmModal.isOpen}

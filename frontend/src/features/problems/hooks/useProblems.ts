@@ -27,6 +27,7 @@ export const useProblemQuery = (projectId: string, problemId: string) => {
     queryKey: problemsKeys.detail(projectId, problemId),
     queryFn: () => problemsApi.getById(projectId, problemId),
     enabled: !!problemId,
+    gcTime: 0, // Purge error stack traces from RAM immediately when problem is unselected
   });
 };
 
