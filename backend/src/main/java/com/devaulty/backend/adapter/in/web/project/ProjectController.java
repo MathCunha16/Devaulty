@@ -3,7 +3,7 @@ package com.devaulty.backend.adapter.in.web.project;
 import com.devaulty.backend.adapter.in.web.project.dto.CreateProjectRequest;
 import com.devaulty.backend.adapter.in.web.project.dto.ProjectViewResponse;
 import com.devaulty.backend.adapter.in.web.project.dto.UpdateProjectRequest;
-import com.devaulty.backend.adapter.in.web.util.UriLocationBuilderHelper;
+import com.devaulty.backend.adapter.in.web.common.UriLocationBuilderHelper;
 import com.devaulty.backend.application.port.in.project.*;
 import com.devaulty.backend.domain.model.Project;
 import jakarta.validation.Valid;

@@ -4,7 +4,7 @@ import com.devaulty.backend.adapter.in.web.credential.dto.CreateCredentialReques
 import com.devaulty.backend.adapter.in.web.credential.dto.CredentialSummaryResponse;
 import com.devaulty.backend.adapter.in.web.credential.dto.CredentialViewResponse;
 import com.devaulty.backend.adapter.in.web.credential.dto.UpdateCredentialRequest;
-import com.devaulty.backend.adapter.in.web.util.UriLocationBuilderHelper;
+import com.devaulty.backend.adapter.in.web.common.UriLocationBuilderHelper;
 import com.devaulty.backend.application.port.in.credential.*;
 import com.devaulty.backend.application.port.in.tag.item.GetTagsForItemUseCase;
 import com.devaulty.backend.application.port.in.tag.item.GetTagsForItemsUseCase;

@@ -4,25 +4,20 @@ import com.devaulty.backend.application.exception.UpdateNotAvailableException;
 import com.devaulty.backend.application.port.in.release.*;
 import com.devaulty.backend.application.port.in.release.enums.UpdateStatus;
 import com.devaulty.backend.application.port.out.external.release.ReleasePort;
-import org.springframework.core.io.buffer.DataBufferUtils;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.time.Duration;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 public class DownloadUpdateImpl implements DownloadUpdateUseCase {
 
-    private static final Duration PROGRESS_SAMPLE_INTERVAL = Duration.ofMillis(200);
-    private static final Duration DOWNLOAD_TIMEOUT = Duration.ofMinutes(15);
-
+    private static final long PROGRESS_EMIT_THRESHOLD_BYTES = 512 * 1024; // 512KB
+    private static final int COPY_BUFFER_SIZE = 8 * 1024; // 8KB for read
     private final ReleasePort releasePort;
     private final CheckForUpdatesUseCase checkForUpdatesUseCase;
     private final InstallUpdateUseCase installUpdateUseCase;
@@ -34,7 +29,7 @@ public class DownloadUpdateImpl implements DownloadUpdateUseCase {
     }
 
     @Override
-    public Flux<UpdateProgressInfo> execute() {
+    public void execute(Consumer<UpdateProgressInfo> onProgress) {
 
         AppUpdateInfo updateInfo = checkForUpdatesUseCase.execute();
 
@@ -54,11 +49,10 @@ public class DownloadUpdateImpl implements DownloadUpdateUseCase {
         Path targetPath = new File(tempDir, fileName).toPath();
         verifyWithinTempDir(targetPath, tempDir);
 
-        return startDownloadProcess(downloadUrl, totalBytes, targetPath);
+        runDownloadProcess(downloadUrl, totalBytes, targetPath, onProgress);
     }
 
     private String sanitizeFileName(String rawFileName) {
-        // Strip any directory separators or null bytes to prevent path traversal
         String sanitized = rawFileName
                 .replace("/", "")
                 .replace("\\", "")
@@ -85,102 +79,73 @@ public class DownloadUpdateImpl implements DownloadUpdateUseCase {
         }
     }
 
-    private Flux<UpdateProgressInfo> startDownloadProcess(String downloadUrl, long totalBytes, Path targetPath) {
-        AtomicLong downloadedBytes = new AtomicLong(0);
+    private void runDownloadProcess(String downloadUrl, long totalBytes, Path targetPath, Consumer<UpdateProgressInfo> onProgress) {
         boolean knownSize = totalBytes > 0;
+        long downloadedBytes = 0;
+        long bytesSinceLastEmit = 0;
 
-        UpdateProgressInfo initialProgress = new UpdateProgressInfo(
-                UpdateStatus.DOWNLOADING, 0, 0L, totalBytes, null
-        );
+        onProgress.accept(new UpdateProgressInfo(UpdateStatus.DOWNLOADING, 0, 0L, totalBytes, null));
 
-        return Flux.using(
-                () -> Files.newOutputStream(
-                        targetPath,
-                        StandardOpenOption.CREATE,
-                        StandardOpenOption.WRITE,
-                        StandardOpenOption.TRUNCATE_EXISTING
-                ),
+        try (InputStream in = releasePort.downloadAsset(downloadUrl);
+             OutputStream out = Files.newOutputStream(
+                     targetPath,
+                     StandardOpenOption.CREATE,
+                     StandardOpenOption.WRITE,
+                     StandardOpenOption.TRUNCATE_EXISTING)) {
 
-                outputStream -> {
-                    Flux<UpdateProgressInfo> downloadProgress = releasePort.downloadAsset(downloadUrl)
-                            .timeout(DOWNLOAD_TIMEOUT)
-                            .concatMap(dataBuffer -> Mono.fromCallable(() -> {
-                                        int chunkSize = dataBuffer.readableByteCount();
+            byte[] buffer = new byte[COPY_BUFFER_SIZE];
+            int read;
 
-                                        byte[] bytes = new byte[chunkSize];
-                                        dataBuffer.read(bytes);
-                                        outputStream.write(bytes);
+            while ((read = in.read(buffer)) != -1) {
+                out.write(buffer, 0, read);
 
-                                        long currentTotal = downloadedBytes.addAndGet(chunkSize);
-                                        int percentage = knownSize ? (int) ((currentTotal * 100) / totalBytes) : 0;
+                downloadedBytes += read;
+                bytesSinceLastEmit += read;
 
-                                        return new UpdateProgressInfo(
-                                                UpdateStatus.DOWNLOADING, percentage, currentTotal, totalBytes, null
-                                        );
-                                    })
-                                    .subscribeOn(Schedulers.boundedElastic())
-                                    .doFinally(signal -> DataBufferUtils.release(dataBuffer))
-                            )
-                            .distinctUntilChanged(p -> knownSize ? p.percentage() : p.downloadedBytes())
-                            .sample(PROGRESS_SAMPLE_INTERVAL)
-                            .concatWith(Mono.defer(() -> Mono.just(new UpdateProgressInfo(
-                                    UpdateStatus.DOWNLOADING,
-                                    knownSize ? 100 : 0,
-                                    downloadedBytes.get(),
-                                    totalBytes,
-                                    null
-                            ))));
+                // Só emite progresso de tempos em tempos, não a cada 8KB lido
+                if (bytesSinceLastEmit >= PROGRESS_EMIT_THRESHOLD_BYTES) {
+                    int percentage = knownSize ? (int) ((downloadedBytes * 100) / totalBytes) : 0;
+                    onProgress.accept(new UpdateProgressInfo(
+                            UpdateStatus.DOWNLOADING, percentage, downloadedBytes, totalBytes, null
+                    ));
+                    bytesSinceLastEmit = 0;
+                }
+            }
 
-                    Mono<UpdateProgressInfo> installAndComplete = Mono
-                            .fromRunnable(() -> installUpdateUseCase.execute(targetPath))
-                            .subscribeOn(Schedulers.boundedElastic())
-                            .thenReturn(new UpdateProgressInfo(
-                                    UpdateStatus.COMPLETED, 100, totalBytes, totalBytes, null
-                            ))
-                            .onErrorResume(installError -> Mono.just(new UpdateProgressInfo(
-                                    UpdateStatus.FAILED,
-                                    100,
-                                    totalBytes,
-                                    totalBytes,
-                                    "Download Succeed, but the application failed to Install : " + installError.getMessage()
-                            )));
+            // Garante um evento final de 100% mesmo que o último lote tenha sido pequeno
+            onProgress.accept(new UpdateProgressInfo(
+                    UpdateStatus.DOWNLOADING, knownSize ? 100 : 0, downloadedBytes, totalBytes, null
+            ));
 
-                    UpdateProgressInfo installingProgress = new UpdateProgressInfo(
-                            UpdateStatus.INSTALLING, 100, totalBytes, totalBytes, null
-                    );
+            onProgress.accept(new UpdateProgressInfo(
+                    UpdateStatus.INSTALLING, 100, totalBytes, totalBytes, null
+            ));
 
-                    return Mono.just(initialProgress)
-                            .concatWith(downloadProgress)
-                            .concatWith(Mono.just(installingProgress))
-                            .concatWith(installAndComplete);
-                },
+            try {
+                installUpdateUseCase.execute(targetPath);
+                onProgress.accept(new UpdateProgressInfo(
+                        UpdateStatus.COMPLETED, 100, totalBytes, totalBytes, null
+                ));
+            } catch (Exception installError) {
+                onProgress.accept(new UpdateProgressInfo(
+                        UpdateStatus.FAILED, 100, totalBytes, totalBytes,
+                        "Download Succeed, but the application failed to Install : " + installError.getMessage()
+                ));
+            }
 
-                this::closeOutputStream
-        ).onErrorResume(ex -> deleteQuietly(targetPath)
-                .then(Mono.just(new UpdateProgressInfo(
-                        UpdateStatus.FAILED, 0, downloadedBytes.get(), totalBytes, ex.getMessage()
-                )))
-        );
+        } catch (IOException ex) {
+            deleteQuietly(targetPath);
+            onProgress.accept(new UpdateProgressInfo(
+                    UpdateStatus.FAILED, 0, downloadedBytes, totalBytes, ex.getMessage()
+            ));
+        }
     }
 
-    private Mono<Void> deleteQuietly(Path path) {
-        return Mono.fromRunnable(() -> {
-            try {
-                Files.deleteIfExists(path);
-            } catch (Exception ignored) {
-                // Best-effort cleanup
-            }
-        });
-    }
-
-    private void closeOutputStream(OutputStream outputStream) {
-        if (outputStream != null) {
-            try {
-                outputStream.flush();
-                outputStream.close();
-            } catch (Exception ignored) {
-                // Defensive stream closure
-            }
+    private void deleteQuietly(Path path) {
+        try {
+            Files.deleteIfExists(path);
+        } catch (Exception ignored) {
+            // Best-effort cleanup
         }
     }
 }

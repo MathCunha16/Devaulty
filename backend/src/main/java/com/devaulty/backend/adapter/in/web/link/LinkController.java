@@ -3,7 +3,7 @@ package com.devaulty.backend.adapter.in.web.link;
 import com.devaulty.backend.adapter.in.web.link.dto.CreateLinkRequest;
 import com.devaulty.backend.adapter.in.web.link.dto.LinkViewResponse;
 import com.devaulty.backend.adapter.in.web.link.dto.UpdateLinkRequest;
-import com.devaulty.backend.adapter.in.web.util.UriLocationBuilderHelper;
+import com.devaulty.backend.adapter.in.web.common.UriLocationBuilderHelper;
 import com.devaulty.backend.application.port.in.link.*;
 import com.devaulty.backend.domain.model.Link;
 import com.devaulty.backend.application.port.in.tag.item.GetTagsForItemUseCase;

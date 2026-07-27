@@ -8,11 +8,12 @@ import com.devaulty.backend.infrastructure.BaseIntegrationTest;
 import com.devaulty.backend.infrastructure.security.AppTokenContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import reactor.core.publisher.Flux;
+import org.springframework.test.web.servlet.MvcResult;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
@@ -22,6 +23,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 class ReleaseControllerIT extends BaseIntegrationTest {
@@ -102,14 +104,17 @@ class ReleaseControllerIT extends BaseIntegrationTest {
 
         when(releasePort.getLatestRelease()).thenReturn(latestRelease);
 
-        DefaultDataBufferFactory factory = new DefaultDataBufferFactory();
-        var buffer = factory.wrap("hello world".getBytes(StandardCharsets.UTF_8));
-        when(releasePort.downloadAsset(anyString())).thenReturn(Flux.just(buffer));
+        InputStream fakeAssetStream = new ByteArrayInputStream("hello world".getBytes(StandardCharsets.UTF_8));
+        when(releasePort.downloadAsset(anyString())).thenReturn(fakeAssetStream);
 
-        // Act & Assert
-        mockMvc.perform(post("/api/v1/releases/download-and-install")
+        MvcResult mvcResult = mockMvc.perform(post("/api/v1/releases/download-and-install")
                         .header(AppTokenContext.HEADER_NAME, AppTokenContext.PROCESS_TOKEN)
                         .accept(MediaType.TEXT_EVENT_STREAM))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+        mvcResult.getAsyncResult();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM));
     }

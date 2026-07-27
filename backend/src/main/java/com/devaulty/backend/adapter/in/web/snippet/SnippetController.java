@@ -4,7 +4,7 @@ import com.devaulty.backend.adapter.in.web.snippet.dto.CreateSnippetRequest;
 import com.devaulty.backend.adapter.in.web.snippet.dto.SnippetSummaryResponse;
 import com.devaulty.backend.adapter.in.web.snippet.dto.SnippetViewResponse;
 import com.devaulty.backend.adapter.in.web.snippet.dto.UpdateSnippetRequest;
-import com.devaulty.backend.adapter.in.web.util.UriLocationBuilderHelper;
+import com.devaulty.backend.adapter.in.web.common.UriLocationBuilderHelper;
 import com.devaulty.backend.application.port.in.snippet.*;
 import com.devaulty.backend.application.port.in.tag.item.GetTagsForItemUseCase;
 import com.devaulty.backend.application.port.in.tag.item.GetTagsForItemsUseCase;

@@ -1,7 +1,7 @@
 package com.devaulty.backend.adapter.in.web.problem;
 
 import com.devaulty.backend.adapter.in.web.problem.dto.*;
-import com.devaulty.backend.adapter.in.web.util.UriLocationBuilderHelper;
+import com.devaulty.backend.adapter.in.web.common.UriLocationBuilderHelper;
 import com.devaulty.backend.application.port.in.problem.*;
 import com.devaulty.backend.domain.model.Problem;
 import com.devaulty.backend.application.port.in.tag.item.GetTagsForItemUseCase;

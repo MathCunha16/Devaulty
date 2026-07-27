@@ -16,12 +16,13 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.core.io.buffer.DefaultDataBufferFactory;
-import reactor.core.publisher.Flux;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -74,7 +75,7 @@ class DownloadUpdateImplTest {
         when(checkForUpdatesUseCase.execute()).thenReturn(noUpdateInfo);
 
         // Act & Assert
-        assertThrows(UpdateNotAvailableException.class, () -> downloadUpdateUseCase.execute());
+        assertThrows(UpdateNotAvailableException.class, () -> downloadUpdateUseCase.execute(progress -> {}));
         verify(checkForUpdatesUseCase, times(1)).execute();
         verifyNoInteractions(releasePort);
     }
@@ -97,14 +98,14 @@ class DownloadUpdateImplTest {
         when(checkForUpdatesUseCase.execute()).thenReturn(nullUrlInfo);
 
         // Act & Assert
-        assertThrows(UpdateNotAvailableException.class, () -> downloadUpdateUseCase.execute());
+        assertThrows(UpdateNotAvailableException.class, () -> downloadUpdateUseCase.execute(progress -> {}));
         verify(checkForUpdatesUseCase, times(1)).execute();
         verifyNoInteractions(releasePort);
     }
 
     @Test
-    @DisplayName("Should stream download progress and trigger installation when download succeeds")
-    void shouldStreamProgressAndTriggerInstallation_whenDownloadSucceeds() {
+    @DisplayName("Should emit download progress and trigger installation when download succeeds")
+    void shouldEmitProgressAndTriggerInstallation_whenDownloadSucceeds() {
         // Arrange
         String downloadUrl = "https://github.com/MathCunha16/Devaulty/releases/download/v0.2.0/devaulty_0.2.0.deb";
         long totalBytes = 11L;
@@ -122,17 +123,15 @@ class DownloadUpdateImplTest {
 
         when(checkForUpdatesUseCase.execute()).thenReturn(validUpdateInfo);
 
-        DefaultDataBufferFactory factory = new DefaultDataBufferFactory();
-        var buffer = factory.wrap("hello world".getBytes(StandardCharsets.UTF_8));
-        when(releasePort.downloadAsset(downloadUrl)).thenReturn(Flux.just(buffer));
+        InputStream fakeAssetStream = new ByteArrayInputStream("hello world".getBytes(StandardCharsets.UTF_8));
+        when(releasePort.downloadAsset(downloadUrl)).thenReturn(fakeAssetStream);
         doNothing().when(installUpdateUseCase).execute(any());
 
         // Act
-        Flux<UpdateProgressInfo> progressFlux = downloadUpdateUseCase.execute();
-        List<UpdateProgressInfo> results = progressFlux.collectList().block();
+        List<UpdateProgressInfo> results = new ArrayList<>();
+        downloadUpdateUseCase.execute(results::add);
 
         // Assert
-        assertNotNull(results);
         assertFalse(results.isEmpty());
         assertTrue(results.stream().anyMatch(p -> p.status() == UpdateStatus.DOWNLOADING));
         assertTrue(results.stream().anyMatch(p -> p.status() == UpdateStatus.INSTALLING));
@@ -141,5 +140,41 @@ class DownloadUpdateImplTest {
         verify(checkForUpdatesUseCase, times(1)).execute();
         verify(releasePort, times(1)).downloadAsset(downloadUrl);
         verify(installUpdateUseCase, times(1)).execute(any());
+    }
+
+    @Test
+    @DisplayName("Should emit FAILED progress and clean up file when download stream throws")
+    void shouldEmitFailedProgress_whenDownloadStreamThrows() {
+        // Arrange
+        String downloadUrl = "https://github.com/MathCunha16/Devaulty/releases/download/v0.2.0/devaulty_0.2.0.deb";
+
+        AppUpdateInfo validUpdateInfo = new AppUpdateInfo(
+                true,
+                "0.1.0-alpha",
+                "v0.2.0",
+                "Title",
+                "Notes",
+                downloadUrl,
+                11L,
+                Instant.now()
+        );
+
+        when(checkForUpdatesUseCase.execute()).thenReturn(validUpdateInfo);
+
+        InputStream brokenStream = new InputStream() {
+            @Override
+            public int read() throws java.io.IOException {
+                throw new java.io.IOException("Connection reset");
+            }
+        };
+        when(releasePort.downloadAsset(downloadUrl)).thenReturn(brokenStream);
+
+        // Act
+        List<UpdateProgressInfo> results = new ArrayList<>();
+        downloadUpdateUseCase.execute(results::add);
+
+        // Assert
+        assertTrue(results.stream().anyMatch(p -> p.status() == UpdateStatus.FAILED));
+        verify(installUpdateUseCase, never()).execute(any());
     }
 }

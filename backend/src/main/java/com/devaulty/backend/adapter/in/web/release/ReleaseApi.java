@@ -15,7 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import reactor.core.publisher.Flux;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Tag(name = "Releases", description = "Endpoints for checking desktop application updates, streaming asset downloads, and invoking native OS installation")
 @RequestMapping("/api/v1/releases")
@@ -48,12 +48,13 @@ public interface ReleaseApi {
 
     @Operation(
             summary = "Stream update download and trigger native OS installation",
-            description = "Establishes a Server-Sent Events (SSE) HTTP stream (`text/event-stream`) to download the latest installer binary into the local platform temp directory (`~/.config/devaulty/temp` on Linux, `%LOCALAPPDATA%\\devaulty\\temp` on Windows, `~/Library/Caches/devaulty/temp` on macOS). Emits real-time progress events (`DOWNLOADING` status with percentage and byte counts). Once download reaches 100%, transitions to `INSTALLING` status, launches the native OS installer/restart script detached from the current process, and gracefully shuts down the running Devaulty application instance."
+            description = "Establishes a Server-Sent Events (SSE) HTTP stream (`text/event-stream`) to download the latest installer binary into the local platform temp directory (`~/.config/devaulty/temp` on Linux, `%LOCALAPPDATA%\\devaulty\\temp` on Windows, `~/Library/Caches/devaulty/temp` on macOS). Emits real-time progress events (`DOWNLOADING` status with percentage and byte counts). Once download reaches 100%, transitions to `INSTALLING` status, launches the native OS installer/restart script detached from the current process, and gracefully shuts down the running Devaulty application instance. " +
+                    "Backed by a blocking download pipeline (JDK `HttpClient`) executed on a dedicated background thread, decoupled from the servlet request thread pool."
     )
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Server-Sent Events (SSE) stream established successfully. Emits real-time `UpdateDownloadProgressResponse` events.",
+                    description = "Server-Sent Events (SSE) stream established successfully. Emits real-time `UpdateDownloadProgressResponse` events until the stream completes or errors out.",
                     content = @Content(mediaType = MediaType.TEXT_EVENT_STREAM_VALUE, schema = @Schema(implementation = UpdateDownloadProgressResponse.class))
             ),
             @ApiResponse(
@@ -68,12 +69,12 @@ public interface ReleaseApi {
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal Server Error. Streaming network failure, file I/O error during installer save, or native process execution failure.",
+                    description = "Internal Server Error. Streaming network failure, file I/O error during installer save, or native process execution failure. Reported as a terminal SSE error event, since HTTP headers are already committed by the time streaming begins.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ApiErrorResponse.class))
             )
     })
     @PostMapping(value = "/download-and-install", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    ResponseEntity<Flux<UpdateDownloadProgressResponse>> downloadUpdate();
+    SseEmitter downloadUpdate();
 
     @Operation(
             summary = "Get current running application version",

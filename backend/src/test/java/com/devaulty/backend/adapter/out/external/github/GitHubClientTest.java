@@ -8,21 +8,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.core.io.buffer.DefaultDataBufferFactory;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,40 +29,36 @@ import static org.mockito.Mockito.*;
 class GitHubClientTest {
 
     @Mock
-    private WebClient webClient;
+    private RestClient githubRestClient;
 
     @Mock
-    private WebClient downloadWebClient;
+    private RestClient downloadRestClient;
 
     @Mock
-    private WebClient.RequestHeadersUriSpec requestHeadersUriSpec;
+    private RestClient.RequestHeadersUriSpec requestHeadersUriSpec;
 
     @Mock
-    private WebClient.RequestHeadersSpec requestHeadersSpec;
+    private RestClient.RequestHeadersSpec requestHeadersSpec;
 
     @Mock
-    private WebClient.ResponseSpec responseSpec;
+    private RestClient.ResponseSpec responseSpec;
 
     @Mock
-    private WebClient.RequestHeadersUriSpec downloadRequestHeadersUriSpec;
+    private RestClient.RequestHeadersUriSpec downloadRequestHeadersUriSpec;
 
     @Mock
-    private WebClient.RequestHeadersSpec downloadRequestHeadersSpec;
-
-    @Mock
-    private WebClient.ResponseSpec downloadResponseSpec;
+    private RestClient.RequestHeadersSpec downloadRequestHeadersSpec;
 
     private GitHubClient gitHubClient;
 
     @BeforeEach
     void setUp() {
-        gitHubClient = new GitHubClient(webClient, downloadWebClient);
+        gitHubClient = new GitHubClient(githubRestClient, downloadRestClient);
     }
 
     @Test
     @DisplayName("getLatestRelease should return GitHubReleaseResponse when request succeeds")
     void getLatestRelease_shouldReturnReleaseResponse_whenGitHubReturnsRelease() {
-        // Arrange
         GitHubAssetResponse asset = new GitHubAssetResponse("devaulty_0.2.0.deb", "https://download.url", 50000000L, "application/octet-stream", "sha256:12345");
         GitHubReleaseResponse expectedResponse = new GitHubReleaseResponse(
                 "v0.2.0",
@@ -75,78 +70,71 @@ class GitHubClientTest {
                 List.of(asset)
         );
 
-        when(webClient.get()).thenReturn(requestHeadersUriSpec);
+        when(githubRestClient.get()).thenReturn(requestHeadersUriSpec);
         when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.bodyToMono(GitHubReleaseResponse.class)).thenReturn(Mono.just(expectedResponse));
+        when(responseSpec.body(GitHubReleaseResponse.class)).thenReturn(expectedResponse);
 
-        // Act
         GitHubReleaseResponse actualResponse = gitHubClient.getLatestRelease();
 
-        // Assert
         assertNotNull(actualResponse);
         assertEquals("v0.2.0", actualResponse.tagName());
         assertEquals("Release v0.2.0", actualResponse.name());
         assertEquals("Changelog notes", actualResponse.body());
         assertEquals(1, actualResponse.assets().size());
 
-        verify(webClient, times(1)).get();
+        verify(githubRestClient, times(1)).get();
     }
 
     @Test
-    @DisplayName("getLatestRelease should return null when 404 Not Found WebClientResponseException occurs")
+    @DisplayName("getLatestRelease should return null when 404 Not Found RestClientResponseException occurs")
     void getLatestRelease_shouldReturnNull_when404NotFoundOccurs() {
-        // Arrange
-        when(webClient.get()).thenReturn(requestHeadersUriSpec);
+        when(githubRestClient.get()).thenReturn(requestHeadersUriSpec);
         when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.bodyToMono(GitHubReleaseResponse.class))
-                .thenReturn(Mono.error(WebClientResponseException.create(404, "Not Found", null, null, null)));
+        when(responseSpec.body(GitHubReleaseResponse.class))
+                .thenThrow(HttpClientErrorException.create(
+                        org.springframework.http.HttpStatus.NOT_FOUND,
+                        "Not Found", null, null, null
+                ));
 
-        // Act
         GitHubReleaseResponse actualResponse = gitHubClient.getLatestRelease();
 
-        // Assert
         assertNull(actualResponse);
-        verify(webClient, times(1)).get();
+        verify(githubRestClient, times(1)).get();
     }
 
     @Test
-    @DisplayName("getLatestRelease should rethrow exception when 500 Server Error WebClientResponseException occurs")
+    @DisplayName("getLatestRelease should rethrow exception when 500 Server Error RestClientResponseException occurs")
     void getLatestRelease_shouldThrowException_whenServerErrorOccurs() {
-        // Arrange
-        when(webClient.get()).thenReturn(requestHeadersUriSpec);
+        when(githubRestClient.get()).thenReturn(requestHeadersUriSpec);
         when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
-        when(responseSpec.bodyToMono(GitHubReleaseResponse.class))
-                .thenReturn(Mono.error(WebClientResponseException.create(500, "Internal Server Error", null, null, null)));
+        when(responseSpec.body(GitHubReleaseResponse.class))
+                .thenThrow(HttpServerErrorException.create(
+                        org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Internal Server Error", null, null, null
+                ));
 
-        // Act & Assert
-        assertThrows(WebClientResponseException.class, () -> gitHubClient.getLatestRelease());
-        verify(webClient, times(1)).get();
+        assertThrows(RestClientResponseException.class, () -> gitHubClient.getLatestRelease());
+        verify(githubRestClient, times(1)).get();
     }
 
     @Test
-    @DisplayName("downloadAsset should return DataBuffer Flux when download URL is valid")
-    void downloadAsset_shouldReturnDataBufferFlux_whenUrlIsValid() {
-        // Arrange
+    @DisplayName("downloadAsset should return an InputStream when download URL is valid")
+    void downloadAsset_shouldReturnInputStream_whenUrlIsValid() {
         String downloadUrl = "https://github.com/MathCunha16/Devaulty/releases/download/v0.2.0/devaulty_0.2.0.deb";
-        DefaultDataBufferFactory factory = new DefaultDataBufferFactory();
-        DataBuffer mockBuffer = factory.wrap("binary content".getBytes(StandardCharsets.UTF_8));
+        InputStream mockStream = new ByteArrayInputStream("binary content".getBytes(StandardCharsets.UTF_8));
 
-        when(downloadWebClient.get()).thenReturn(downloadRequestHeadersUriSpec);
+        when(downloadRestClient.get()).thenReturn(downloadRequestHeadersUriSpec);
         when(downloadRequestHeadersUriSpec.uri(any(URI.class))).thenReturn(downloadRequestHeadersSpec);
-        when(downloadRequestHeadersSpec.retrieve()).thenReturn(downloadResponseSpec);
-        when(downloadResponseSpec.bodyToFlux(DataBuffer.class)).thenReturn(Flux.just(mockBuffer));
+        when(downloadRequestHeadersSpec.exchange(any(), eq(false))).thenReturn(mockStream);
 
-        // Act
-        Flux<DataBuffer> resultFlux = gitHubClient.downloadAsset(downloadUrl);
-        List<DataBuffer> buffers = resultFlux.collectList().block();
+        InputStream result = gitHubClient.downloadAsset(downloadUrl);
 
-        // Assert
-        assertNotNull(buffers);
-        assertEquals(1, buffers.size());
-        verify(downloadWebClient, times(1)).get();
-        verify(webClient, never()).get();
+        assertNotNull(result);
+        assertSame(mockStream, result);
+        verify(downloadRestClient, times(1)).get();
+        verify(githubRestClient, never()).get();
     }
 }

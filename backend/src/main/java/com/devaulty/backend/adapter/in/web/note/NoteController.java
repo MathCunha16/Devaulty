@@ -4,7 +4,7 @@ import com.devaulty.backend.adapter.in.web.note.dto.CreateNoteRequest;
 import com.devaulty.backend.adapter.in.web.note.dto.NoteSummaryResponse;
 import com.devaulty.backend.adapter.in.web.note.dto.NoteViewResponse;
 import com.devaulty.backend.adapter.in.web.note.dto.UpdateNoteRequest;
-import com.devaulty.backend.adapter.in.web.util.UriLocationBuilderHelper;
+import com.devaulty.backend.adapter.in.web.common.UriLocationBuilderHelper;
 import com.devaulty.backend.application.port.in.note.*;
 import com.devaulty.backend.domain.model.Note;
 import com.devaulty.backend.application.port.in.tag.item.GetTagsForItemUseCase;
