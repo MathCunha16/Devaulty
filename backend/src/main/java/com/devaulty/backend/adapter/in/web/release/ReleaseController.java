@@ -7,6 +7,8 @@ import com.devaulty.backend.application.port.in.release.CheckForUpdatesUseCase;
 import com.devaulty.backend.application.port.in.release.DownloadUpdateUseCase;
 import com.devaulty.backend.application.port.in.release.GetCurrentVersionUseCase;
 import com.devaulty.backend.application.port.in.release.UpdateProgressInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,10 +17,13 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @RestController
 @RequestMapping("/api/v1/releases")
 public class ReleaseController implements ReleaseApi {
+
+    private static final Logger logger = LoggerFactory.getLogger(ReleaseController.class);
 
     private final CheckForUpdatesUseCase checkForUpdatesUseCase;
     private final DownloadUpdateUseCase downloadUpdateUseCase;
@@ -46,7 +51,13 @@ public class ReleaseController implements ReleaseApi {
     @PostMapping("/download-and-install")
     public SseEmitter downloadUpdate() {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
-        backgroundTaskRunner.run(() -> runDownload(emitter));
+        AtomicBoolean isCancelled = new AtomicBoolean(false);
+
+        emitter.onCompletion(() -> isCancelled.set(true));
+        emitter.onTimeout(() -> isCancelled.set(true));
+        emitter.onError(ex -> isCancelled.set(true));
+
+        backgroundTaskRunner.run(() -> runDownload(emitter, isCancelled));
         return emitter;
     }
 
@@ -56,20 +67,28 @@ public class ReleaseController implements ReleaseApi {
         return ResponseEntity.ok(new CurrentVersionResponse(getCurrentVersionUseCase.execute()));
     }
 
-    private void runDownload(SseEmitter emitter) {
+    private void runDownload(SseEmitter emitter, AtomicBoolean isCancelled) {
         try {
-            downloadUpdateUseCase.execute(progress -> sendProgress(emitter, progress));
-            emitter.complete();
+            downloadUpdateUseCase.execute(progress -> sendProgress(emitter, progress, isCancelled));
+            if (!isCancelled.get()) {
+                emitter.complete();
+            }
         } catch (Exception ex) {
-            emitter.completeWithError(ex);
+            if (!isCancelled.get()) {
+                emitter.completeWithError(ex);
+            }
         }
     }
 
-    private void sendProgress(SseEmitter emitter, UpdateProgressInfo progress) {
+    private void sendProgress(SseEmitter emitter, UpdateProgressInfo progress, AtomicBoolean isCancelled) {
+        if (isCancelled.get()) {
+            throw new IllegalStateException("Client disconnected or SSE stream cancelled.");
+        }
         try {
             emitter.send(releaseWebMapper.toProgressResponse(progress));
-        } catch (IOException e) {
-            emitter.completeWithError(e);
+        } catch (IOException | IllegalStateException e) {
+            isCancelled.set(true);
+            logger.debug("Failed to send SSE progress, client likely disconnected: {}", e.getMessage());
         }
     }
 }

@@ -62,6 +62,7 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
   const firstInputRef = useRef<HTMLInputElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const editorRef = useRef<any>(null);
+  const layoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     previousActiveElement.current = document.activeElement as HTMLElement;
@@ -80,6 +81,10 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
   // Dispose Monaco editor and model on unmount to prevent WebKitGTK leaks
   useEffect(() => {
     return () => {
+      if (layoutTimerRef.current) {
+        clearTimeout(layoutTimerRef.current);
+        layoutTimerRef.current = null;
+      }
       if (editorRef.current) {
         try {
           editorRef.current.getModel()?.dispose();
@@ -258,7 +263,12 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
                 onChange={(val) => setFormContent(val || "")}
                 onMount={(editor) => {
                   editorRef.current = editor;
-                  setTimeout(() => editor.layout(), 100);
+                  if (layoutTimerRef.current) clearTimeout(layoutTimerRef.current);
+                  layoutTimerRef.current = setTimeout(() => {
+                    if (editorRef.current) {
+                      editor.layout();
+                    }
+                  }, 100);
                 }}
                 loading={
                   <div className="flex items-center justify-center h-48 text-xs text-muted-foreground font-mono">

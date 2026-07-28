@@ -47,6 +47,18 @@ public class GitHubClient {
     public InputStream downloadAsset(String downloadUrl) {
         return downloadRestClient.get()
                 .uri(URI.create(downloadUrl))
-                .exchange((request, response) -> response.getBody(), false);
+                .exchange((request, response) -> {
+                    if (response.getStatusCode().isError()) {
+                        throw new RestClientResponseException(
+                                "Failed to download asset: HTTP " + response.getStatusCode(),
+                                response.getStatusCode().value(),
+                                response.getStatusText(),
+                                response.getHeaders(),
+                                null,
+                                null
+                        );
+                    }
+                    return response.getBody();
+                }, false);
     }
 }

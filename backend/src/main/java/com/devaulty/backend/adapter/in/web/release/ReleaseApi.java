@@ -58,11 +58,6 @@ public interface ReleaseApi {
                     content = @Content(mediaType = MediaType.TEXT_EVENT_STREAM_VALUE, schema = @Schema(implementation = UpdateDownloadProgressResponse.class))
             ),
             @ApiResponse(
-                    responseCode = "400",
-                    description = "Bad Request. Thrown when no update is available (`updateAvailable == false`) or no compatible installer asset exists for the current host OS.",
-                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ApiErrorResponse.class))
-            ),
-            @ApiResponse(
                     responseCode = "403",
                     description = "Forbidden. Request missing or containing an invalid `X-Devaulty-Internal-Token` header.",
                     content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = @Schema(implementation = ApiErrorResponse.class))

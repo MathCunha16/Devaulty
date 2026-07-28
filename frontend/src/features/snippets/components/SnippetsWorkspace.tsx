@@ -294,17 +294,19 @@ export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
         )}
       </div>
 
-      <React.Suspense fallback={null}>
-        <SnippetForm
-          isOpen={isSnippetFormOpen}
-          onClose={() => {
-            setIsSnippetFormOpen(false);
-            setEditingSnippetId(undefined);
-          }}
-          projectId={projectId}
-          snippetId={editingSnippetId}
-        />
-      </React.Suspense>
+      {isSnippetFormOpen && (
+        <React.Suspense fallback={null}>
+          <SnippetForm
+            isOpen={isSnippetFormOpen}
+            onClose={() => {
+              setIsSnippetFormOpen(false);
+              setEditingSnippetId(undefined);
+            }}
+            projectId={projectId}
+            snippetId={editingSnippetId}
+          />
+        </React.Suspense>
+      )}
 
       <ConfirmModal
         isOpen={confirmModal.isOpen}

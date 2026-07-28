@@ -9,6 +9,7 @@ export const useInactivityAutoLock = (enabled: boolean, onLockTriggered?: () => 
   const lockMutation = useLockVaultMutation();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastResetRef = useRef<number>(0);
+  const lastActivityRef = useRef<number>(Date.now());
 
   const onLockTriggeredRef = useRef(onLockTriggered);
   useEffect(() => {
@@ -24,7 +25,17 @@ export const useInactivityAutoLock = (enabled: boolean, onLockTriggered?: () => 
     }
     if (!enabled) return;
 
+    const elapsed = Date.now() - lastActivityRef.current;
+    const delay = Math.max(INACTIVITY_TIMEOUT_MS - elapsed, 0);
+
     timerRef.current = setTimeout(async () => {
+      // Re-check exact elapsed time from actual last user activity
+      const actualElapsed = Date.now() - lastActivityRef.current;
+      if (actualElapsed < INACTIVITY_TIMEOUT_MS) {
+        resetTimer();
+        return;
+      }
+
       try {
         await mutateAsync();
         toast.warning("Vault automatically locked after 15 minutes of inactivity.");
@@ -34,7 +45,7 @@ export const useInactivityAutoLock = (enabled: boolean, onLockTriggered?: () => 
       } catch {
         // Ignore lock errors if session already ended
       }
-    }, INACTIVITY_TIMEOUT_MS);
+    }, delay);
   }, [enabled, mutateAsync]);
 
   useEffect(() => {
@@ -45,12 +56,13 @@ export const useInactivityAutoLock = (enabled: boolean, onLockTriggered?: () => 
       return;
     }
 
-    // Start timer initially
+    lastActivityRef.current = Date.now();
     resetTimer();
 
     const activityEvents = ["mousemove", "keydown", "click", "scroll", "touchstart"];
     const handleActivity = () => {
       const now = Date.now();
+      lastActivityRef.current = now;
       if (now - lastResetRef.current >= THROTTLE_MS) {
         resetTimer();
       }

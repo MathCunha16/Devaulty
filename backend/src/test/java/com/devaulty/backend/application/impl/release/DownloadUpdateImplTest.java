@@ -177,4 +177,35 @@ class DownloadUpdateImplTest {
         assertTrue(results.stream().anyMatch(p -> p.status() == UpdateStatus.FAILED));
         verify(installUpdateUseCase, never()).execute(any());
     }
+
+    @Test
+    @DisplayName("Should emit FAILED progress and clean up file when downloaded bytes does not match expected size")
+    void shouldEmitFailedProgress_whenDownloadedBytesDoesNotMatchTotalBytes() {
+        // Arrange
+        String downloadUrl = "https://github.com/MathCunha16/Devaulty/releases/download/v0.2.0/devaulty_0.2.0.deb";
+
+        AppUpdateInfo validUpdateInfo = new AppUpdateInfo(
+                true,
+                "0.1.0-alpha",
+                "v0.2.0",
+                "Title",
+                "Notes",
+                downloadUrl,
+                500L, // Expected 500 bytes, but stream only provides 11 bytes
+                Instant.now()
+        );
+
+        when(checkForUpdatesUseCase.execute()).thenReturn(validUpdateInfo);
+
+        InputStream truncatedStream = new ByteArrayInputStream("hello world".getBytes(StandardCharsets.UTF_8));
+        when(releasePort.downloadAsset(downloadUrl)).thenReturn(truncatedStream);
+
+        // Act
+        List<UpdateProgressInfo> results = new ArrayList<>();
+        downloadUpdateUseCase.execute(results::add);
+
+        // Assert
+        assertTrue(results.stream().anyMatch(p -> p.status() == UpdateStatus.FAILED && p.errorMessage().contains("Download incomplete")));
+        verify(installUpdateUseCase, never()).execute(any());
+    }
 }

@@ -6,8 +6,11 @@ import com.devaulty.backend.application.port.out.external.release.dto.LatestRele
 import com.devaulty.backend.application.port.out.external.release.dto.ReleaseAssetInfo;
 import com.devaulty.backend.infrastructure.BaseIntegrationTest;
 import com.devaulty.backend.infrastructure.security.AppTokenContext;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MvcResult;
@@ -15,6 +18,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 
@@ -28,11 +32,24 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class ReleaseControllerIT extends BaseIntegrationTest {
 
+    @TempDir
+    Path tempFolder;
+
     @MockitoBean
     private ReleasePort releasePort;
 
     @MockitoBean
     private InstallUpdateUseCase installUpdateUseCase;
+
+    @BeforeEach
+    void setUp() {
+        System.setProperty("devaulty.temp.dir", tempFolder.toString());
+    }
+
+    @AfterEach
+    void tearDown() {
+        System.clearProperty("devaulty.temp.dir");
+    }
 
     @Test
     @DisplayName("GET /api/v1/releases/current-app-version should return 200 OK with actual version payload")

@@ -86,30 +86,36 @@ public class DownloadUpdateImpl implements DownloadUpdateUseCase {
 
         onProgress.accept(new UpdateProgressInfo(UpdateStatus.DOWNLOADING, 0, 0L, totalBytes, null));
 
-        try (InputStream in = releasePort.downloadAsset(downloadUrl);
-             OutputStream out = Files.newOutputStream(
-                     targetPath,
-                     StandardOpenOption.CREATE,
-                     StandardOpenOption.WRITE,
-                     StandardOpenOption.TRUNCATE_EXISTING)) {
+        try {
+            try (InputStream in = releasePort.downloadAsset(downloadUrl);
+                 OutputStream out = Files.newOutputStream(
+                         targetPath,
+                         StandardOpenOption.CREATE,
+                         StandardOpenOption.WRITE,
+                         StandardOpenOption.TRUNCATE_EXISTING)) {
 
-            byte[] buffer = new byte[COPY_BUFFER_SIZE];
-            int read;
+                byte[] buffer = new byte[COPY_BUFFER_SIZE];
+                int read;
 
-            while ((read = in.read(buffer)) != -1) {
-                out.write(buffer, 0, read);
+                while ((read = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, read);
 
-                downloadedBytes += read;
-                bytesSinceLastEmit += read;
+                    downloadedBytes += read;
+                    bytesSinceLastEmit += read;
 
-                // Só emite progresso de tempos em tempos, não a cada 8KB lido
-                if (bytesSinceLastEmit >= PROGRESS_EMIT_THRESHOLD_BYTES) {
-                    int percentage = knownSize ? (int) ((downloadedBytes * 100) / totalBytes) : 0;
-                    onProgress.accept(new UpdateProgressInfo(
-                            UpdateStatus.DOWNLOADING, percentage, downloadedBytes, totalBytes, null
-                    ));
-                    bytesSinceLastEmit = 0;
+                    // Só emite progresso de tempos em tempos, não a cada 8KB lido
+                    if (bytesSinceLastEmit >= PROGRESS_EMIT_THRESHOLD_BYTES) {
+                        int percentage = knownSize ? (int) ((downloadedBytes * 100) / totalBytes) : 0;
+                        onProgress.accept(new UpdateProgressInfo(
+                                UpdateStatus.DOWNLOADING, percentage, downloadedBytes, totalBytes, null
+                        ));
+                        bytesSinceLastEmit = 0;
+                    }
                 }
+            }
+
+            if (knownSize && downloadedBytes != totalBytes) {
+                throw new IOException("Download incomplete: received " + downloadedBytes + " bytes, expected " + totalBytes + " bytes.");
             }
 
             // Garante um evento final de 100% mesmo que o último lote tenha sido pequeno
