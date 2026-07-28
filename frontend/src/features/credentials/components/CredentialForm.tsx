@@ -61,11 +61,12 @@ const CredentialFormInner: React.FC<CredentialFormInnerProps> = ({
 
   useEffect(() => {
     previousActiveElement.current = document.activeElement as HTMLElement;
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       firstInputRef.current?.focus();
     }, 50);
 
     return () => {
+      clearTimeout(timer);
       if (previousActiveElement.current) {
         previousActiveElement.current.focus();
       }

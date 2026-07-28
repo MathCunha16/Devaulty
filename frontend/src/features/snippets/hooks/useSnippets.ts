@@ -23,6 +23,7 @@ export const useSnippetQuery = (projectId: string, snippetId?: string) => {
     queryKey: snippetsKeys.detail(projectId, snippetId || ""),
     queryFn: () => snippetsApi.getById(projectId, snippetId!),
     enabled: !!snippetId,
+    gcTime: 0, // Purge payload from RAM immediately when item is unselected
   });
 };
 

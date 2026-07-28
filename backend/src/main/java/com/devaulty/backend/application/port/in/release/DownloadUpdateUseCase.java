@@ -1,7 +1,7 @@
 package com.devaulty.backend.application.port.in.release;
 
-import reactor.core.publisher.Flux;
+import java.util.function.Consumer;
 
 public interface DownloadUpdateUseCase {
-    Flux<UpdateProgressInfo> execute();
+    void execute(Consumer<UpdateProgressInfo> onProgress);
 }

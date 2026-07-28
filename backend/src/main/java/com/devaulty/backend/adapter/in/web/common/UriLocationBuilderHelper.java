@@ -1,4 +1,4 @@
-package com.devaulty.backend.adapter.in.web.util;
+package com.devaulty.backend.adapter.in.web.common;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;

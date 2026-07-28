@@ -56,8 +56,10 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-liquibase")
     implementation("org.springframework.boot:spring-boot-starter-validation")
-    implementation("org.springframework.boot:spring-boot-starter-webmvc")
-    implementation("org.springframework.boot:spring-boot-starter-webclient")
+    implementation("org.springframework.boot:spring-boot-starter-webmvc"){
+        exclude(group = "org.springframework.boot", module = "spring-boot-starter-tomcat")
+    }
+    implementation("org.springframework.boot:spring-boot-starter-jetty")
     implementation("org.springframework.security:spring-security-crypto")
     implementation("org.mapstruct:mapstruct:${mapStructVersion}")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:${swaggerOpenAPIVersion}")
@@ -94,6 +96,19 @@ tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
 
 tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
     mainClass.set("com.devaulty.backend.BackendApplication")
+}
+
+tasks.withType<JavaExec>().configureEach {
+    jvmArgs(
+        "-Xms64m",
+        "-Xmx256m",
+        "-XX:MetaspaceSize=96m",
+        "-XX:MaxMetaspaceSize=192m",
+        "-XX:ParallelGCThreads=2",
+        "-XX:ConcGCThreads=1",
+        "-XX:+UseG1GC",
+        "-XX:MaxGCPauseMillis=100"
+    )
 }
 
 // task to build frontend (npm run build)
@@ -146,7 +161,25 @@ runtime {
     jpackage {
         imageName = "devaulty"
         appVersion = jpackageImageVersion
-        imageOptions = listOf("--java-options", "-Dspring.profiles.active=prod")
+        imageOptions = listOf(
+            // 1. Memory do Heap Limits (Obj dynamic RAM)
+            "--java-options", "-Xms64m",
+            "--java-options", "-Xmx256m",
+
+            // 2. Metaspace limits (Spring/Hibernate Class Metadata Memory)
+            "--java-options", "-XX:MetaspaceSize=96m",
+            "--java-options", "-XX:MaxMetaspaceSize=192m",
+
+            // 3. Garbage Collector (GC) Thread Control
+            "--java-options", "-XX:ParallelGCThreads=2",
+            "--java-options", "-XX:ConcGCThreads=1",
+            "--java-options", "-XX:+UseG1GC",
+            "--java-options", "-XX:MaxGCPauseMillis=100",
+
+            // 4. Spring Production Profile
+            "--java-options", "-Dspring.profiles.active=prod"
+        )
+
     }
 }
 

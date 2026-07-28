@@ -3,7 +3,7 @@ package com.devaulty.backend.adapter.in.web.tag;
 import com.devaulty.backend.adapter.in.web.tag.dto.CreateTagRequest;
 import com.devaulty.backend.adapter.in.web.tag.dto.TagViewResponse;
 import com.devaulty.backend.adapter.in.web.tag.dto.UpdateTagRequest;
-import com.devaulty.backend.adapter.in.web.util.UriLocationBuilderHelper;
+import com.devaulty.backend.adapter.in.web.common.UriLocationBuilderHelper;
 import com.devaulty.backend.application.port.in.tag.*;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;

@@ -2,9 +2,9 @@ package com.devaulty.backend.adapter.out.external.github;
 
 import com.devaulty.backend.application.port.out.external.release.ReleasePort;
 import com.devaulty.backend.application.port.out.external.release.dto.LatestReleaseInfo;
-import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
+
+import java.io.InputStream;
 
 @Component
 public class GitHubReleaseAdapter implements ReleasePort {
@@ -23,7 +23,7 @@ public class GitHubReleaseAdapter implements ReleasePort {
     }
 
     @Override
-    public Flux<DataBuffer> downloadAsset(String downloadUrl) {
+    public InputStream downloadAsset(String downloadUrl) {
         return gitHubClient.downloadAsset(downloadUrl);
     }
 }
