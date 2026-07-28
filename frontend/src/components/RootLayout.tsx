@@ -1,4 +1,4 @@
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import { Link, Outlet } from "@tanstack/react-router";
 import { Toaster, toast } from "sonner";
 import { ThemeProvider } from "./ThemeProvider";
@@ -18,6 +18,7 @@ import {
 } from "~features/releases/hooks/useReleases";
 import { UpdateModal } from "~features/releases/components/UpdateModal";
 import { formatVersionTag } from "../utils/versionUtils";
+import { invoke } from "@tauri-apps/api/core";
 import type { AppUpdateInfoResponse } from "~types/api";
 
 
@@ -206,6 +207,12 @@ const RootLayoutInner: React.FC = () => {
   const { theme } = useTheme();
   const { isOpen } = useSidebar();
   const { data: autoUpdateData } = useCheckUpdatesQuery(true);
+
+  useEffect(() => {
+    invoke("close_splash").catch(() => {
+      // Silently ignore if running outside Tauri
+    });
+  }, []);
 
   const [dismissedVersion, setDismissedVersion] = useState<string | null>(null);
   const [manualUpdateInfo, setManualUpdateInfo] = useState<AppUpdateInfoResponse | null>(null);
