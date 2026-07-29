@@ -1,18 +1,23 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.6",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "version:sync": "node scripts/sync-version.js",
+    "build:all": "node scripts/build-all.js",
+    "build:deb": "tauri build --bundles deb"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "@tanstack/react-query": "^5.101.2",
     "@tanstack/react-router": "^1.170.17",
+    "@tauri-apps/api": "^2.11.1",
     "axios": "^1.18.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -28,6 +33,7 @@
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.3.2",
     "@tanstack/router-vite-plugin": "^1.167.19",
+    "@tauri-apps/cli": "^2.11.4",
     "@types/dompurify": "^3.0.5",
     "@types/marked": "^5.0.2",
     "@types/node": "^24.13.2",

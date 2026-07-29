@@ -26,6 +26,7 @@ spring:
     change-log: classpath:/db/changelog/db.changelog-master.yaml
 
 server:
+  port: ${PORT:0}
   jetty:
     threads:
       max: 10

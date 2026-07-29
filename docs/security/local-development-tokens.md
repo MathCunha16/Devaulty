@@ -19,14 +19,18 @@ Production Mode (prod)         Development Mode (dev)
 ======================         ======================
 - Random UUID generated        - Accepts static token from application-dev.yml
   in-memory at process boot      ("dev-secret-token")
-- Injected via JavaFX into     - Accepts random UUID as fallback
-  WebView before React mounts  - Enables Swagger UI & cURL testing
+- Written to session.json      - Accepts random UUID as fallback
+  for Tauri to read            - Enables Swagger UI & cURL testing
+- Port also written to         - Fixed port 8080
+  session.json
 ```
 
 ### 1. Production Mode (`application-prod.yml`)
 - `AppTokenContext.PROCESS_TOKEN` generates a cryptographically unique UUID (`UUID.randomUUID()`) in-memory when the JVM boots.
-- `DevaultyDesktop.java` injects this token directly into the JavaFX `WebView` JS context (`window.DEVAULTY_INTERNAL_TOKEN`) during the `Worker.State.RUNNING` state before React components mount.
-- External requests without this exact in-memory UUID receive `HTTP 403 Forbidden`.
+- `RuntimeSessionWriter` writes `~/.config/devaulty/session.json` containing both the ephemeral port and process token. The Tauri (Rust) shell reads this file to discover the backend's address and authenticate its requests.
+- The session file is automatically deleted when the Spring Boot application shuts down (`DisposableBean.destroy()`).
+- Additionally, `DEVAULTY_PORT=<port>` is printed to stdout as a fallback mechanism for Tauri to read from the child process output.
+- External requests without the exact in-memory UUID receive `HTTP 403 Forbidden`.
 
 ### 2. Local Development Mode (`application-dev.yml`)
 - `src/main/resources/application-dev.yml` declares a development token:
@@ -39,6 +43,22 @@ devaulty:
 
 - `InternalAppTokenFilter` reads `@Value("${devaulty.dev.token:#{null}}")`. If present, it permits requests carrying `"dev-secret-token"`.
 - In `application-prod.yml`, `devaulty.dev.token` is completely absent. `devToken` evaluates to `null`, ensuring development tokens can **never** be used in production builds.
+- The dev profile uses a fixed port (`8080`) for convenience.
+
+## Session File Format
+
+When the Spring Boot server starts, `RuntimeSessionWriter` writes to `~/.config/devaulty/session.json`:
+
+```json
+{
+	"port": 54321,
+	"token": "a8f3b2c1-...-uuid"
+}
+```
+
+This file is consumed by the Tauri shell (Rust) to:
+1. Discover which port the backend is listening on.
+2. Inject the token into frontend API requests via Tauri commands.
 
 ## How to Test Endpoints Locally
 
@@ -66,4 +86,5 @@ curl -X GET "http://localhost:8080/api/v1/release/check" \
 
 - [ ] `application-prod.yml` must **never** contain a `devaulty.dev.token` property.
 - [ ] `InternalAppTokenFilter` must validate `devToken` only when non-null and non-blank (`devToken != null && !devToken.isBlank()`).
-- [ ] Production builds (`jpackage`) must always execute with `-Dspring.profiles.active=prod`.
+- [ ] Production builds must always execute with `-Dspring.profiles.active=prod`.
+- [ ] The `session.json` file must be cleaned up on application shutdown to avoid stale tokens.

@@ -4,6 +4,7 @@ import type { ApiErrorResponse } from "../types/api";
 declare global {
   interface Window {
     DEVAULTY_INTERNAL_TOKEN?: string;
+    DEVAULTY_API_BASE_URL?: string;
   }
 }
 
@@ -32,12 +33,15 @@ export const getInternalToken = (): string | undefined => {
 };
 
 export const getApiBaseUrl = (): string => {
+  if (typeof window !== "undefined" && window.DEVAULTY_API_BASE_URL) {
+    return window.DEVAULTY_API_BASE_URL;
+  }
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL;
   }
-  if (typeof window !== "undefined" && window.location.origin && window.location.origin !== "null") {
-    return `${window.location.origin}/api/v1`;
-  }
+  // Always fall back to localhost:8080 — never use window.location.origin
+  // because in a Tauri webview that would return "tauri://localhost" which
+  // is not a valid HTTP base URL for fetch/axios requests.
   return "http://localhost:8080/api/v1";
 };
 
