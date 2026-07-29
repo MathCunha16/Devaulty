@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "tauri": "tauri",
-    "version:sync": "node scripts/sync-version.js"
+    "version:sync": "node scripts/sync-version.js",
+    "build:all": "node scripts/build-all.js",
+    "build:deb": "tauri build --bundles deb"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

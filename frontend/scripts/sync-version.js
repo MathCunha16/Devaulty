@@ -37,7 +37,7 @@ function syncVersion() {
   // Clean version without suffix for npm/semver/cargo (e.g., "0.1.6")
   const cleanVersion = rawVersion.replace(/-.*$/, "");
 
-  console.log(`📌 Extracted Backend Version: "${rawVersion}" (Clean SemVer: "${cleanVersion}")`);
+  console.log(`Extracted Backend Version: "${rawVersion}" (Clean SemVer: "${cleanVersion}")`);
 
   // 2. Update package.json
   if (fs.existsSync(packageJsonPath)) {
