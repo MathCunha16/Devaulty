@@ -1,4 +1,4 @@
-ECREATE TABLE credentials (
+CREATE TABLE credentials (
     id TEXT NOT NULL PRIMARY KEY,
     project_id TEXT NOT NULL,
     title TEXT NOT NULL,
