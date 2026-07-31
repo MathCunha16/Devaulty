@@ -19,16 +19,21 @@ func NewItemTagRepository(db *sqlx.DB) port.ItemTagRepository {
 	return &ItemTagRepositoryAdapter{db: db}
 }
 
-func (r *ItemTagRepositoryAdapter) AssociateTagToItem(ctx context.Context, tagID uuid.UUID, itemType model.ItemType, itemID uuid.UUID) error {
-	query := `INSERT INTO item_tags (tag_id, item_type, item_id) VALUES (?, ?, ?) ON CONFLICT(tag_id, item_type, item_id) DO NOTHING`
-	_, err := r.db.ExecContext(ctx, query, tagID, itemType, itemID)
+func (r *ItemTagRepositoryAdapter) AssociateTagToItem(ctx context.Context, projectID, tagID uuid.UUID, itemType model.ItemType, itemID uuid.UUID) error {
+	query := `
+		INSERT INTO item_tags (tag_id, item_type, item_id)
+		SELECT ?, ?, ?
+		WHERE EXISTS (SELECT 1 FROM tags WHERE id = ? AND project_id = ?)
+		ON CONFLICT(tag_id, item_type, item_id) DO NOTHING
+	`
+	_, err := r.db.ExecContext(ctx, query, tagID, itemType, itemID, tagID, projectID)
 	if err != nil {
 		return fmt.Errorf("error trying to associate tag to item: %w", err)
 	}
 	return nil
 }
 
-func (r *ItemTagRepositoryAdapter) DisassembleTagFromItem(ctx context.Context, projectID uuid.UUID, tagID uuid.UUID, itemType model.ItemType, itemID uuid.UUID) error {
+func (r *ItemTagRepositoryAdapter) DisassembleTagFromItem(ctx context.Context, projectID, tagID uuid.UUID, itemType model.ItemType, itemID uuid.UUID) error {
 	query := `DELETE FROM item_tags WHERE tag_id = ? AND item_type = ? AND item_id = ? AND tag_id IN (SELECT id FROM tags WHERE project_id = ?)`
 	_, err := r.db.ExecContext(ctx, query, tagID, itemType, itemID, projectID)
 	if err != nil {
@@ -46,7 +51,7 @@ func (r *ItemTagRepositoryAdapter) RemoveAllTagsFromItem(ctx context.Context, it
 	return nil
 }
 
-func (r *ItemTagRepositoryAdapter) FindTagsForItem(ctx context.Context, itemType model.ItemType, projectID uuid.UUID, itemID uuid.UUID) ([]model.Tag, error) {
+func (r *ItemTagRepositoryAdapter) FindTagsForItem(ctx context.Context, itemType model.ItemType, projectID, itemID uuid.UUID) ([]model.Tag, error) {
 	query := `
 		SELECT t.id, t.project_id, t.name, t.color, t.created_at, t.updated_at 
 		FROM tags t

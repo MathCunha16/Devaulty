@@ -2,8 +2,11 @@ package persistence
 
 import (
 	"context"
+	"database/sql"
 	"devaulty-backend/internal/domain/model"
 	"devaulty-backend/internal/domain/port"
+	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -34,7 +37,10 @@ func (r *NoteRepositoryAdapter) FindByID(ctx context.Context, id uuid.UUID) (*mo
 	var note model.Note
 	err := r.db.GetContext(ctx, &note, query, id)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error trying to find note: %w", err)
 	}
 	return &note, nil
 }

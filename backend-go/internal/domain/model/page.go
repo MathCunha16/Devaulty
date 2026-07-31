@@ -1,7 +1,5 @@
 package model
 
-import "math"
-
 type Page[T any] struct {
 	Content       []T   `json:"content"`
 	Size          int   `json:"size"`
@@ -10,15 +8,15 @@ type Page[T any] struct {
 	TotalPages    int   `json:"totalPages"`
 }
 
-func NewPage[T any](content []T, pageNumber, PageSize int, totalElements int64) Page[T] {
+func NewPage[T any](content []T, pageNumber, pageSize int, totalElements int64) Page[T] {
 	totalPages := 0
-	if PageSize > 0 {
-		totalPages = int(math.Ceil(float64(totalElements) / float64(PageSize)))
+	if pageSize > 0 {
+		totalPages = int((totalElements + int64(pageSize) - 1) / int64(pageSize))
 	}
 
 	return Page[T]{
 		Content:       content,
-		Size:          PageSize,
+		Size:          pageSize,
 		Number:        pageNumber,
 		TotalElements: totalElements,
 		TotalPages:    totalPages,

@@ -14,5 +14,5 @@ type TagRepository interface {
 	SearchByNameAndProjectID(ctx context.Context, name string, projectID uuid.UUID) ([]model.Tag, error)
 	DeleteByID(ctx context.Context, id uuid.UUID) error
 	ExistsByNameAndProjectID(ctx context.Context, name string, projectID uuid.UUID) (bool, error)
-	ExistsByIdAndProjectID(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (bool, error)
+	ExistsByIDAndProjectID(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (bool, error)
 }

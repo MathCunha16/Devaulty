@@ -84,7 +84,7 @@ func (r *TagRepositoryAdapter) ExistsByNameAndProjectID(ctx context.Context, nam
 	return exists, nil
 }
 
-func (r *TagRepositoryAdapter) ExistsByIdAndProjectID(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (bool, error) {
+func (r *TagRepositoryAdapter) ExistsByIDAndProjectID(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (bool, error) {
 	query := `SELECT EXISTS(SELECT 1 FROM tags WHERE id = ? AND project_id = ?)`
 	var exists bool
 	err := r.db.GetContext(ctx, &exists, query, id, projectID)
