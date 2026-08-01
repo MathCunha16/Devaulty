@@ -2,6 +2,7 @@ package main
 
 import (
 	"devaulty-backend/internal/adapter/in/web"
+	"devaulty-backend/internal/adapter/in/web/handler"
 	"devaulty-backend/internal/usecase"
 	"log"
 	"net"
@@ -35,7 +36,7 @@ func main() {
 
 	projectRepo := persistence.NewProjectRepository(db)
 	projectUseCase := usecase.NewProjectUseCase(projectRepo)
-	projectHandler := web.NewProjectHandler(projectUseCase)
+	projectHandler := handler.NewProjectHandler(projectUseCase)
 
 	handlers := &web.Handlers{
 		Project: projectHandler,
