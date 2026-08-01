@@ -4,8 +4,8 @@ CREATE TABLE notes (
     title TEXT NOT NULL,
     content TEXT,
     archived INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL,
-    updated_at TEXT,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME,
     CONSTRAINT fk_notes_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 

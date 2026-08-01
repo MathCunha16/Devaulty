@@ -6,8 +6,8 @@ CREATE TABLE snippets (
     content TEXT NOT NULL,
     language TEXT,
     snippet_type TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    updated_at TEXT,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME,
     CONSTRAINT fk_snippets_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
