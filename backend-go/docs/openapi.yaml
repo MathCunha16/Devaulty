@@ -1,0 +1,409 @@
+openapi: 3.0.3
+info:
+  title: Devaulty API Documentation
+  description: REST API for Devaulty Desktop App Engine
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development Server
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: DEVAULTY_INTERNAL_TOKEN
+      description: |
+        Internal security token generated in memory per app lifecycle.
+        Note: When running in DEV environment (APP_ENV=dev), this token defaults to 'dev-token' for interactive testing.
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: "Invalid project ID"
+
+    MessageResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: "Project archived"
+
+    Project:
+      type: object
+      required:
+        - id
+        - name
+        - archived
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "06f891ae-368b-4bd6-b1e6-d957f1496f9a"
+        name:
+          type: string
+          example: "Devaulty Go"
+        description:
+          type: string
+          nullable: true
+          example: "Developer Vault Application"
+        icon:
+          type: string
+          nullable: true
+          example: "rocket"
+        color:
+          type: string
+          nullable: true
+          example: "#4A90E2"
+        archived:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-01T12:35:07.84097684-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-01T16:22:46.12345678-03:00"
+
+    CreateProjectCommand:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Devaulty Go"
+        description:
+          type: string
+          minLength: 1
+          maxLength: 255
+          nullable: true
+          example: "Developer Vault Application"
+        icon:
+          type: string
+          maxLength: 100
+          nullable: true
+          example: "rocket"
+        color:
+          type: string
+          nullable: true
+          pattern: "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
+          example: "#4A90E2"
+
+    UpdateProjectCommand:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+          example: "Updated Devaulty Name"
+        description:
+          type: string
+          nullable: true
+          example: "Updated Description"
+        icon:
+          type: string
+          nullable: true
+          example: "folder"
+        color:
+          type: string
+          nullable: true
+          example: "#00FF00"
+
+    ProjectPage:
+      type: object
+      required:
+        - content
+        - size
+        - number
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Project'
+        size:
+          type: integer
+          example: 10
+        number:
+          type: integer
+          example: 0
+        totalElements:
+          type: integer
+          format: int64
+          example: 1
+        totalPages:
+          type: integer
+          example: 1
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /projects:
+    post:
+      summary: Create a new project
+      description: Creates a new project entity in the database.
+      tags:
+        - Projects
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectCommand'
+      responses:
+        '201':
+          description: Project created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Relative URL path to the newly created project
+              example: "/api/v1/projects/06f891ae-368b-4bd6-b1e6-d957f1496f9a"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          description: Invalid JSON format or validation constraints failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get paginated list of projects
+      description: Fetches a paginated list of projects ordered by creation date descending.
+      tags:
+        - Projects
+      parameters:
+        - name: page
+          in: query
+          description: Zero-based page index
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: Page size limit
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Paginated list of projects retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectPage'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{id}:
+    get:
+      summary: Get project by ID
+      description: Retrieves a single project entity by its UUID.
+      tags:
+        - Projects
+      parameters:
+        - name: id
+          in: path
+          description: Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Project details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          description: Invalid project ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Update project (Partial Update)
+      description: Performs a partial update (PATCH) on project fields specified in the request body.
+      tags:
+        - Projects
+      parameters:
+        - name: id
+          in: path
+          description: Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectCommand'
+      responses:
+        '200':
+          description: Project updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          description: Invalid UUID format, invalid JSON, or project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete project by ID
+      description: Permanently deletes a project by its UUID.
+      tags:
+        - Projects
+      parameters:
+        - name: id
+          in: path
+          description: Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Project deleted successfully (No Content)
+        '400':
+          description: Invalid UUID format or delete error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{id}/archive:
+    patch:
+      summary: Archive project
+      description: Sets project archived status to true.
+      tags:
+        - Projects
+      parameters:
+        - name: id
+          in: path
+          description: Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Project archived successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Invalid UUID, project not found, or project already archived
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{id}/unarchive:
+    patch:
+      summary: Unarchive project
+      description: Sets project archived status back to false.
+      tags:
+        - Projects
+      parameters:
+        - name: id
+          in: path
+          description: Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Project unarchived successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Invalid UUID, project not found, or project already active
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
