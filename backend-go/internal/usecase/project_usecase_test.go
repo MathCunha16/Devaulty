@@ -184,7 +184,7 @@ func TestProjectUseCase_Update_NotFound(t *testing.T) {
 	updated, err := uc.Update(ctx, cmd)
 
 	assert.Nil(t, updated)
-	assert.EqualError(t, err, "project not found")
+	assert.ErrorIs(t, err, usecase.ErrProjectNotFound)
 	mockRepo.AssertExpectations(t)
 }
 
@@ -241,7 +241,7 @@ func TestProjectUseCase_Archive_AlreadyArchived(t *testing.T) {
 
 	err := uc.Archive(ctx, projectID)
 
-	assert.EqualError(t, err, "project already archived")
+	assert.ErrorIs(t, err, usecase.ErrProjectAlreadyArchived)
 	mockRepo.AssertExpectations(t)
 }
 
@@ -284,6 +284,6 @@ func TestProjectUseCase_Unarchive_NotArchived(t *testing.T) {
 
 	err := uc.Unarchive(ctx, projectID)
 
-	assert.EqualError(t, err, "project already unarchived")
+	assert.ErrorIs(t, err, usecase.ErrProjectAlreadyUnarchived)
 	mockRepo.AssertExpectations(t)
 }

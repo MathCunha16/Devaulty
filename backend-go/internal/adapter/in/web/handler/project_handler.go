@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -102,9 +103,11 @@ func (h *ProjectHandler) Update(c *gin.Context) {
 
 	project, err := h.projectUseCase.Update(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		if errors.Is(err, usecase.ErrProjectNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, project)
@@ -120,6 +123,10 @@ func (h *ProjectHandler) Archive(c *gin.Context) {
 
 	err = h.projectUseCase.Archive(c.Request.Context(), id)
 	if err != nil {
+		if errors.Is(err, usecase.ErrProjectNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -136,10 +143,14 @@ func (h *ProjectHandler) Unarchive(c *gin.Context) {
 
 	err = h.projectUseCase.Unarchive(c.Request.Context(), id)
 	if err != nil {
+		if errors.Is(err, usecase.ErrProjectNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Project Unarchived"})
+	c.JSON(http.StatusOK, gin.H{"message": "Project unarchived"})
 }
 
 func (h *ProjectHandler) Delete(c *gin.Context) {
@@ -155,5 +166,5 @@ func (h *ProjectHandler) Delete(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusNoContent, gin.H{})
+	c.Status(http.StatusNoContent)
 }

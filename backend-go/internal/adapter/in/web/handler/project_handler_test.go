@@ -95,6 +95,21 @@ func TestProjectHandler_GetAll(t *testing.T) {
 		resp := app.DoRequest(t, http.MethodGet, "/api/v1/projects?page=0&size=5", nil, true)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 	})
+
+	t.Run("GetAll failure - page less than 0", func(t *testing.T) {
+		resp := app.DoRequest(t, http.MethodGet, "/api/v1/projects?page=-1&size=10", nil, true)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("GetAll failure - size less than 1", func(t *testing.T) {
+		resp := app.DoRequest(t, http.MethodGet, "/api/v1/projects?page=0&size=0", nil, true)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("GetAll failure - size greater than 100", func(t *testing.T) {
+		resp := app.DoRequest(t, http.MethodGet, "/api/v1/projects?page=0&size=101", nil, true)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
 }
 
 func TestProjectHandler_Update(t *testing.T) {
@@ -126,7 +141,7 @@ func TestProjectHandler_Update(t *testing.T) {
 	t.Run("Update failure - project not found", func(t *testing.T) {
 		updateBody := []byte(`{"name":"Updated Name"}`)
 		resp := app.DoRequest(t, http.MethodPatch, "/api/v1/projects/00000000-0000-0000-0000-000000000000", updateBody, true)
-		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 	})
 }
 

@@ -10,7 +10,6 @@ import (
 
 	"devaulty-backend/internal/adapter/out/persistence"
 
-	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -28,11 +27,10 @@ func main() {
 	}(db)
 	log.Println("Devaulty DB initialized successfully")
 
-	devaultyInternalToken := uuid.New().String()
-	if os.Getenv("APP_ENV") == "dev" {
-		devaultyInternalToken = "dev-token"
+	devaultyInternalToken := os.Getenv("DEVAULTY_INTERNAL_TOKEN")
+	if devaultyInternalToken == "" {
+		devaultyInternalToken = "dev-token" // Default token for development
 	}
-	log.Printf("DEVAULTY_INTERNAL_TOKEN=%s", devaultyInternalToken) // Exposes for TAURI
 
 	projectRepo := persistence.NewProjectRepository(db)
 	projectUseCase := usecase.NewProjectUseCase(projectRepo)
@@ -43,9 +41,9 @@ func main() {
 	}
 	r := web.SetupRouter(handlers, devaultyInternalToken)
 
-	addr := ":0"
+	addr := "127.0.0.1:0"
 	if os.Getenv("APP_ENV") == "dev" {
-		addr = ":8080"
+		addr = "127.0.0.1:8080"
 	}
 
 	listener, err := net.Listen("tcp", addr)

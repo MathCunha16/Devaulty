@@ -11,6 +11,12 @@ import (
 	"github.com/google/uuid"
 )
 
+var (
+	ErrProjectNotFound          = errors.New("project not found")
+	ErrProjectAlreadyArchived   = errors.New("project already archived")
+	ErrProjectAlreadyUnarchived = errors.New("project already unarchived")
+)
+
 type ProjectUseCase struct {
 	projectRepo port.ProjectRepository
 }
@@ -64,7 +70,7 @@ func (uc *ProjectUseCase) Update(ctx context.Context, cmd UpdateProjectCommand) 
 		return nil, fmt.Errorf("error trying to find project: %w", err)
 	}
 	if project == nil {
-		return nil, errors.New("project not found")
+		return nil, ErrProjectNotFound
 	}
 
 	if cmd.Name != nil {
@@ -94,10 +100,10 @@ func (uc *ProjectUseCase) Archive(ctx context.Context, id uuid.UUID) error {
 		return fmt.Errorf("error trying to find project: %w", err)
 	}
 	if project == nil {
-		return errors.New("project not found")
+		return ErrProjectNotFound
 	}
 	if project.Archived {
-		return errors.New("project already archived")
+		return ErrProjectAlreadyArchived
 	}
 
 	project.Archived = true
@@ -116,10 +122,10 @@ func (uc *ProjectUseCase) Unarchive(ctx context.Context, id uuid.UUID) error {
 		return fmt.Errorf("error trying to find project: %w", err)
 	}
 	if project == nil {
-		return errors.New("project not found")
+		return ErrProjectNotFound
 	}
 	if !project.Archived {
-		return errors.New("project already unarchived")
+		return ErrProjectAlreadyUnarchived
 	}
 
 	project.Archived = false
