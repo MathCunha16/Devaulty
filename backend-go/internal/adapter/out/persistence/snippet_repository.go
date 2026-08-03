@@ -35,10 +35,10 @@ func (r *SnippetRepositoryAdapter) Save(ctx context.Context, snippet *model.Snip
 	return snippet, nil
 }
 
-func (r *SnippetRepositoryAdapter) FindByID(ctx context.Context, id uuid.UUID) (*model.Snippet, error) {
-	query := `SELECT * FROM snippets WHERE id = ?`
+func (r *SnippetRepositoryAdapter) FindByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) (*model.Snippet, error) {
+	query := `SELECT * FROM snippets WHERE id = ? AND project_id = ?`
 	var snippet model.Snippet
-	err := r.db.GetContext(ctx, &snippet, query, id)
+	err := r.db.GetContext(ctx, &snippet, query, id, projectID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -54,9 +54,9 @@ func (r *SnippetRepositoryAdapter) FindAllByProjectID(ctx context.Context, proje
 	return PaginateExec[model.Snippet](ctx, r.db, countQuery, selectQuery, page, size, projectID)
 }
 
-func (r *SnippetRepositoryAdapter) DeleteByID(ctx context.Context, id uuid.UUID) error {
-	query := `DELETE FROM snippets WHERE id = ?`
-	_, err := r.db.ExecContext(ctx, query, id)
+func (r *SnippetRepositoryAdapter) DeleteByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) error {
+	query := `DELETE FROM snippets WHERE id = ? AND project_id = ?`
+	_, err := r.db.ExecContext(ctx, query, id, projectID)
 	if err != nil {
 		return fmt.Errorf("error trying to delete snippet: %w", err)
 	}
