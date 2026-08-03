@@ -5,8 +5,8 @@
 *.dll
 *.so
 *.dylib
-main
-api
+/main
+/api
 
 # Test binaries & coverage
 *.test

@@ -4,8 +4,8 @@ CREATE TABLE links (
     title TEXT NOT NULL,
     url TEXT NOT NULL,
     description TEXT,
-    created_at TEXT NOT NULL,
-    updated_at TEXT,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME,
     CONSTRAINT fk_links_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
