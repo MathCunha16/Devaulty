@@ -1,15 +1,13 @@
 package handler
 
 import (
+	"devaulty-backend/internal/adapter/in/web/common"
+	"devaulty-backend/internal/usecase"
 	"errors"
 	"fmt"
 	"net/http"
 
-	"devaulty-backend/internal/adapter/in/web/common"
-	"devaulty-backend/internal/usecase"
-
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type ProjectHandler struct {
@@ -63,10 +61,9 @@ func (h *ProjectHandler) GetAll(c *gin.Context) {
 }
 
 func (h *ProjectHandler) Get(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := uuid.Parse(idParam)
+	id, err := common.ExtractUUIDParam(c, "project_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -84,10 +81,9 @@ func (h *ProjectHandler) Get(c *gin.Context) {
 }
 
 func (h *ProjectHandler) Update(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := uuid.Parse(idParam)
+	id, err := common.ExtractUUIDParam(c, "project_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -114,10 +110,9 @@ func (h *ProjectHandler) Update(c *gin.Context) {
 }
 
 func (h *ProjectHandler) Archive(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := uuid.Parse(idParam)
+	id, err := common.ExtractUUIDParam(c, "project_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -134,10 +129,9 @@ func (h *ProjectHandler) Archive(c *gin.Context) {
 }
 
 func (h *ProjectHandler) Unarchive(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := uuid.Parse(idParam)
+	id, err := common.ExtractUUIDParam(c, "project_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -154,10 +148,9 @@ func (h *ProjectHandler) Unarchive(c *gin.Context) {
 }
 
 func (h *ProjectHandler) Delete(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := uuid.Parse(idParam)
+	id, err := common.ExtractUUIDParam(c, "project_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

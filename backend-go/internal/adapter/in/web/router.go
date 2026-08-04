@@ -12,6 +12,7 @@ import (
 
 type Handlers struct {
 	Project *handler.ProjectHandler
+	Snippet *handler.SnippetHandler
 }
 
 func SetupRouter(h *Handlers, apiToken string) *gin.Engine {
@@ -30,6 +31,7 @@ func SetupRouter(h *Handlers, apiToken string) *gin.Engine {
 		protected.Use(middleware.AuthMiddleware(apiToken))
 		{
 			mapProjectRoutes(protected, h.Project)
+			mapSnippetRoutes(protected, h.Snippet)
 		}
 	}
 	return r
@@ -40,11 +42,22 @@ func mapProjectRoutes(rg *gin.RouterGroup, h *handler.ProjectHandler) {
 	{
 		projects.POST("", h.Create)
 		projects.GET("", h.GetAll)
-		projects.GET("/:id", h.Get)
-		projects.PATCH("/:id", h.Update)
-		projects.PATCH("/:id/archive", h.Archive)
-		projects.PATCH("/:id/unarchive", h.Unarchive)
-		projects.DELETE("/:id", h.Delete)
+		projects.GET("/:project_id", h.Get)
+		projects.PATCH("/:project_id", h.Update)
+		projects.PATCH("/:project_id/archive", h.Archive)
+		projects.PATCH("/:project_id/unarchive", h.Unarchive)
+		projects.DELETE("/:project_id", h.Delete)
+	}
+}
+
+func mapSnippetRoutes(rg *gin.RouterGroup, h *handler.SnippetHandler) {
+	snippets := rg.Group("/projects/:project_id/snippets")
+	{
+		snippets.POST("", h.Create)
+		snippets.GET("", h.GetAll)
+		snippets.GET("/:snippet_id", h.Get)
+		snippets.PATCH("/:snippet_id", h.Update)
+		snippets.DELETE("/:snippet_id", h.Delete)
 	}
 }
 
