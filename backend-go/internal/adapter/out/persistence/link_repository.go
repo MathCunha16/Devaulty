@@ -33,10 +33,10 @@ func (r *LinkRepositoryAdapter) Save(ctx context.Context, link *model.Link) (*mo
 	return link, nil
 }
 
-func (r *LinkRepositoryAdapter) FindByID(ctx context.Context, id uuid.UUID) (*model.Link, error) {
-	query := `SELECT * FROM links WHERE id = ?`
+func (r *LinkRepositoryAdapter) FindByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) (*model.Link, error) {
+	query := `SELECT * FROM links WHERE id = ? AND project_id = ?`
 	var link model.Link
-	err := r.db.GetContext(ctx, &link, query, id)
+	err := r.db.GetContext(ctx, &link, query, id, projectID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -53,14 +53,17 @@ func (r *LinkRepositoryAdapter) FindAllByProjectID(ctx context.Context, projectI
 	return PaginateExec[model.Link](ctx, r.db, countQuery, selectQuery, page, size, projectID)
 }
 
-func (r *LinkRepositoryAdapter) DeleteByID(ctx context.Context, id uuid.UUID) error {
-	query := `DELETE FROM links WHERE id = ?`
-	_, err := r.db.ExecContext(ctx, query, id)
+func (r *LinkRepositoryAdapter) DeleteByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) (bool, error) {
+	query := `DELETE FROM links WHERE id = ? AND project_id = ?`
+	res, err := r.db.ExecContext(ctx, query, id, projectID)
 	if err != nil {
-		return fmt.Errorf("error trying to delete link: %w", err)
+		return false, fmt.Errorf("error trying to delete link: %w", err)
 	}
-
-	return nil
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("error checking deleted rows: %w", err)
+	}
+	return rows > 0, nil
 }
 
 func (r *LinkRepositoryAdapter) ExistsByIDAndProjectID(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (bool, error) {

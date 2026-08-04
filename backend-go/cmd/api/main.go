@@ -38,10 +38,14 @@ func main() {
 	snippetRepo := persistence.NewSnippetRepository(db)
 	snippetUseCase := usecase.NewSnippetUseCase(snippetRepo, projectRepo)
 	snippetHandler := handler.NewSnippetHandler(snippetUseCase)
+	linkRepo := persistence.NewLinkRepository(db)
+	linkUseCase := usecase.NewLinkUseCase(linkRepo, projectRepo)
+	linkHandler := handler.NewLinkHandler(linkUseCase)
 
 	handlers := &web.Handlers{
 		Project: projectHandler,
 		Snippet: snippetHandler,
+		Link:    linkHandler,
 	}
 	r := web.SetupRouter(handlers, devaultyInternalToken)
 

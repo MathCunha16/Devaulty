@@ -31,9 +31,14 @@ func SetupTestApp(t *testing.T) *TestApp {
 	snippetUseCase := usecase.NewSnippetUseCase(snippetRepo, projectRepo)
 	snippetHandler := handler.NewSnippetHandler(snippetUseCase)
 
+	linkRepo := persistence.NewLinkRepository(db)
+	linkUseCase := usecase.NewLinkUseCase(linkRepo, projectRepo)
+	linkHandler := handler.NewLinkHandler(linkUseCase)
+
 	handlers := &web.Handlers{
 		Project: projectHandler,
 		Snippet: snippetHandler,
+		Link:    linkHandler,
 	}
 
 	token := "test-internal-token-12345"
