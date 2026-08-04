@@ -3,13 +3,13 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	"devaulty-backend/internal/adapter/in/web/common"
 	"devaulty-backend/internal/usecase"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type ProjectHandler struct {
@@ -24,21 +24,19 @@ func (h *ProjectHandler) Create(c *gin.Context) {
 	var cmd usecase.CreateProjectCommand
 	err := c.ShouldBindJSON(&cmd)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	project, err := h.projectUseCase.Create(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		log.Printf("[ProjectHandler.Create] %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
 	location := fmt.Sprintf("%s/%s", c.Request.URL.Path, project.ID)
+
 	c.Header("Location", location)
 	c.JSON(http.StatusCreated, project)
 }
@@ -54,40 +52,42 @@ func (h *ProjectHandler) GetAll(c *gin.Context) {
 
 	pagedProjects, err := h.projectUseCase.GetAll(c.Request.Context(), query.PageNumber, query.PageSize)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		log.Printf("[ProjectHandler.GetAll] %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 	c.JSON(http.StatusOK, pagedProjects)
 }
 
 func (h *ProjectHandler) Get(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := uuid.Parse(idParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
-		return
-	}
-
-	project, err := h.projectUseCase.GetByID(c.Request.Context(), id)
+	id, err := common.ExtractUUIDParam(c, "project_id")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	project, err := h.projectUseCase.GetByID(c.Request.Context(), id)
+	if err != nil {
+		if errors.Is(err, usecase.ErrProjectNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		log.Printf("[ProjectHandler.Get] %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
 	if project == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
 		return
 	}
+
 	c.JSON(http.StatusOK, project)
 }
 
 func (h *ProjectHandler) Update(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := uuid.Parse(idParam)
+	id, err := common.ExtractUUIDParam(c, "project_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -107,17 +107,17 @@ func (h *ProjectHandler) Update(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ProjectHandler.Update] %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 	c.JSON(http.StatusOK, project)
 }
 
 func (h *ProjectHandler) Archive(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := uuid.Parse(idParam)
+	id, err := common.ExtractUUIDParam(c, "project_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -127,17 +127,21 @@ func (h *ProjectHandler) Archive(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if errors.Is(err, usecase.ErrProjectAlreadyArchived) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		log.Printf("[ProjectHandler.Archive] %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Project archived"})
 }
 
 func (h *ProjectHandler) Unarchive(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := uuid.Parse(idParam)
+	id, err := common.ExtractUUIDParam(c, "project_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -147,23 +151,32 @@ func (h *ProjectHandler) Unarchive(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if errors.Is(err, usecase.ErrProjectAlreadyUnarchived) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		log.Printf("[ProjectHandler.Unarchive] %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Project unarchived"})
 }
 
 func (h *ProjectHandler) Delete(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := uuid.Parse(idParam)
+	id, err := common.ExtractUUIDParam(c, "project_id")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	err = h.projectUseCase.Delete(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if errors.Is(err, usecase.ErrProjectNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		log.Printf("[ProjectHandler.Delete] %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 	c.Status(http.StatusNoContent)

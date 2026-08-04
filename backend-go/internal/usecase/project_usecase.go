@@ -30,10 +30,10 @@ type CreateProjectCommand struct {
 
 type UpdateProjectCommand struct {
 	ID          uuid.UUID // Is passed as a path variable in the controller
-	Name        *string   `json:"name,omitempty"`
-	Description *string   `json:"description,omitempty"`
-	Icon        *string   `json:"icon,omitempty"`
-	Color       *string   `json:"color,omitempty"`
+	Name        *string   `json:"name,omitempty" binding:"omitempty,min=2,max=255"`
+	Description *string   `json:"description,omitempty" binding:"omitempty,min=1,max=255"`
+	Icon        *string   `json:"icon,omitempty" binding:"omitempty,max=100"`
+	Color       *string   `json:"color,omitempty" binding:"omitempty,hexcolor"`
 }
 
 func NewProjectUseCase(projectRepo port.ProjectRepository) *ProjectUseCase {
@@ -57,7 +57,14 @@ func (uc *ProjectUseCase) Create(ctx context.Context, cmd CreateProjectCommand) 
 }
 
 func (uc *ProjectUseCase) GetByID(ctx context.Context, id uuid.UUID) (*model.Project, error) {
-	return uc.projectRepo.FindByID(ctx, id)
+	project, err := uc.projectRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("error trying to find project: %w", err)
+	}
+	if project == nil {
+		return nil, ErrProjectNotFound
+	}
+	return project, nil
 }
 
 func (uc *ProjectUseCase) GetAll(ctx context.Context, page, size int) (model.Page[model.Project], error) {
@@ -91,7 +98,14 @@ func (uc *ProjectUseCase) Update(ctx context.Context, cmd UpdateProjectCommand) 
 }
 
 func (uc *ProjectUseCase) Delete(ctx context.Context, id uuid.UUID) error {
-	return uc.projectRepo.DeleteByID(ctx, id)
+	deleted, err := uc.projectRepo.DeleteByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("error trying to delete project: %w", err)
+	}
+	if !deleted {
+		return ErrProjectNotFound
+	}
+	return nil
 }
 
 func (uc *ProjectUseCase) Archive(ctx context.Context, id uuid.UUID) error {
@@ -134,6 +148,20 @@ func (uc *ProjectUseCase) Unarchive(ctx context.Context, id uuid.UUID) error {
 	_, err = uc.projectRepo.Save(ctx, project)
 	if err != nil {
 		return fmt.Errorf("error trying to unarchive project: %w", err)
+	}
+	return nil
+}
+
+// ---- Auxiliary functions
+
+// Used for other's use cases to check if a project exists
+func ensureProjectExists(ctx context.Context, projectRepo port.ProjectRepository, id uuid.UUID) error {
+	exists, err := projectRepo.ExistsByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("error trying to check if project exists: %w", err)
+	}
+	if !exists {
+		return ErrProjectNotFound
 	}
 	return nil
 }
