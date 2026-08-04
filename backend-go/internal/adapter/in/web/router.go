@@ -13,6 +13,7 @@ import (
 type Handlers struct {
 	Project *handler.ProjectHandler
 	Snippet *handler.SnippetHandler
+	Link    *handler.LinkHandler
 }
 
 func SetupRouter(h *Handlers, apiToken string) *gin.Engine {
@@ -32,6 +33,7 @@ func SetupRouter(h *Handlers, apiToken string) *gin.Engine {
 		{
 			mapProjectRoutes(protected, h.Project)
 			mapSnippetRoutes(protected, h.Snippet)
+			mapLinkRoutes(protected, h.Link)
 		}
 	}
 	return r
@@ -58,6 +60,17 @@ func mapSnippetRoutes(rg *gin.RouterGroup, h *handler.SnippetHandler) {
 		snippets.GET("/:snippet_id", h.Get)
 		snippets.PATCH("/:snippet_id", h.Update)
 		snippets.DELETE("/:snippet_id", h.Delete)
+	}
+}
+
+func mapLinkRoutes(rg *gin.RouterGroup, h *handler.LinkHandler) {
+	links := rg.Group("/projects/:project_id/links")
+	{
+		links.POST("", h.Create)
+		links.GET("", h.GetAll)
+		links.GET("/:link_id", h.Get)
+		links.PATCH("/:link_id", h.Update)
+		links.DELETE("/:link_id", h.Delete)
 	}
 }
 

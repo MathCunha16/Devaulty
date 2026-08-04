@@ -354,6 +354,108 @@ components:
           type: integer
           example: 1
 
+    Link:
+      type: object
+      required:
+        - id
+        - projectId
+        - title
+        - url
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "784f6f5c-57af-4313-b160-688a3e0d283b"
+        projectId:
+          type: string
+          format: uuid
+          example: "06f891ae-368b-4bd6-b1e6-d957f1496f9a"
+        title:
+          type: string
+          example: "Go Documentation"
+        url:
+          type: string
+          format: uri
+          example: "https://go.dev/doc"
+        description:
+          type: string
+          nullable: true
+          example: "Official Go Documentation"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-03T12:35:07.84097684-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-03T16:22:46.12345678-03:00"
+
+    CreateLinkCommand:
+      type: object
+      required:
+        - title
+        - url
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Go Documentation"
+        url:
+          type: string
+          format: uri
+          example: "https://go.dev/doc"
+        description:
+          type: string
+          nullable: true
+          example: "Official Go Documentation"
+
+    UpdateLinkCommand:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Updated Go Documentation"
+        url:
+          type: string
+          format: uri
+          example: "https://go.dev/doc"
+        description:
+          type: string
+          example: "Updated description"
+
+    LinkPage:
+      type: object
+      required:
+        - content
+        - size
+        - number
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/Link'
+        size:
+          type: integer
+          example: 10
+        number:
+          type: integer
+          example: 0
+        totalElements:
+          type: integer
+          format: int64
+          example: 1
+        totalPages:
+          type: integer
+          example: 1
+
 security:
   - ApiKeyAuth: []
 
@@ -949,6 +1051,285 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Project or Snippet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/links:
+    post:
+      summary: Create a new link in a project
+      description: Creates a new link entity linked to the specified project.
+      tags:
+        - Links
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLinkCommand'
+      responses:
+        '201':
+          description: Link created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Relative URL path to the newly created link
+              example: "/api/v1/projects/06f891ae-368b-4bd6-b1e6-d957f1496f9a/links/784f6f5c-57af-4313-b160-688a3e0d283b"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Link'
+        '400':
+          description: Invalid JSON format or validation constraints failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get paginated list of links for a project
+      description: Fetches a paginated list of links for the specified project ordered by creation date descending.
+      tags:
+        - Links
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Zero-based page index
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Page size limit
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated list of links retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkPage'
+        '400':
+          description: Invalid query parameters or UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/links/{link_id}:
+    get:
+      summary: Get link by ID
+      description: Retrieves a single link entity by its UUID and parent project UUID.
+      tags:
+        - Links
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: link_id
+          in: path
+          description: Link UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Link details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Link'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Link not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Update link (Partial Update)
+      description: Performs a partial update (PATCH) on link fields specified in the request body.
+      tags:
+        - Links
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: link_id
+          in: path
+          description: Link UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLinkCommand'
+      responses:
+        '200':
+          description: Link updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Link'
+        '400':
+          description: Invalid UUID format or invalid JSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Link not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete link by ID
+      description: Permanently deletes a link by its UUID within a project.
+      tags:
+        - Links
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: link_id
+          in: path
+          description: Link UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Link deleted successfully (No Content)
+        '400':
+          description: Invalid UUID format or delete error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Link not found
           content:
             application/json:
               schema:
