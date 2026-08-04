@@ -37,9 +37,9 @@ func (m *MockSnippetRepository) FindAllByProjectID(ctx context.Context, projectI
 	return args.Get(0).(model.Page[model.Snippet]), args.Error(1)
 }
 
-func (m *MockSnippetRepository) DeleteByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) error {
+func (m *MockSnippetRepository) DeleteByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) (bool, error) {
 	args := m.Called(ctx, projectID, id)
-	return args.Error(0)
+	return args.Bool(0), args.Error(1)
 }
 
 func (m *MockSnippetRepository) ExistsByIDAndProjectID(ctx context.Context, id, projectID uuid.UUID) (bool, error) {
@@ -133,6 +133,7 @@ func TestSnippetUseCase_GetByID_Success(t *testing.T) {
 		Title:     "Sample Snippet",
 	}
 
+	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 	mockSnippetRepo.On("FindByIDAndProjectID", ctx, projectID, snippetID).Return(expectedSnippet, nil)
 
 	result, err := uc.GetByID(ctx, projectID, snippetID)
@@ -141,7 +142,26 @@ func TestSnippetUseCase_GetByID_Success(t *testing.T) {
 	assert.NotNil(t, result)
 	assert.Equal(t, snippetID, result.ID)
 	assert.Equal(t, projectID, result.ProjectID)
+	mockProjectRepo.AssertExpectations(t)
 	mockSnippetRepo.AssertExpectations(t)
+}
+
+func TestSnippetUseCase_GetByID_ProjectNotFound(t *testing.T) {
+	mockSnippetRepo := new(MockSnippetRepository)
+	mockProjectRepo := new(MockProjectRepository)
+	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo)
+	ctx := context.Background()
+
+	projectID := uuid.New()
+	snippetID := uuid.New()
+
+	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(false, nil)
+
+	result, err := uc.GetByID(ctx, projectID, snippetID)
+
+	assert.Nil(t, result)
+	assert.ErrorIs(t, err, usecase.ErrProjectNotFound)
+	mockProjectRepo.AssertExpectations(t)
 }
 
 func TestSnippetUseCase_GetByID_NotFound(t *testing.T) {
@@ -153,12 +173,14 @@ func TestSnippetUseCase_GetByID_NotFound(t *testing.T) {
 	projectID := uuid.New()
 	snippetID := uuid.New()
 
+	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 	mockSnippetRepo.On("FindByIDAndProjectID", ctx, projectID, snippetID).Return(nil, nil)
 
 	result, err := uc.GetByID(ctx, projectID, snippetID)
 
 	assert.Nil(t, result)
 	assert.ErrorIs(t, err, usecase.ErrSnippetNotFound)
+	mockProjectRepo.AssertExpectations(t)
 	mockSnippetRepo.AssertExpectations(t)
 }
 
@@ -304,7 +326,7 @@ func TestSnippetUseCase_Delete_Success(t *testing.T) {
 	snippetID := uuid.New()
 
 	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
-	mockSnippetRepo.On("DeleteByIDAndProjectID", ctx, projectID, snippetID).Return(nil)
+	mockSnippetRepo.On("DeleteByIDAndProjectID", ctx, projectID, snippetID).Return(true, nil)
 
 	err := uc.Delete(ctx, projectID, snippetID)
 
@@ -328,4 +350,23 @@ func TestSnippetUseCase_Delete_ProjectNotFound(t *testing.T) {
 
 	assert.ErrorIs(t, err, usecase.ErrProjectNotFound)
 	mockProjectRepo.AssertExpectations(t)
+}
+
+func TestSnippetUseCase_Delete_SnippetNotFound(t *testing.T) {
+	mockSnippetRepo := new(MockSnippetRepository)
+	mockProjectRepo := new(MockProjectRepository)
+	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo)
+	ctx := context.Background()
+
+	projectID := uuid.New()
+	snippetID := uuid.New()
+
+	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+	mockSnippetRepo.On("DeleteByIDAndProjectID", ctx, projectID, snippetID).Return(false, nil)
+
+	err := uc.Delete(ctx, projectID, snippetID)
+
+	assert.ErrorIs(t, err, usecase.ErrSnippetNotFound)
+	mockProjectRepo.AssertExpectations(t)
+	mockSnippetRepo.AssertExpectations(t)
 }

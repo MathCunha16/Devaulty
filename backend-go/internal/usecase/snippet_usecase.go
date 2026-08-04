@@ -68,6 +68,9 @@ func (uc *SnippetUseCase) Create(ctx context.Context, cmd CreateSnippetCommand) 
 }
 
 func (uc *SnippetUseCase) GetByID(ctx context.Context, projectID, id uuid.UUID) (*model.Snippet, error) {
+	if err := ensureProjectExists(ctx, uc.projectRepo, projectID); err != nil {
+		return nil, err
+	}
 	snippet, err := uc.snippetRepo.FindByIDAndProjectID(ctx, projectID, id)
 	if err != nil {
 		return nil, fmt.Errorf("error trying to find snippet: %w", err)
@@ -121,5 +124,12 @@ func (uc *SnippetUseCase) Delete(ctx context.Context, projectID, id uuid.UUID) e
 	if err := ensureProjectExists(ctx, uc.projectRepo, projectID); err != nil {
 		return err
 	}
-	return uc.snippetRepo.DeleteByIDAndProjectID(ctx, projectID, id)
+	deleted, err := uc.snippetRepo.DeleteByIDAndProjectID(ctx, projectID, id)
+	if err != nil {
+		return fmt.Errorf("error deleting snippet: %w", err)
+	}
+	if !deleted {
+		return ErrSnippetNotFound
+	}
+	return nil
 }

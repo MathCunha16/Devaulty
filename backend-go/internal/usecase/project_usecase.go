@@ -57,7 +57,14 @@ func (uc *ProjectUseCase) Create(ctx context.Context, cmd CreateProjectCommand) 
 }
 
 func (uc *ProjectUseCase) GetByID(ctx context.Context, id uuid.UUID) (*model.Project, error) {
-	return uc.projectRepo.FindByID(ctx, id)
+	project, err := uc.projectRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("error trying to find project: %w", err)
+	}
+	if project == nil {
+		return nil, ErrProjectNotFound
+	}
+	return project, nil
 }
 
 func (uc *ProjectUseCase) GetAll(ctx context.Context, page, size int) (model.Page[model.Project], error) {
@@ -91,7 +98,14 @@ func (uc *ProjectUseCase) Update(ctx context.Context, cmd UpdateProjectCommand) 
 }
 
 func (uc *ProjectUseCase) Delete(ctx context.Context, id uuid.UUID) error {
-	return uc.projectRepo.DeleteByID(ctx, id)
+	deleted, err := uc.projectRepo.DeleteByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("error trying to delete project: %w", err)
+	}
+	if !deleted {
+		return ErrProjectNotFound
+	}
+	return nil
 }
 
 func (uc *ProjectUseCase) Archive(ctx context.Context, id uuid.UUID) error {

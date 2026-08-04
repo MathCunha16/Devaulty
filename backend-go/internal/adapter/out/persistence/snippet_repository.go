@@ -54,13 +54,17 @@ func (r *SnippetRepositoryAdapter) FindAllByProjectID(ctx context.Context, proje
 	return PaginateExec[model.Snippet](ctx, r.db, countQuery, selectQuery, page, size, projectID)
 }
 
-func (r *SnippetRepositoryAdapter) DeleteByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) error {
+func (r *SnippetRepositoryAdapter) DeleteByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) (bool, error) {
 	query := `DELETE FROM snippets WHERE id = ? AND project_id = ?`
-	_, err := r.db.ExecContext(ctx, query, id, projectID)
+	res, err := r.db.ExecContext(ctx, query, id, projectID)
 	if err != nil {
-		return fmt.Errorf("error trying to delete snippet: %w", err)
+		return false, fmt.Errorf("error trying to delete snippet: %w", err)
 	}
-	return nil
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("error checking deleted rows: %w", err)
+	}
+	return rows > 0, nil
 }
 
 func (r *SnippetRepositoryAdapter) ExistsByIDAndProjectID(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (bool, error) {

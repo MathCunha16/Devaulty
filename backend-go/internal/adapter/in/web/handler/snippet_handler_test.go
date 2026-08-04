@@ -158,22 +158,85 @@ func TestSnippetHandler_GetAll(t *testing.T) {
 	app := SetupTestApp(t)
 	defer app.Server.Close()
 
-	projectBody := []byte(`{"name":"Parent Project"}`)
-	respProject := app.DoRequest(t, http.MethodPost, "/api/v1/projects", projectBody, true)
-	var createdProject map[string]interface{}
-	_ = json.NewDecoder(respProject.Body).Decode(&createdProject)
-	projectID := createdProject["id"].(string)
+	// Create Project A
+	respProjA := app.DoRequest(t, http.MethodPost, "/api/v1/projects", []byte(`{"name":"Project A"}`), true)
+	var projA map[string]interface{}
+	_ = json.NewDecoder(respProjA.Body).Decode(&projA)
+	projectAID := projA["id"].(string)
+
+	// Create Project B (for isolation checks)
+	respProjB := app.DoRequest(t, http.MethodPost, "/api/v1/projects", []byte(`{"name":"Project B"}`), true)
+	var projB map[string]interface{}
+	_ = json.NewDecoder(respProjB.Body).Decode(&projB)
+	projectBID := projB["id"].(string)
+
+	// Seed 12 snippets in Project A
+	for i := 1; i <= 12; i++ {
+		snippetBody := []byte(fmt.Sprintf(`{
+			"title": "Project A Snippet %d",
+			"content": "echo %d",
+			"language": "BASH",
+			"snippetType": "COMMAND"
+		}`, i, i))
+		urlCreate := fmt.Sprintf("/api/v1/projects/%s/snippets", projectAID)
+		_ = app.DoRequest(t, http.MethodPost, urlCreate, snippetBody, true)
+	}
+
+	// Seed 3 snippets in Project B
+	for i := 1; i <= 3; i++ {
+		snippetBody := []byte(fmt.Sprintf(`{
+			"title": "Project B Snippet %d",
+			"content": "echo %d",
+			"language": "GO",
+			"snippetType": "CODE"
+		}`, i, i))
+		urlCreate := fmt.Sprintf("/api/v1/projects/%s/snippets", projectBID)
+		_ = app.DoRequest(t, http.MethodPost, urlCreate, snippetBody, true)
+	}
 
 	t.Run("GetAll success - default pagination", func(t *testing.T) {
-		urlPath := fmt.Sprintf("/api/v1/projects/%s/snippets", projectID)
+		urlPath := fmt.Sprintf("/api/v1/projects/%s/snippets", projectAID)
 		resp := app.DoRequest(t, http.MethodGet, urlPath, nil, true)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var page map[string]interface{}
+		err := json.NewDecoder(resp.Body).Decode(&page)
+		require.NoError(t, err)
+
+		content := page["content"].([]interface{})
+		assert.Len(t, content, 10) // default page size is 10
+		assert.Equal(t, float64(0), page["number"])
+		assert.Equal(t, float64(10), page["size"])
+		assert.Equal(t, float64(12), page["totalElements"])
+		assert.Equal(t, float64(2), page["totalPages"])
+
+		// Ensure project isolation: all items belong to projectAID
+		for _, item := range content {
+			snippetMap := item.(map[string]interface{})
+			assert.Equal(t, projectAID, snippetMap["projectId"])
+		}
 	})
 
 	t.Run("GetAll success - custom page and size", func(t *testing.T) {
-		urlPath := fmt.Sprintf("/api/v1/projects/%s/snippets?page=0&size=5", projectID)
+		urlPath := fmt.Sprintf("/api/v1/projects/%s/snippets?page=1&size=5", projectAID)
 		resp := app.DoRequest(t, http.MethodGet, urlPath, nil, true)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var page map[string]interface{}
+		err := json.NewDecoder(resp.Body).Decode(&page)
+		require.NoError(t, err)
+
+		content := page["content"].([]interface{})
+		assert.Len(t, content, 5) // page 1 with size 5
+		assert.Equal(t, float64(1), page["number"])
+		assert.Equal(t, float64(5), page["size"])
+		assert.Equal(t, float64(12), page["totalElements"])
+		assert.Equal(t, float64(3), page["totalPages"])
+
+		for _, item := range content {
+			snippetMap := item.(map[string]interface{})
+			assert.Equal(t, projectAID, snippetMap["projectId"])
+		}
 	})
 
 	t.Run("GetAll failure - project not found", func(t *testing.T) {
@@ -187,7 +250,7 @@ func TestSnippetHandler_GetAll(t *testing.T) {
 	})
 
 	t.Run("GetAll failure - size greater than 100", func(t *testing.T) {
-		urlPath := fmt.Sprintf("/api/v1/projects/%s/snippets?page=0&size=101", projectID)
+		urlPath := fmt.Sprintf("/api/v1/projects/%s/snippets?page=0&size=101", projectAID)
 		resp := app.DoRequest(t, http.MethodGet, urlPath, nil, true)
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
@@ -275,6 +338,16 @@ func TestSnippetHandler_Delete(t *testing.T) {
 		urlDelete := fmt.Sprintf("/api/v1/projects/%s/snippets/%s", projectID, snippetID)
 		resp := app.DoRequest(t, http.MethodDelete, urlDelete, nil, true)
 		assert.Equal(t, http.StatusNoContent, resp.StatusCode)
+
+		// Assert persistence: issuing a GET request should now return 404 Not Found
+		respGet := app.DoRequest(t, http.MethodGet, urlDelete, nil, true)
+		assert.Equal(t, http.StatusNotFound, respGet.StatusCode)
+	})
+
+	t.Run("Delete failure - snippet not found", func(t *testing.T) {
+		urlDelete := fmt.Sprintf("/api/v1/projects/%s/snippets/00000000-0000-0000-0000-000000000000", projectID)
+		resp := app.DoRequest(t, http.MethodDelete, urlDelete, nil, true)
+		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 	})
 
 	t.Run("Delete failure - invalid snippet UUID", func(t *testing.T) {

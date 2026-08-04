@@ -51,13 +51,17 @@ func (r *ProjectRepositoryAdapter) FindByID(ctx context.Context, id uuid.UUID) (
 	return &project, nil
 }
 
-func (r *ProjectRepositoryAdapter) DeleteByID(ctx context.Context, id uuid.UUID) error {
+func (r *ProjectRepositoryAdapter) DeleteByID(ctx context.Context, id uuid.UUID) (bool, error) {
 	query := `DELETE FROM projects WHERE id = ?`
-	_, err := r.db.ExecContext(ctx, query, id)
+	res, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
-		return err
+		return false, err
 	}
-	return nil
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return rows > 0, nil
 }
 
 func (r *ProjectRepositoryAdapter) ExistsByID(ctx context.Context, id uuid.UUID) (bool, error) {

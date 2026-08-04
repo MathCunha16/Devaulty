@@ -194,6 +194,15 @@ func TestProjectHandler_Delete(t *testing.T) {
 	t.Run("Delete success", func(t *testing.T) {
 		resp := app.DoRequest(t, http.MethodDelete, "/api/v1/projects/"+projectID, nil, true)
 		assert.Equal(t, http.StatusNoContent, resp.StatusCode)
+
+		// Assert persistence: GET on deleted project should return 404 Not Found
+		respGet := app.DoRequest(t, http.MethodGet, "/api/v1/projects/"+projectID, nil, true)
+		assert.Equal(t, http.StatusNotFound, respGet.StatusCode)
+	})
+
+	t.Run("Delete failure - project not found", func(t *testing.T) {
+		resp := app.DoRequest(t, http.MethodDelete, "/api/v1/projects/00000000-0000-0000-0000-000000000000", nil, true)
+		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 	})
 
 	t.Run("Delete failure - invalid UUID", func(t *testing.T) {

@@ -1,11 +1,13 @@
 package handler
 
 import (
-	"devaulty-backend/internal/adapter/in/web/common"
-	"devaulty-backend/internal/usecase"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
+
+	"devaulty-backend/internal/adapter/in/web/common"
+	"devaulty-backend/internal/usecase"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,9 +24,10 @@ func (h *SnippetHandler) Create(c *gin.Context) {
 	var cmd usecase.CreateSnippetCommand
 	err := c.ShouldBindJSON(&cmd)
 	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	projectID, err := common.ExtractUUIDParam(c, "project_id")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -38,9 +41,11 @@ func (h *SnippetHandler) Create(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(400, gin.H{"error": err.Error()})
+		log.Printf("[SnippetHandler.Create] %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
+
 	location := fmt.Sprintf("%s/%s", c.Request.URL.Path, snippet.ID)
 	c.Header("Location", location)
 	c.JSON(http.StatusCreated, snippet)
@@ -67,9 +72,8 @@ func (h *SnippetHandler) GetAll(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		log.Printf("[SnippetHandler.GetAll] %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 	c.JSON(http.StatusOK, pagedSnippets)
@@ -94,7 +98,8 @@ func (h *SnippetHandler) Get(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[SnippetHandler.Get] %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -122,9 +127,7 @@ func (h *SnippetHandler) Update(c *gin.Context) {
 	var cmd usecase.UpdateSnippetCommand
 	err = c.ShouldBindJSON(&cmd)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	cmd.ID = id
@@ -132,17 +135,12 @@ func (h *SnippetHandler) Update(c *gin.Context) {
 
 	snippet, err := h.snippetUseCase.Update(c.Request.Context(), cmd)
 	if err != nil {
-		if errors.Is(err, usecase.ErrProjectNotFound) {
+		if errors.Is(err, usecase.ErrProjectNotFound) || errors.Is(err, usecase.ErrSnippetNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		if errors.Is(err, usecase.ErrSnippetNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		log.Printf("[SnippetHandler.Update] %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 	c.JSON(http.StatusOK, snippet)
@@ -163,7 +161,12 @@ func (h *SnippetHandler) Delete(c *gin.Context) {
 
 	err = h.snippetUseCase.Delete(c.Request.Context(), projectID, id)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if errors.Is(err, usecase.ErrProjectNotFound) || errors.Is(err, usecase.ErrSnippetNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		log.Printf("[SnippetHandler.Delete] %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 

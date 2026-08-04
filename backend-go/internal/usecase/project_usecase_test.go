@@ -37,9 +37,9 @@ func (m *MockProjectRepository) FindAll(ctx context.Context, page, size int) (mo
 	return args.Get(0).(model.Page[model.Project]), args.Error(1)
 }
 
-func (m *MockProjectRepository) DeleteByID(ctx context.Context, id uuid.UUID) error {
+func (m *MockProjectRepository) DeleteByID(ctx context.Context, id uuid.UUID) (bool, error) {
 	args := m.Called(ctx, id)
-	return args.Error(0)
+	return args.Bool(0), args.Error(1)
 }
 
 func (m *MockProjectRepository) ExistsByID(ctx context.Context, id uuid.UUID) (bool, error) {
@@ -109,8 +109,8 @@ func TestProjectUseCase_GetByID_NotFound(t *testing.T) {
 
 	result, err := uc.GetByID(ctx, projectID)
 
-	assert.NoError(t, err)
 	assert.Nil(t, result)
+	assert.ErrorIs(t, err, usecase.ErrProjectNotFound)
 	mockRepo.AssertExpectations(t)
 }
 
@@ -194,11 +194,25 @@ func TestProjectUseCase_Delete_Success(t *testing.T) {
 	ctx := context.Background()
 	projectID := uuid.New()
 
-	mockRepo.On("DeleteByID", ctx, projectID).Return(nil)
+	mockRepo.On("DeleteByID", ctx, projectID).Return(true, nil)
 
 	err := uc.Delete(ctx, projectID)
 
 	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestProjectUseCase_Delete_NotFound(t *testing.T) {
+	mockRepo := new(MockProjectRepository)
+	uc := usecase.NewProjectUseCase(mockRepo)
+	ctx := context.Background()
+	projectID := uuid.New()
+
+	mockRepo.On("DeleteByID", ctx, projectID).Return(false, nil)
+
+	err := uc.Delete(ctx, projectID)
+
+	assert.ErrorIs(t, err, usecase.ErrProjectNotFound)
 	mockRepo.AssertExpectations(t)
 }
 
