@@ -419,16 +419,13 @@ components:
           type: string
           minLength: 2
           maxLength: 255
-          nullable: true
           example: "Updated Go Documentation"
         url:
           type: string
           format: uri
-          nullable: true
           example: "https://go.dev/doc"
         description:
           type: string
-          nullable: true
           example: "Updated description"
 
     LinkPage:
