@@ -35,10 +35,10 @@ func (r *ProblemRepositoryAdapter) Save(ctx context.Context, problem *model.Prob
 	return problem, nil
 }
 
-func (r *ProblemRepositoryAdapter) FindByID(ctx context.Context, id uuid.UUID) (*model.Problem, error) {
-	query := `SELECT * FROM problems WHERE id = ?`
+func (r *ProblemRepositoryAdapter) FindByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) (*model.Problem, error) {
+	query := `SELECT * FROM problems WHERE id = ? AND project_id = ?`
 	var problem model.Problem
-	err := r.db.GetContext(ctx, &problem, query, id)
+	err := r.db.GetContext(ctx, &problem, query, id, projectID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -54,13 +54,18 @@ func (r *ProblemRepositoryAdapter) FindAllByProjectID(ctx context.Context, proje
 	return PaginateExec[model.Problem](ctx, r.db, countQuery, selectQuery, page, size, projectID)
 }
 
-func (r *ProblemRepositoryAdapter) DeleteByID(ctx context.Context, id uuid.UUID) error {
-	query := `DELETE FROM problems WHERE id = ?`
-	_, err := r.db.ExecContext(ctx, query, id)
+func (r *ProblemRepositoryAdapter) DeleteByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) (bool, error) {
+	query := `DELETE FROM problems WHERE id = ? AND project_id = ?`
+	res, err := r.db.ExecContext(ctx, query, id, projectID)
 	if err != nil {
-		return fmt.Errorf("error trying to delete problem: %w", err)
+		return false, fmt.Errorf("error trying to delete problem: %w", err)
 	}
-	return nil
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("error checking deleted rows: %w", err)
+	}
+
+	return rows > 0, nil
 }
 
 func (r *ProblemRepositoryAdapter) ExistsByIDAndProjectID(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (bool, error) {
