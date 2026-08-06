@@ -7,6 +7,7 @@ import (
 	"devaulty-backend/internal/dto"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -199,7 +200,7 @@ func (uc *ProblemUseCase) Delete(ctx context.Context, projectID, id uuid.UUID) e
 	}
 
 	if err := uc.itemTagRepo.RemoveAllTagsFromItem(ctx, model.ItemTypeProblem, id); err != nil {
-		return fmt.Errorf("error removing tags from problem: %w", err)
+		log.Printf("warning: failed to remove tags from problem %s: %v", id, err)
 	}
 	return nil
 }

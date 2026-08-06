@@ -7,6 +7,7 @@ import (
 	"devaulty-backend/internal/dto"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -157,7 +158,7 @@ func (uc *SnippetUseCase) Delete(ctx context.Context, projectID, id uuid.UUID) e
 	}
 
 	if err := uc.itemTagRepo.RemoveAllTagsFromItem(ctx, model.ItemTypeSnippet, id); err != nil {
-		return fmt.Errorf("error removing tags from snippet: %w", err)
+		log.Printf("warning: failed to remove tags from snippet %s: %v", id, err)
 	}
 	return nil
 }

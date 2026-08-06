@@ -7,6 +7,7 @@ import (
 	"devaulty-backend/internal/dto"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -153,7 +154,7 @@ func (uc *LinkUseCase) Delete(ctx context.Context, projectID, id uuid.UUID) erro
 		return ErrLinkNotFound
 	}
 	if err := uc.itemTagRepo.RemoveAllTagsFromItem(ctx, model.ItemTypeLink, id); err != nil {
-		return fmt.Errorf("error removing tags from link: %w", err)
+		log.Printf("warning: failed to remove tags from link %s: %v", id, err)
 	}
 	return nil
 }

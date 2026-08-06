@@ -88,5 +88,8 @@ func (app *TestApp) DoRequest(t *testing.T, method, path string, body []byte, se
 
 	resp, err := app.Server.Client().Do(req)
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = resp.Body.Close()
+	})
 	return resp
 }

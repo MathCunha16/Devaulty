@@ -128,8 +128,14 @@ func (uc *ItemTagUseCase) validateItemsOwnership(ctx context.Context, projectID 
 	if err != nil {
 		return err
 	}
-	if len(existingIDs) != len(itemIDs) {
-		return ErrItemNotFound
+	existingMap := make(map[uuid.UUID]bool, len(existingIDs))
+	for _, id := range existingIDs {
+		existingMap[id] = true
+	}
+	for _, id := range itemIDs {
+		if !existingMap[id] {
+			return ErrItemNotFound
+		}
 	}
 	return nil
 }

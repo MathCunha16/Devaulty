@@ -76,7 +76,7 @@ func TestTagUseCase_Create(t *testing.T) {
 	cmd := dto.CreateTagCommand{
 		ProjectID: projectID,
 		Name:      "  Go Backend  ",
-		Color:     color,
+		Color:     &color,
 	}
 
 	t.Run("Create_Success", func(t *testing.T) {
@@ -195,6 +195,11 @@ func TestTagUseCase_GetByID(t *testing.T) {
 			ProjectID: projectID,
 			Name:      "Golang",
 		}
+		expectedView := &dto.TagView{
+			ID:        tagID,
+			ProjectID: projectID,
+			Name:      "Golang",
+		}
 
 		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 		mockTagRepo.On("FindByIDAndProjectID", ctx, projectID, tagID).Return(expectedTag, nil)
@@ -202,7 +207,7 @@ func TestTagUseCase_GetByID(t *testing.T) {
 		result, err := uc.GetByID(ctx, projectID, tagID)
 
 		assert.NoError(t, err)
-		assert.Equal(t, expectedTag, result)
+		assert.Equal(t, expectedView, result)
 	})
 
 	t.Run("GetByID_ProjectNotFound", func(t *testing.T) {
@@ -257,9 +262,15 @@ func TestTagUseCase_GetAllByProjectID(t *testing.T) {
 		mockProjectRepo := new(MockProjectRepository)
 		uc := usecase.NewTagUseCase(mockTagRepo, mockProjectRepo)
 
+		tag1ID := uuid.New()
+		tag2ID := uuid.New()
 		expectedTags := []model.Tag{
-			{ID: uuid.New(), ProjectID: projectID, Name: "Tag 1"},
-			{ID: uuid.New(), ProjectID: projectID, Name: "Tag 2"},
+			{ID: tag1ID, ProjectID: projectID, Name: "Tag 1"},
+			{ID: tag2ID, ProjectID: projectID, Name: "Tag 2"},
+		}
+		expectedViews := []dto.TagView{
+			{ID: tag1ID, ProjectID: projectID, Name: "Tag 1"},
+			{ID: tag2ID, ProjectID: projectID, Name: "Tag 2"},
 		}
 
 		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
@@ -269,7 +280,7 @@ func TestTagUseCase_GetAllByProjectID(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Len(t, result, 2)
-		assert.Equal(t, expectedTags, result)
+		assert.Equal(t, expectedViews, result)
 	})
 
 	t.Run("GetAllByProjectID_ProjectNotFound", func(t *testing.T) {

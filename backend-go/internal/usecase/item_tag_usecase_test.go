@@ -398,4 +398,24 @@ func TestItemTagUseCase_GetTagsForItems(t *testing.T) {
 		assert.ErrorIs(t, err, dbErr)
 		assert.Nil(t, result)
 	})
+
+	t.Run("GetTagsForItems_DuplicateIDsSuccess", func(t *testing.T) {
+		mockItemTagRepo, _, mockProjectRepo, mockSnippetRepo, _, _, uc := SetupItemTagUseCaseTest()
+
+		duplicateIDs := []uuid.UUID{id1, id1}
+		existingIDs := []uuid.UUID{id1} // DB returns unique existing ID
+
+		expectedTags := map[uuid.UUID][]model.Tag{
+			id1: {{ID: uuid.New(), Name: "Go"}},
+		}
+
+		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		mockSnippetRepo.On("FindExistingIDsByProjectID", ctx, duplicateIDs, projectID).Return(existingIDs, nil)
+		mockItemTagRepo.On("FindTagsForItems", ctx, model.ItemTypeSnippet, projectID, duplicateIDs).Return(expectedTags, nil)
+
+		result, err := uc.GetTagsForItems(ctx, projectID, model.ItemTypeSnippet, duplicateIDs)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedTags, result)
+	})
 }

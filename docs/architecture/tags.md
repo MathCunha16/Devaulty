@@ -54,20 +54,20 @@ Use cases inject `port.ItemTagRepository` and fetch tags when building DTO views
 
 Tag association and disassociation are decoupled from item creation and updates:
 
-```
+```text
 PUT    /api/v1/projects/:project_id/items/:item_type/:item_id/tags/:tag_id
 DELETE /api/v1/projects/:project_id/items/:item_type/:item_id/tags/:tag_id
 ```
 
 - `PUT` associates a tag to an item (`204 No Content`). It is idempotent.
 - `DELETE` disassociates a tag from an item (`204 No Content`).
-- Query path param `:item_type` is parsed in uppercase (`model.ItemType(strings.ToUpper(c.Param("item_type")))`) to match domain constants (`SNIPPET`, `LINK`, `PROBLEM`, `NOTE`, `CREDENTIAL`).
+- Query path param `:item_type` is parsed in uppercase (`model.ItemType(strings.ToUpper(c.Param("item_type")))`) to match registered domain constants (`SNIPPET`, `LINK`, `PROBLEM`).
 
 ### 5. Tag Management: `TagHandler` endpoints
 
 Full CRUD and search for project tags:
 
-```
+```text
 POST   /api/v1/projects/:project_id/tags          (Create tag)
 GET    /api/v1/projects/:project_id/tags          (Get all tags)
 GET    /api/v1/projects/:project_id/tags/search   (Search tags by name prefix/substring)
@@ -80,7 +80,7 @@ Tag names are unique per project (`strings.TrimSpace(cmd.Name)`), returning `400
 
 ## Full flow example: `GET /projects/{project_id}/snippets`
 
-```
+```text
 SnippetHandler.GetAll
   → SnippetUseCase.GetAllByProjectID(ctx, projectID, page, size)
     → snippetRepo.FindAllByProjectID(...)             // Fetch page of snippets
@@ -99,4 +99,4 @@ SnippetHandler.GetAll
 - [ ] In UseCase `GetAllByProjectID`: collect IDs, call `itemTagRepo.FindTagsForItems` (batched), and attach tags.
 - [ ] In UseCase `Create`: pass empty tag slice `[]dto.TagSummary{}`.
 - [ ] In UseCase `Delete`: call `itemTagRepo.RemoveAllTagsFromItem(ctx, itemType, id)` after deleting the item.
-- [ ] Declare `model.ItemType` constant in `internal/domain/model/tag.go` (e.g. `ItemTypeNote = "NOTE"`).
+- [ ] Register repository in `NewItemTagUseCase` and add corresponding `model.ItemType` enum constant (e.g. `SNIPPET`, `LINK`, `PROBLEM`).

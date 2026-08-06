@@ -44,6 +44,22 @@ func TestTagHandler_Create(t *testing.T) {
 		assert.NotEmpty(t, result["id"])
 	})
 
+	t.Run("Create success - without color", func(t *testing.T) {
+		tagBody := []byte(`{
+			"name": "NoColorTag"
+		}`)
+		urlPath := fmt.Sprintf("/api/v1/projects/%s/tags", projectID)
+		resp := app.DoRequest(t, http.MethodPost, urlPath, tagBody, true)
+
+		assert.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		var result map[string]interface{}
+		err := json.NewDecoder(resp.Body).Decode(&result)
+		require.NoError(t, err)
+		assert.Equal(t, "NoColorTag", result["name"])
+		assert.Nil(t, result["color"])
+	})
+
 	t.Run("Create failure - tag name already exists", func(t *testing.T) {
 		tagBody := []byte(`{
 			"name": "Backend",

@@ -1,6 +1,10 @@
 package dto
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type TagSummary struct {
 	ID    uuid.UUID `json:"id"`
@@ -8,10 +12,19 @@ type TagSummary struct {
 	Color *string   `json:"color,omitempty"`
 }
 
+type TagView struct {
+	ID        uuid.UUID  `json:"id"`
+	ProjectID uuid.UUID  `json:"projectId"`
+	Name      string     `json:"name"`
+	Color     *string    `json:"color,omitempty"`
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+}
+
 type CreateTagCommand struct {
 	ProjectID uuid.UUID `json:"-"`
 	Name      string    `json:"name" binding:"required,min=2,max=40"`
-	Color     string    `json:"color" binding:"hexcolor"`
+	Color     *string   `json:"color,omitempty" binding:"omitempty,hexcolor"`
 }
 
 type UpdateTagCommand struct {

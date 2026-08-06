@@ -14,25 +14,27 @@ DEVAULTY_INTERNAL_TOKEN: <token>
 
 The token validation logic is enforced by `middleware.AuthMiddleware(apiToken)` using `crypto/subtle.ConstantTimeCompare`.
 
-```
+```text
 Production Mode (prod)         Development Mode (dev)
 ======================         ======================
-- Random UUID generated        - Defaults to static token:
-  in-memory at process boot      "dev-token" (APP_ENV=dev)
-- Passed via environment or    - Enables Scalar UI at /docs
-  command line args            - Enables cURL testing
+- Random UUID injected by      - Fallback to static token:
+  desktop parent process         "dev-token" (APP_ENV=dev)
+  at startup                   - Enables Scalar UI at /docs
+- Enforces token isolation     - Enables local cURL testing
 ```
+
+> **Note on `dev-token`**: In development mode (`APP_ENV=dev`), `"dev-token"` is provided as a convenience default for local developer testing. In production mode, the desktop parent process generates a unique random UUID token and injects it via environment variable.
 
 ### 1. Security Middleware (`middleware.AuthMiddleware`)
 - The middleware receives `apiToken` initialized at server startup in `cmd/api/main.go`.
 - In `main.go`:
   ```go
   apiToken := os.Getenv("DEVAULTY_INTERNAL_TOKEN")
-  if apiToken == "" && appEnv == "dev" {
+  if apiToken == "" && os.Getenv("APP_ENV") == "dev" {
       apiToken = "dev-token"
   }
   ```
-- Performs a constant-time comparison on incoming `DEVAULTY_INTERNAL_TOKEN` headers to prevent timing attacks.
+- Performs a constant-time comparison on incoming `DEVAULTY_INTERNAL_TOKEN` headers to prevent timing side-channel attacks.
 - Requests without a valid token receive `HTTP 401 Unauthorized`.
 
 ### 2. Interactive Documentation (Scalar API Reference at `/docs`)
@@ -60,5 +62,5 @@ curl -X GET "http://localhost:8080/api/v1/projects" \
 
 ## Security Best Practices Checklist
 
-- [ ] Production builds must always execute with `APP_ENV=prod` and pass a cryptographically strong, randomly generated `DEVAULTY_INTERNAL_TOKEN`.
+- [ ] Production desktop launcher must always generate a random UUID token and inject it as `DEVAULTY_INTERNAL_TOKEN`.
 - [ ] `middleware.AuthMiddleware` must use constant-time byte comparison (`subtle.ConstantTimeCompare`) to prevent timing side-channel attacks.
