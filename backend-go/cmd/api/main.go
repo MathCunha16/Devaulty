@@ -41,11 +41,15 @@ func main() {
 	linkRepo := persistence.NewLinkRepository(db)
 	linkUseCase := usecase.NewLinkUseCase(linkRepo, projectRepo)
 	linkHandler := handler.NewLinkHandler(linkUseCase)
+	problemRepo := persistence.NewProblemRepository(db)
+	problemUseCase := usecase.NewProblemUseCase(problemRepo, projectRepo)
+	problemHandler := handler.NewProblemHandler(problemUseCase)
 
 	handlers := &web.Handlers{
 		Project: projectHandler,
 		Snippet: snippetHandler,
 		Link:    linkHandler,
+		Problem: problemHandler,
 	}
 	r := web.SetupRouter(handlers, devaultyInternalToken)
 

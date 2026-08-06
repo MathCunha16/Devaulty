@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"devaulty-backend/internal/domain/model"
+	"devaulty-backend/internal/domain/port"
 	"devaulty-backend/internal/usecase"
 
 	"github.com/google/uuid"
@@ -32,9 +33,9 @@ func (m *MockProblemRepository) FindByIDAndProjectID(ctx context.Context, projec
 	return args.Get(0).(*model.Problem), args.Error(1)
 }
 
-func (m *MockProblemRepository) FindAllByProjectID(ctx context.Context, projectID uuid.UUID, page, size int) (model.Page[model.Problem], error) {
+func (m *MockProblemRepository) FindAllByProjectID(ctx context.Context, projectID uuid.UUID, page, size int) (model.Page[port.ProblemSummary], error) {
 	args := m.Called(ctx, projectID, page, size)
-	return args.Get(0).(model.Page[model.Problem]), args.Error(1)
+	return args.Get(0).(model.Page[port.ProblemSummary]), args.Error(1)
 }
 
 func (m *MockProblemRepository) DeleteByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) (bool, error) {
@@ -195,7 +196,7 @@ func TestProblemUseCase_GetAllByProjectID_Success(t *testing.T) {
 	ctx := context.Background()
 
 	projectID := uuid.New()
-	expectedPage := model.NewPage([]model.Problem{
+	expectedPage := model.NewPage([]port.ProblemSummary{
 		{ID: uuid.New(), ProjectID: projectID, Title: "Problem 1", Severity: model.ProblemSeverityLow},
 		{ID: uuid.New(), ProjectID: projectID, Title: "Problem 2", Severity: model.ProblemSeverityMedium},
 	}, 0, 10, 2)

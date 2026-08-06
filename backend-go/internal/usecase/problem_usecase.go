@@ -87,9 +87,9 @@ func (uc *ProblemUseCase) GetByID(ctx context.Context, projectID, id uuid.UUID) 
 	return problem, nil
 }
 
-func (uc *ProblemUseCase) GetAllByProjectID(ctx context.Context, projectID uuid.UUID, page, size int) (model.Page[model.Problem], error) {
+func (uc *ProblemUseCase) GetAllByProjectID(ctx context.Context, projectID uuid.UUID, page, size int) (model.Page[port.ProblemSummary], error) {
 	if err := ensureProjectExists(ctx, uc.projectRepo, projectID); err != nil {
-		return model.Page[model.Problem]{}, err
+		return model.Page[port.ProblemSummary]{}, err
 	}
 	return uc.problemRepo.FindAllByProjectID(ctx, projectID, page, size)
 }

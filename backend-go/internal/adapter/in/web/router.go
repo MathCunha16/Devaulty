@@ -14,6 +14,7 @@ type Handlers struct {
 	Project *handler.ProjectHandler
 	Snippet *handler.SnippetHandler
 	Link    *handler.LinkHandler
+	Problem *handler.ProblemHandler
 }
 
 func SetupRouter(h *Handlers, apiToken string) *gin.Engine {
@@ -34,6 +35,7 @@ func SetupRouter(h *Handlers, apiToken string) *gin.Engine {
 			mapProjectRoutes(protected, h.Project)
 			mapSnippetRoutes(protected, h.Snippet)
 			mapLinkRoutes(protected, h.Link)
+			mapProblemRoutes(protected, h.Problem)
 		}
 	}
 	return r
@@ -71,6 +73,18 @@ func mapLinkRoutes(rg *gin.RouterGroup, h *handler.LinkHandler) {
 		links.GET("/:link_id", h.Get)
 		links.PATCH("/:link_id", h.Update)
 		links.DELETE("/:link_id", h.Delete)
+	}
+}
+
+func mapProblemRoutes(rg *gin.RouterGroup, h *handler.ProblemHandler) {
+	problems := rg.Group("/projects/:project_id/problems")
+	{
+		problems.POST("", h.Create)
+		problems.GET("", h.GetAll)
+		problems.GET("/:problem_id", h.Get)
+		problems.PATCH("/:problem_id", h.Update)
+		problems.PATCH("/:problem_id/status", h.UpdateStatus)
+		problems.DELETE("/:problem_id", h.Delete)
 	}
 }
 

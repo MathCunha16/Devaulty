@@ -48,10 +48,11 @@ func (r *ProblemRepositoryAdapter) FindByIDAndProjectID(ctx context.Context, pro
 	return &problem, nil
 }
 
-func (r *ProblemRepositoryAdapter) FindAllByProjectID(ctx context.Context, projectID uuid.UUID, page int, size int) (model.Page[model.Problem], error) {
+func (r *ProblemRepositoryAdapter) FindAllByProjectID(ctx context.Context, projectID uuid.UUID, page int, size int) (model.Page[port.ProblemSummary], error) {
 	countQuery := `SELECT COUNT(*) FROM problems WHERE project_id = ?`
-	selectQuery := `SELECT * FROM problems WHERE project_id = ? ORDER BY created_at DESC`
-	return PaginateExec[model.Problem](ctx, r.db, countQuery, selectQuery, page, size, projectID)
+	selectQuery := `SELECT id, project_id, title, status, severity, created_at, updated_at FROM problems
+                                                                       WHERE project_id = ? ORDER BY created_at DESC`
+	return PaginateExec[port.ProblemSummary](ctx, r.db, countQuery, selectQuery, page, size, projectID)
 }
 
 func (r *ProblemRepositoryAdapter) DeleteByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) (bool, error) {
