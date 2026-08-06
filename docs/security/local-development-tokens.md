@@ -1,69 +1,64 @@
-# Local Development & Process Security Tokens
+# Local Development & Process Security Tokens (Go Backend)
 
-This document explains how the internal process security token (`X-Devaulty-Internal-Token`) operates, why it exists, and how to develop and test endpoints locally using Swagger UI and cURL.
+This document explains how the internal process security token (`DEVAULTY_INTERNAL_TOKEN`) operates in the Go backend (`backend-go`), why it exists, and how to develop and test endpoints locally using Scalar API Docs and cURL.
 
 ## The Problem Addressed
 
-Devaulty runs a local Spring Boot server on an ephemeral port inside the user's desktop machine. Since local HTTP ports can theoretically be probed by other local applications running under the same user session, all `/api/v1/**` endpoints require an internal process authentication header:
+Devaulty runs a local Go HTTP server on a local port inside the user's desktop machine. Since local HTTP ports can theoretically be probed by other local applications running under the same user session, all `/api/v1/*` endpoints require an internal process authentication header:
 
 ```http
-X-Devaulty-Internal-Token: <token>
+DEVAULTY_INTERNAL_TOKEN: <token>
 ```
 
 ## Production vs Development Behavior
 
-The token validation logic is enforced by `InternalAppTokenFilter`.
+The token validation logic is enforced by `middleware.AuthMiddleware(apiToken)` using `crypto/subtle.ConstantTimeCompare`.
 
 ```
 Production Mode (prod)         Development Mode (dev)
 ======================         ======================
-- Random UUID generated        - Accepts static token from application-dev.yml
-  in-memory at process boot      ("dev-secret-token")
-- Injected via JavaFX into     - Accepts random UUID as fallback
-  WebView before React mounts  - Enables Swagger UI & cURL testing
+- Random UUID generated        - Defaults to static token:
+  in-memory at process boot      "dev-token" (APP_ENV=dev)
+- Passed via environment or    - Enables Scalar UI at /docs
+  command line args            - Enables cURL testing
 ```
 
-### 1. Production Mode (`application-prod.yml`)
-- `AppTokenContext.PROCESS_TOKEN` generates a cryptographically unique UUID (`UUID.randomUUID()`) in-memory when the JVM boots.
-- `DevaultyDesktop.java` injects this token directly into the JavaFX `WebView` JS context (`window.DEVAULTY_INTERNAL_TOKEN`) during the `Worker.State.RUNNING` state before React components mount.
-- External requests without this exact in-memory UUID receive `HTTP 403 Forbidden`.
+### 1. Security Middleware (`middleware.AuthMiddleware`)
+- The middleware receives `apiToken` initialized at server startup in `cmd/api/main.go`.
+- In `main.go`:
+  ```go
+  apiToken := os.Getenv("DEVAULTY_INTERNAL_TOKEN")
+  if apiToken == "" && appEnv == "dev" {
+      apiToken = "dev-token"
+  }
+  ```
+- Performs a constant-time comparison on incoming `DEVAULTY_INTERNAL_TOKEN` headers to prevent timing attacks.
+- Requests without a valid token receive `HTTP 401 Unauthorized`.
 
-### 2. Local Development Mode (`application-dev.yml`)
-- `src/main/resources/application-dev.yml` declares a development token:
-
-```yaml
-devaulty:
-  dev:
-    token: "dev-secret-token"
-```
-
-- `InternalAppTokenFilter` reads `@Value("${devaulty.dev.token:#{null}}")`. If present, it permits requests carrying `"dev-secret-token"`.
-- In `application-prod.yml`, `devaulty.dev.token` is completely absent. `devToken` evaluates to `null`, ensuring development tokens can **never** be used in production builds.
+### 2. Interactive Documentation (Scalar API Reference at `/docs`)
+- When running in `APP_ENV=dev`, `/docs` serves the interactive Scalar API documentation UI.
+- Interactive documentation dynamically loads `./docs/openapi.yaml`.
 
 ## How to Test Endpoints Locally
 
-### Option A: Using Swagger UI
+### Option A: Using Scalar API Docs (`/docs`)
 
-1. Open Swagger UI in your browser:
-   `http://localhost:8080/swagger-ui.html`
-2. Click the green **Authorize 🔓** button in the top right corner.
-3. In the `DevaultyInternalToken` value input, enter:
-   `dev-secret-token`
-4. Click **Authorize** and close the modal.
-5. All subsequent "Try it out" API calls from Swagger UI will automatically include the `X-Devaulty-Internal-Token: dev-secret-token` header.
+1. Open Scalar API Docs in your browser:
+   `http://localhost:8080/docs`
+2. Enter `dev-token` in the security authorization header input.
+3. All subsequent "Test Request" calls from Scalar UI will automatically send `DEVAULTY_INTERNAL_TOKEN: dev-token`.
 
 ### Option B: Using cURL / HTTP Clients
 
-Pass the `X-Devaulty-Internal-Token` header in your request:
+Pass the `DEVAULTY_INTERNAL_TOKEN` header in your request:
 
 ```bash
-curl -X GET "http://localhost:8080/api/v1/release/check" \
-     -H "X-Devaulty-Internal-Token: dev-secret-token" \
+curl -X GET "http://localhost:8080/api/v1/projects" \
+     -H "DEVAULTY_INTERNAL_TOKEN: dev-token" \
      -H "Accept: application/json"
 ```
 
 ## Security Best Practices Checklist
 
-- [ ] `application-prod.yml` must **never** contain a `devaulty.dev.token` property.
-- [ ] `InternalAppTokenFilter` must validate `devToken` only when non-null and non-blank (`devToken != null && !devToken.isBlank()`).
-- [ ] Production builds (`jpackage`) must always execute with `-Dspring.profiles.active=prod`.
+- [ ] Production builds must always execute with `APP_ENV=prod` and pass a cryptographically strong, randomly generated `DEVAULTY_INTERNAL_TOKEN`.
+- [ ] `middleware.AuthMiddleware` must use constant-time byte comparison (`subtle.ConstantTimeCompare`) to prevent timing side-channel attacks.
