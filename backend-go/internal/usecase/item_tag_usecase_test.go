@@ -167,9 +167,10 @@ func TestItemTagUseCase_DisassociateTagFromItem(t *testing.T) {
 	linkID := uuid.New()
 
 	t.Run("Disassociate_Success", func(t *testing.T) {
-		mockItemTagRepo, _, mockProjectRepo, _, mockLinkRepo, _, uc := SetupItemTagUseCaseTest()
+		mockItemTagRepo, mockTagRepo, mockProjectRepo, _, mockLinkRepo, _, uc := SetupItemTagUseCaseTest()
 
 		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		mockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
 		mockLinkRepo.On("ExistsByIDAndProjectID", ctx, linkID, projectID).Return(true, nil)
 		mockItemTagRepo.On("DisassembleTagFromItem", ctx, projectID, tagID, model.ItemTypeLink, linkID).Return(nil)
 
@@ -177,6 +178,7 @@ func TestItemTagUseCase_DisassociateTagFromItem(t *testing.T) {
 
 		assert.NoError(t, err)
 		mockProjectRepo.AssertExpectations(t)
+		mockTagRepo.AssertExpectations(t)
 		mockLinkRepo.AssertExpectations(t)
 		mockItemTagRepo.AssertExpectations(t)
 	})
@@ -191,10 +193,22 @@ func TestItemTagUseCase_DisassociateTagFromItem(t *testing.T) {
 		assert.ErrorIs(t, err, usecase.ErrProjectNotFound)
 	})
 
-	t.Run("Disassociate_UnsupportedItemType", func(t *testing.T) {
-		_, _, mockProjectRepo, _, _, _, uc := SetupItemTagUseCaseTest()
+	t.Run("Disassociate_TagNotFound", func(t *testing.T) {
+		_, mockTagRepo, mockProjectRepo, _, _, _, uc := SetupItemTagUseCaseTest()
 
 		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		mockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(false, nil)
+
+		err := uc.DisassociateTagFromItem(ctx, projectID, model.ItemTypeLink, linkID, tagID)
+
+		assert.ErrorIs(t, err, usecase.ErrTagNotFound)
+	})
+
+	t.Run("Disassociate_UnsupportedItemType", func(t *testing.T) {
+		_, mockTagRepo, mockProjectRepo, _, _, _, uc := SetupItemTagUseCaseTest()
+
+		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		mockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
 
 		err := uc.DisassociateTagFromItem(ctx, projectID, model.ItemType("INVALID"), linkID, tagID)
 
@@ -202,9 +216,10 @@ func TestItemTagUseCase_DisassociateTagFromItem(t *testing.T) {
 	})
 
 	t.Run("Disassociate_ItemNotFound", func(t *testing.T) {
-		_, _, mockProjectRepo, _, mockLinkRepo, _, uc := SetupItemTagUseCaseTest()
+		_, mockTagRepo, mockProjectRepo, _, mockLinkRepo, _, uc := SetupItemTagUseCaseTest()
 
 		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		mockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
 		mockLinkRepo.On("ExistsByIDAndProjectID", ctx, linkID, projectID).Return(false, nil)
 
 		err := uc.DisassociateTagFromItem(ctx, projectID, model.ItemTypeLink, linkID, tagID)
@@ -213,10 +228,11 @@ func TestItemTagUseCase_DisassociateTagFromItem(t *testing.T) {
 	})
 
 	t.Run("Disassociate_RepoError", func(t *testing.T) {
-		mockItemTagRepo, _, mockProjectRepo, _, mockLinkRepo, _, uc := SetupItemTagUseCaseTest()
+		mockItemTagRepo, mockTagRepo, mockProjectRepo, _, mockLinkRepo, _, uc := SetupItemTagUseCaseTest()
 
 		dbErr := errors.New("db delete failure")
 		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		mockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
 		mockLinkRepo.On("ExistsByIDAndProjectID", ctx, linkID, projectID).Return(true, nil)
 		mockItemTagRepo.On("DisassembleTagFromItem", ctx, projectID, tagID, model.ItemTypeLink, linkID).Return(dbErr)
 

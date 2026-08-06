@@ -15,6 +15,8 @@ type Handlers struct {
 	Snippet *handler.SnippetHandler
 	Link    *handler.LinkHandler
 	Problem *handler.ProblemHandler
+	Tag     *handler.TagHandler
+	ItemTag *handler.ItemTagHandler
 }
 
 func SetupRouter(h *Handlers, apiToken string) *gin.Engine {
@@ -36,6 +38,8 @@ func SetupRouter(h *Handlers, apiToken string) *gin.Engine {
 			mapSnippetRoutes(protected, h.Snippet)
 			mapLinkRoutes(protected, h.Link)
 			mapProblemRoutes(protected, h.Problem)
+			mapTagRoutes(protected, h.Tag)
+			mapItemTagRoutes(protected, h.ItemTag)
 		}
 	}
 	return r
@@ -85,6 +89,26 @@ func mapProblemRoutes(rg *gin.RouterGroup, h *handler.ProblemHandler) {
 		problems.PATCH("/:problem_id", h.Update)
 		problems.PATCH("/:problem_id/status", h.UpdateStatus)
 		problems.DELETE("/:problem_id", h.Delete)
+	}
+}
+
+func mapTagRoutes(rg *gin.RouterGroup, h *handler.TagHandler) {
+	tags := rg.Group("/projects/:project_id/tags")
+	{
+		tags.POST("", h.Create)
+		tags.GET("", h.GetAll)
+		tags.GET("/search", h.SearchByName)
+		tags.GET("/:tag_id", h.Get)
+		tags.PATCH("/:tag_id", h.Update)
+		tags.DELETE("/:tag_id", h.Delete)
+	}
+}
+
+func mapItemTagRoutes(rg *gin.RouterGroup, h *handler.ItemTagHandler) {
+	itemTags := rg.Group("/projects/:project_id/items/:item_type/:item_id/tags")
+	{
+		itemTags.PUT("/:tag_id", h.Associate)
+		itemTags.DELETE("/:tag_id", h.Disassociate)
 	}
 }
 

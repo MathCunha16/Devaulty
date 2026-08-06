@@ -63,10 +63,18 @@ func (uc *ItemTagUseCase) DisassociateTagFromItem(ctx context.Context, projectID
 	if err := ensureProjectExists(ctx, uc.projectRepo, projectID); err != nil {
 		return err
 	}
+	tagExists, err := uc.tagRepo.ExistsByIDAndProjectID(ctx, tagID, projectID)
+	if err != nil {
+		return err
+	}
+	if !tagExists {
+		return ErrTagNotFound
+	}
 	if err := uc.validateItemOwnership(ctx, projectID, itemType, itemID); err != nil {
 		return err
 	}
 	return uc.itemTagRepo.DisassembleTagFromItem(ctx, projectID, tagID, itemType, itemID)
+
 }
 
 func (uc *ItemTagUseCase) GetTagsForItem(ctx context.Context, projectID uuid.UUID, itemType model.ItemType, itemID uuid.UUID) ([]model.Tag, error) {

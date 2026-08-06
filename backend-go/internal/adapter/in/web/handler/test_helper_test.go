@@ -41,11 +41,20 @@ func SetupTestApp(t *testing.T) *TestApp {
 	problemUseCase := usecase.NewProblemUseCase(problemRepo, projectRepo, itemTagRepo)
 	problemHandler := handler.NewProblemHandler(problemUseCase)
 
+	tagRepo := persistence.NewTagRepository(db)
+	tagUseCase := usecase.NewTagUseCase(tagRepo, projectRepo)
+	tagHandler := handler.NewTagHandler(tagUseCase)
+
+	itemTagUseCase := usecase.NewItemTagUseCase(itemTagRepo, tagRepo, projectRepo, snippetRepo, linkRepo, problemRepo)
+	itemTagHandler := handler.NewItemTagHandler(itemTagUseCase, tagUseCase, projectUseCase)
+
 	handlers := &web.Handlers{
 		Project: projectHandler,
 		Snippet: snippetHandler,
 		Link:    linkHandler,
 		Problem: problemHandler,
+		Tag:     tagHandler,
+		ItemTag: itemTagHandler,
 	}
 
 	token := "test-internal-token-12345"
