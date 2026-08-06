@@ -18,6 +18,7 @@ var (
 type LinkUseCase struct {
 	linkRepo    port.LinkRepository
 	projectRepo port.ProjectRepository
+	itemTagRepo port.ItemTagRepository
 }
 
 type CreateLinkCommand struct {
@@ -35,10 +36,11 @@ type UpdateLinkCommand struct {
 	Description *string `json:"description,omitempty" binding:"omitempty"`
 }
 
-func NewLinkUseCase(linkRepo port.LinkRepository, projectRepo port.ProjectRepository) *LinkUseCase {
+func NewLinkUseCase(linkRepo port.LinkRepository, projectRepo port.ProjectRepository, itemTagRepo port.ItemTagRepository) *LinkUseCase {
 	return &LinkUseCase{
 		linkRepo:    linkRepo,
 		projectRepo: projectRepo,
+		itemTagRepo: itemTagRepo,
 	}
 }
 
@@ -122,6 +124,9 @@ func (uc *LinkUseCase) Delete(ctx context.Context, projectID, id uuid.UUID) erro
 	}
 	if !deleted {
 		return ErrLinkNotFound
+	}
+	if err := uc.itemTagRepo.RemoveAllTagsFromItem(ctx, model.ItemTypeLink, id); err != nil {
+		return fmt.Errorf("error removing tags from link: %w", err)
 	}
 	return nil
 }

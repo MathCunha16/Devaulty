@@ -18,6 +18,7 @@ var (
 type ProblemUseCase struct {
 	problemRepo port.ProblemRepository
 	projectRepo port.ProjectRepository
+	itemTagRepo port.ItemTagRepository
 }
 
 type CreateProblemCommand struct {
@@ -44,10 +45,11 @@ type UpdateProblemStatusCommand struct {
 	Status    model.ProblemStatus `json:"status" binding:"required"`
 }
 
-func NewProblemUseCase(problemRepo port.ProblemRepository, projectRepo port.ProjectRepository) *ProblemUseCase {
+func NewProblemUseCase(problemRepo port.ProblemRepository, projectRepo port.ProjectRepository, itemTagRepo port.ItemTagRepository) *ProblemUseCase {
 	return &ProblemUseCase{
 		problemRepo: problemRepo,
 		projectRepo: projectRepo,
+		itemTagRepo: itemTagRepo,
 	}
 }
 
@@ -152,6 +154,10 @@ func (uc *ProblemUseCase) Delete(ctx context.Context, projectID, id uuid.UUID) e
 	}
 	if !deleted {
 		return ErrProblemNotFound
+	}
+
+	if err := uc.itemTagRepo.RemoveAllTagsFromItem(ctx, model.ItemTypeProblem, id); err != nil {
+		return fmt.Errorf("error removing tags from problem: %w", err)
 	}
 	return nil
 }

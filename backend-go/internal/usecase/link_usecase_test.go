@@ -57,7 +57,8 @@ func (m *MockLinkRepository) FindExistingIDsByProjectID(ctx context.Context, ids
 func TestLinkUseCase_Create_Success(t *testing.T) {
 	mockLinkRepo := new(MockLinkRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -93,7 +94,8 @@ func TestLinkUseCase_Create_Success(t *testing.T) {
 func TestLinkUseCase_Create_ProjectNotFound(t *testing.T) {
 	mockLinkRepo := new(MockLinkRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -115,7 +117,8 @@ func TestLinkUseCase_Create_ProjectNotFound(t *testing.T) {
 func TestLinkUseCase_GetByID_Success(t *testing.T) {
 	mockLinkRepo := new(MockLinkRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -143,7 +146,8 @@ func TestLinkUseCase_GetByID_Success(t *testing.T) {
 func TestLinkUseCase_GetByID_ProjectNotFound(t *testing.T) {
 	mockLinkRepo := new(MockLinkRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -161,7 +165,8 @@ func TestLinkUseCase_GetByID_ProjectNotFound(t *testing.T) {
 func TestLinkUseCase_GetByID_NotFound(t *testing.T) {
 	mockLinkRepo := new(MockLinkRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -181,7 +186,8 @@ func TestLinkUseCase_GetByID_NotFound(t *testing.T) {
 func TestLinkUseCase_GetAllByProjectID_Success(t *testing.T) {
 	mockLinkRepo := new(MockLinkRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -205,7 +211,8 @@ func TestLinkUseCase_GetAllByProjectID_Success(t *testing.T) {
 func TestLinkUseCase_GetAllByProjectID_ProjectNotFound(t *testing.T) {
 	mockLinkRepo := new(MockLinkRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -221,7 +228,8 @@ func TestLinkUseCase_GetAllByProjectID_ProjectNotFound(t *testing.T) {
 func TestLinkUseCase_Update_Success(t *testing.T) {
 	mockLinkRepo := new(MockLinkRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -264,7 +272,8 @@ func TestLinkUseCase_Update_Success(t *testing.T) {
 func TestLinkUseCase_Update_ProjectNotFound(t *testing.T) {
 	mockLinkRepo := new(MockLinkRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -288,7 +297,8 @@ func TestLinkUseCase_Update_ProjectNotFound(t *testing.T) {
 func TestLinkUseCase_Update_LinkNotFound(t *testing.T) {
 	mockLinkRepo := new(MockLinkRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -314,7 +324,8 @@ func TestLinkUseCase_Update_LinkNotFound(t *testing.T) {
 func TestLinkUseCase_Delete_Success(t *testing.T) {
 	mockLinkRepo := new(MockLinkRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -322,18 +333,21 @@ func TestLinkUseCase_Delete_Success(t *testing.T) {
 
 	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 	mockLinkRepo.On("DeleteByIDAndProjectID", ctx, projectID, linkID).Return(true, nil)
+	mockItemTagRepo.On("RemoveAllTagsFromItem", ctx, model.ItemTypeLink, linkID).Return(nil)
 
 	err := uc.Delete(ctx, projectID, linkID)
 
 	assert.NoError(t, err)
 	mockProjectRepo.AssertExpectations(t)
 	mockLinkRepo.AssertExpectations(t)
+	mockItemTagRepo.AssertExpectations(t)
 }
 
 func TestLinkUseCase_Delete_ProjectNotFound(t *testing.T) {
 	mockLinkRepo := new(MockLinkRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -350,7 +364,8 @@ func TestLinkUseCase_Delete_ProjectNotFound(t *testing.T) {
 func TestLinkUseCase_Delete_LinkNotFound(t *testing.T) {
 	mockLinkRepo := new(MockLinkRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewLinkUseCase(mockLinkRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()

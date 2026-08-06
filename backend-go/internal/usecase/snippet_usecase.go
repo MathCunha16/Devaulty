@@ -18,6 +18,7 @@ var (
 type SnippetUseCase struct {
 	snippetRepo port.SnippetRepository
 	projectRepo port.ProjectRepository
+	itemTagRepo port.ItemTagRepository
 }
 
 type CreateSnippetCommand struct {
@@ -39,10 +40,11 @@ type UpdateSnippetCommand struct {
 	SnippetType *model.SnippetType     `json:"snippetType" binding:"omitempty"`
 }
 
-func NewSnippetUseCase(snippetRepo port.SnippetRepository, projectRepo port.ProjectRepository) *SnippetUseCase {
+func NewSnippetUseCase(snippetRepo port.SnippetRepository, projectRepo port.ProjectRepository, itemTagRepo port.ItemTagRepository) *SnippetUseCase {
 	return &SnippetUseCase{
 		snippetRepo: snippetRepo,
 		projectRepo: projectRepo,
+		itemTagRepo: itemTagRepo,
 	}
 }
 
@@ -130,6 +132,10 @@ func (uc *SnippetUseCase) Delete(ctx context.Context, projectID, id uuid.UUID) e
 	}
 	if !deleted {
 		return ErrSnippetNotFound
+	}
+
+	if err := uc.itemTagRepo.RemoveAllTagsFromItem(ctx, model.ItemTypeSnippet, id); err != nil {
+		return fmt.Errorf("error removing tags from snippet: %w", err)
 	}
 	return nil
 }

@@ -58,7 +58,8 @@ func (m *MockProblemRepository) FindExistingIDsByProjectID(ctx context.Context, 
 func TestProblemUseCase_Create_Success(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -99,7 +100,8 @@ func TestProblemUseCase_Create_Success(t *testing.T) {
 func TestProblemUseCase_Create_ProjectNotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -123,7 +125,8 @@ func TestProblemUseCase_Create_ProjectNotFound(t *testing.T) {
 func TestProblemUseCase_GetByID_Success(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -154,7 +157,8 @@ func TestProblemUseCase_GetByID_Success(t *testing.T) {
 func TestProblemUseCase_GetByID_ProjectNotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -172,7 +176,8 @@ func TestProblemUseCase_GetByID_ProjectNotFound(t *testing.T) {
 func TestProblemUseCase_GetByID_NotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -192,7 +197,8 @@ func TestProblemUseCase_GetByID_NotFound(t *testing.T) {
 func TestProblemUseCase_GetAllByProjectID_Success(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -216,7 +222,8 @@ func TestProblemUseCase_GetAllByProjectID_Success(t *testing.T) {
 func TestProblemUseCase_GetAllByProjectID_ProjectNotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -232,7 +239,8 @@ func TestProblemUseCase_GetAllByProjectID_ProjectNotFound(t *testing.T) {
 func TestProblemUseCase_Update_Success(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -280,7 +288,8 @@ func TestProblemUseCase_Update_Success(t *testing.T) {
 func TestProblemUseCase_Update_ProjectNotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -304,7 +313,8 @@ func TestProblemUseCase_Update_ProjectNotFound(t *testing.T) {
 func TestProblemUseCase_Update_ProblemNotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -330,7 +340,8 @@ func TestProblemUseCase_Update_ProblemNotFound(t *testing.T) {
 func TestProblemUseCase_UpdateStatus_Success(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -372,7 +383,8 @@ func TestProblemUseCase_UpdateStatus_Success(t *testing.T) {
 func TestProblemUseCase_UpdateStatus_ProjectNotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -396,7 +408,8 @@ func TestProblemUseCase_UpdateStatus_ProjectNotFound(t *testing.T) {
 func TestProblemUseCase_UpdateStatus_ProblemNotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -422,7 +435,8 @@ func TestProblemUseCase_UpdateStatus_ProblemNotFound(t *testing.T) {
 func TestProblemUseCase_Delete_Success(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -430,18 +444,21 @@ func TestProblemUseCase_Delete_Success(t *testing.T) {
 
 	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 	mockProblemRepo.On("DeleteByIDAndProjectID", ctx, projectID, problemID).Return(true, nil)
+	mockItemTagRepo.On("RemoveAllTagsFromItem", ctx, model.ItemTypeProblem, problemID).Return(nil)
 
 	err := uc.Delete(ctx, projectID, problemID)
 
 	assert.NoError(t, err)
 	mockProjectRepo.AssertExpectations(t)
 	mockProblemRepo.AssertExpectations(t)
+	mockItemTagRepo.AssertExpectations(t)
 }
 
 func TestProblemUseCase_Delete_ProjectNotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -458,7 +475,8 @@ func TestProblemUseCase_Delete_ProjectNotFound(t *testing.T) {
 func TestProblemUseCase_Delete_ProblemNotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
