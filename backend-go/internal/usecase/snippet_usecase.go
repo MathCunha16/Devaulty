@@ -4,6 +4,7 @@ import (
 	"context"
 	"devaulty-backend/internal/domain/model"
 	"devaulty-backend/internal/domain/port"
+	"devaulty-backend/internal/dto"
 	"errors"
 	"fmt"
 	"time"
@@ -21,25 +22,6 @@ type SnippetUseCase struct {
 	itemTagRepo port.ItemTagRepository
 }
 
-type CreateSnippetCommand struct {
-	ProjectID   uuid.UUID
-	Title       string                `json:"title" binding:"required,min=2,max=255"`
-	Description *string               `json:"description,omitempty" binding:"omitempty,min=1,max=255"`
-	Content     string                `json:"content" binding:"required,min=1"`
-	Language    model.SnippetLanguage `json:"language" binding:"required"`
-	SnippetType model.SnippetType     `json:"snippetType" binding:"required"`
-}
-
-type UpdateSnippetCommand struct {
-	ProjectID   uuid.UUID
-	ID          uuid.UUID
-	Title       *string                `json:"title,omitempty" binding:"omitempty,min=2,max=255"`
-	Description *string                `json:"description,omitempty" binding:"omitempty,min=1,max=255"`
-	Content     *string                `json:"content,omitempty" binding:"omitempty,min=1"`
-	Language    *model.SnippetLanguage `json:"language,omitempty" binding:"omitempty"`
-	SnippetType *model.SnippetType     `json:"snippetType" binding:"omitempty"`
-}
-
 func NewSnippetUseCase(snippetRepo port.SnippetRepository, projectRepo port.ProjectRepository, itemTagRepo port.ItemTagRepository) *SnippetUseCase {
 	return &SnippetUseCase{
 		snippetRepo: snippetRepo,
@@ -48,7 +30,7 @@ func NewSnippetUseCase(snippetRepo port.SnippetRepository, projectRepo port.Proj
 	}
 }
 
-func (uc *SnippetUseCase) Create(ctx context.Context, cmd CreateSnippetCommand) (*model.Snippet, error) {
+func (uc *SnippetUseCase) Create(ctx context.Context, cmd dto.CreateSnippetCommand) (*dto.SnippetView, error) {
 	if err := ensureProjectExists(ctx, uc.projectRepo, cmd.ProjectID); err != nil {
 		return nil, err
 	}
@@ -66,10 +48,14 @@ func (uc *SnippetUseCase) Create(ctx context.Context, cmd CreateSnippetCommand) 
 			UpdatedAt: nil,
 		},
 	}
-	return uc.snippetRepo.Save(ctx, &snippet)
+	saved, err := uc.snippetRepo.Save(ctx, &snippet)
+	if err != nil {
+		return nil, err
+	}
+	return mapSnippetToView(saved, nil), nil
 }
 
-func (uc *SnippetUseCase) GetByID(ctx context.Context, projectID, id uuid.UUID) (*model.Snippet, error) {
+func (uc *SnippetUseCase) GetByID(ctx context.Context, projectID, id uuid.UUID) (*dto.SnippetView, error) {
 	if err := ensureProjectExists(ctx, uc.projectRepo, projectID); err != nil {
 		return nil, err
 	}
@@ -80,17 +66,45 @@ func (uc *SnippetUseCase) GetByID(ctx context.Context, projectID, id uuid.UUID) 
 	if snippet == nil {
 		return nil, ErrSnippetNotFound
 	}
-	return snippet, nil
-}
-
-func (uc *SnippetUseCase) GetAllByProjectID(ctx context.Context, projectID uuid.UUID, page, size int) (model.Page[model.Snippet], error) {
-	if err := ensureProjectExists(ctx, uc.projectRepo, projectID); err != nil {
-		return model.Page[model.Snippet]{}, err
+	tags, err := uc.itemTagRepo.FindTagsForItem(ctx, model.ItemTypeSnippet, projectID, id)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching tags for snippet: %w", err)
 	}
-	return uc.snippetRepo.FindAllByProjectID(ctx, projectID, page, size)
+	return mapSnippetToView(snippet, tags), nil
 }
 
-func (uc *SnippetUseCase) Update(ctx context.Context, cmd UpdateSnippetCommand) (*model.Snippet, error) {
+func (uc *SnippetUseCase) GetAllByProjectID(ctx context.Context, projectID uuid.UUID, page, size int) (model.Page[dto.SnippetView], error) {
+	if err := ensureProjectExists(ctx, uc.projectRepo, projectID); err != nil {
+		return model.Page[dto.SnippetView]{}, err
+	}
+	snippetPage, err := uc.snippetRepo.FindAllByProjectID(ctx, projectID, page, size)
+	if err != nil {
+		return model.Page[dto.SnippetView]{}, err
+	}
+	if len(snippetPage.Content) == 0 {
+		return model.NewPage([]dto.SnippetView{}, snippetPage.Number, snippetPage.Size, snippetPage.TotalElements), nil
+	}
+
+	snippetIDs := make([]uuid.UUID, len(snippetPage.Content))
+	for i, s := range snippetPage.Content {
+		snippetIDs[i] = s.ID
+	}
+
+	tagsMap, err := uc.itemTagRepo.FindTagsForItems(ctx, model.ItemTypeSnippet, projectID, snippetIDs)
+	if err != nil {
+		return model.Page[dto.SnippetView]{}, fmt.Errorf("error fetching tags for snippets: %w", err)
+	}
+
+	views := make([]dto.SnippetView, len(snippetPage.Content))
+	for i, s := range snippetPage.Content {
+		tags := tagsMap[s.ID]
+		views[i] = *mapSnippetToView(&s, tags)
+	}
+
+	return model.NewPage(views, snippetPage.Number, snippetPage.Size, snippetPage.TotalElements), nil
+}
+
+func (uc *SnippetUseCase) Update(ctx context.Context, cmd dto.UpdateSnippetCommand) (*dto.SnippetView, error) {
 	if err := ensureProjectExists(ctx, uc.projectRepo, cmd.ProjectID); err != nil {
 		return nil, err
 	}
@@ -119,7 +133,15 @@ func (uc *SnippetUseCase) Update(ctx context.Context, cmd UpdateSnippetCommand) 
 	}
 	now := time.Now()
 	snippet.UpdatedAt = &now
-	return uc.snippetRepo.Save(ctx, snippet)
+	saved, err := uc.snippetRepo.Save(ctx, snippet)
+	if err != nil {
+		return nil, err
+	}
+	tags, err := uc.itemTagRepo.FindTagsForItem(ctx, model.ItemTypeSnippet, cmd.ProjectID, cmd.ID)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching tags for snippet: %w", err)
+	}
+	return mapSnippetToView(saved, tags), nil
 }
 
 func (uc *SnippetUseCase) Delete(ctx context.Context, projectID, id uuid.UUID) error {
@@ -138,4 +160,27 @@ func (uc *SnippetUseCase) Delete(ctx context.Context, projectID, id uuid.UUID) e
 		return fmt.Errorf("error removing tags from snippet: %w", err)
 	}
 	return nil
+}
+
+func mapSnippetToView(snippet *model.Snippet, tags []model.Tag) *dto.SnippetView {
+	tagSummaries := make([]dto.TagSummary, len(tags))
+	for i, t := range tags {
+		tagSummaries[i] = dto.TagSummary{
+			ID:    t.ID,
+			Name:  t.Name,
+			Color: t.Color,
+		}
+	}
+	return &dto.SnippetView{
+		ID:          snippet.ID,
+		ProjectID:   snippet.ProjectID,
+		Title:       snippet.Title,
+		Description: snippet.Description,
+		Content:     snippet.Content,
+		Language:    snippet.Language,
+		SnippetType: snippet.SnippetType,
+		Tags:        tagSummaries,
+		CreatedAt:   &snippet.CreatedAt,
+		UpdatedAt:   snippet.UpdatedAt,
+	}
 }

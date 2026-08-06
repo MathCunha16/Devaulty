@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"devaulty-backend/internal/adapter/in/web/common"
+	"devaulty-backend/internal/dto"
 	"devaulty-backend/internal/usecase"
 
 	"github.com/gin-gonic/gin"
@@ -21,7 +22,7 @@ func NewProjectHandler(projectUseCase *usecase.ProjectUseCase) *ProjectHandler {
 }
 
 func (h *ProjectHandler) Create(c *gin.Context) {
-	var cmd usecase.CreateProjectCommand
+	var cmd dto.CreateProjectCommand
 	err := c.ShouldBindJSON(&cmd)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -91,7 +92,7 @@ func (h *ProjectHandler) Update(c *gin.Context) {
 		return
 	}
 
-	var cmd usecase.UpdateProjectCommand
+	var cmd dto.UpdateProjectCommand
 	err = c.ShouldBindJSON(&cmd)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{

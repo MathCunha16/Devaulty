@@ -2,6 +2,7 @@ package handler
 
 import (
 	"devaulty-backend/internal/adapter/in/web/common"
+	"devaulty-backend/internal/dto"
 	"devaulty-backend/internal/usecase"
 	"errors"
 	"fmt"
@@ -20,7 +21,7 @@ func NewTagHandler(tagUseCase *usecase.TagUseCase) *TagHandler {
 }
 
 func (h *TagHandler) Create(c *gin.Context) {
-	var cmd usecase.CreateTagCommand
+	var cmd dto.CreateTagCommand
 	err := c.ShouldBindJSON(&cmd)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -127,7 +128,7 @@ func (h *TagHandler) SearchByName(c *gin.Context) {
 }
 
 func (h *TagHandler) Update(c *gin.Context) {
-	var cmd usecase.UpdateTagCommand
+	var cmd dto.UpdateTagCommand
 	err := c.ShouldBindJSON(&cmd)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

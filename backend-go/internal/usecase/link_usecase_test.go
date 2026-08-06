@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"devaulty-backend/internal/domain/model"
+	"devaulty-backend/internal/dto"
 	"devaulty-backend/internal/usecase"
 
 	"github.com/google/uuid"
@@ -64,7 +65,7 @@ func TestLinkUseCase_Create_Success(t *testing.T) {
 	projectID := uuid.New()
 	desc := "Link description"
 
-	cmd := usecase.CreateLinkCommand{
+	cmd := dto.CreateLinkCommand{
 		ProjectID:   projectID,
 		Title:       "Go Documentation",
 		URL:         "https://go.dev/doc",
@@ -99,7 +100,7 @@ func TestLinkUseCase_Create_ProjectNotFound(t *testing.T) {
 	ctx := context.Background()
 
 	projectID := uuid.New()
-	cmd := usecase.CreateLinkCommand{
+	cmd := dto.CreateLinkCommand{
 		ProjectID: projectID,
 		Title:     "Go Documentation",
 		URL:       "https://go.dev/doc",
@@ -132,6 +133,7 @@ func TestLinkUseCase_GetByID_Success(t *testing.T) {
 
 	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 	mockLinkRepo.On("FindByIDAndProjectID", ctx, projectID, linkID).Return(expectedLink, nil)
+	mockItemTagRepo.On("FindTagsForItem", ctx, model.ItemTypeLink, projectID, linkID).Return([]model.Tag{}, nil)
 
 	result, err := uc.GetByID(ctx, projectID, linkID)
 
@@ -141,6 +143,7 @@ func TestLinkUseCase_GetByID_Success(t *testing.T) {
 	assert.Equal(t, projectID, result.ProjectID)
 	mockProjectRepo.AssertExpectations(t)
 	mockLinkRepo.AssertExpectations(t)
+	mockItemTagRepo.AssertExpectations(t)
 }
 
 func TestLinkUseCase_GetByID_ProjectNotFound(t *testing.T) {
@@ -191,13 +194,17 @@ func TestLinkUseCase_GetAllByProjectID_Success(t *testing.T) {
 	ctx := context.Background()
 
 	projectID := uuid.New()
+	link1ID := uuid.New()
+	link2ID := uuid.New()
+
 	expectedPage := model.NewPage([]model.Link{
-		{ID: uuid.New(), ProjectID: projectID, Title: "Link 1", Url: "https://link1.com"},
-		{ID: uuid.New(), ProjectID: projectID, Title: "Link 2", Url: "https://link2.com"},
+		{ID: link1ID, ProjectID: projectID, Title: "Link 1", Url: "https://link1.com"},
+		{ID: link2ID, ProjectID: projectID, Title: "Link 2", Url: "https://link2.com"},
 	}, 0, 10, 2)
 
 	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 	mockLinkRepo.On("FindAllByProjectID", ctx, projectID, 0, 10).Return(expectedPage, nil)
+	mockItemTagRepo.On("FindTagsForItems", ctx, model.ItemTypeLink, projectID, []uuid.UUID{link1ID, link2ID}).Return(map[uuid.UUID][]model.Tag{}, nil)
 
 	result, err := uc.GetAllByProjectID(ctx, projectID, 0, 10)
 
@@ -206,6 +213,7 @@ func TestLinkUseCase_GetAllByProjectID_Success(t *testing.T) {
 	assert.Equal(t, int64(2), result.TotalElements)
 	mockProjectRepo.AssertExpectations(t)
 	mockLinkRepo.AssertExpectations(t)
+	mockItemTagRepo.AssertExpectations(t)
 }
 
 func TestLinkUseCase_GetAllByProjectID_ProjectNotFound(t *testing.T) {
@@ -243,7 +251,7 @@ func TestLinkUseCase_Update_Success(t *testing.T) {
 	}
 
 	newTitle := "Updated Title"
-	cmd := usecase.UpdateLinkCommand{
+	cmd := dto.UpdateLinkCommand{
 		ProjectID: projectID,
 		ID:        linkID,
 		Title:     &newTitle,
@@ -259,6 +267,7 @@ func TestLinkUseCase_Update_Success(t *testing.T) {
 		Title:     "Updated Title",
 		Url:       "https://old-url.com",
 	}, nil)
+	mockItemTagRepo.On("FindTagsForItem", ctx, model.ItemTypeLink, projectID, linkID).Return([]model.Tag{}, nil)
 
 	updated, err := uc.Update(ctx, cmd)
 
@@ -267,6 +276,7 @@ func TestLinkUseCase_Update_Success(t *testing.T) {
 	assert.Equal(t, "Updated Title", updated.Title)
 	mockProjectRepo.AssertExpectations(t)
 	mockLinkRepo.AssertExpectations(t)
+	mockItemTagRepo.AssertExpectations(t)
 }
 
 func TestLinkUseCase_Update_ProjectNotFound(t *testing.T) {
@@ -279,7 +289,7 @@ func TestLinkUseCase_Update_ProjectNotFound(t *testing.T) {
 	projectID := uuid.New()
 	linkID := uuid.New()
 	newTitle := "Updated Title"
-	cmd := usecase.UpdateLinkCommand{
+	cmd := dto.UpdateLinkCommand{
 		ProjectID: projectID,
 		ID:        linkID,
 		Title:     &newTitle,
@@ -304,7 +314,7 @@ func TestLinkUseCase_Update_LinkNotFound(t *testing.T) {
 	projectID := uuid.New()
 	linkID := uuid.New()
 	newTitle := "Updated Title"
-	cmd := usecase.UpdateLinkCommand{
+	cmd := dto.UpdateLinkCommand{
 		ProjectID: projectID,
 		ID:        linkID,
 		Title:     &newTitle,

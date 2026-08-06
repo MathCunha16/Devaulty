@@ -77,6 +77,7 @@ func (uc *ItemTagUseCase) DisassociateTagFromItem(ctx context.Context, projectID
 
 }
 
+// useful methods for listing tags for a project
 func (uc *ItemTagUseCase) GetTagsForItem(ctx context.Context, projectID uuid.UUID, itemType model.ItemType, itemID uuid.UUID) ([]model.Tag, error) {
 	if err := ensureProjectExists(ctx, uc.projectRepo, projectID); err != nil {
 		return nil, err

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"devaulty-backend/internal/adapter/in/web/common"
+	"devaulty-backend/internal/dto"
 	"devaulty-backend/internal/usecase"
 	"errors"
 	"fmt"
@@ -20,7 +21,7 @@ func NewProblemHandler(problemUseCase *usecase.ProblemUseCase) *ProblemHandler {
 }
 
 func (h *ProblemHandler) Create(c *gin.Context) {
-	var cmd usecase.CreateProblemCommand
+	var cmd dto.CreateProblemCommand
 	err := c.ShouldBindJSON(&cmd)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -120,7 +121,7 @@ func (h *ProblemHandler) Update(c *gin.Context) {
 		return
 	}
 
-	var cmd usecase.UpdateProblemCommand
+	var cmd dto.UpdateProblemCommand
 	if err := c.ShouldBindJSON(&cmd); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -154,7 +155,7 @@ func (h *ProblemHandler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
-	var cmd usecase.UpdateProblemStatusCommand
+	var cmd dto.UpdateProblemStatusCommand
 	if err := c.ShouldBindJSON(&cmd); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

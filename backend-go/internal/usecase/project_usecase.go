@@ -4,6 +4,7 @@ import (
 	"context"
 	"devaulty-backend/internal/domain/model"
 	"devaulty-backend/internal/domain/port"
+	"devaulty-backend/internal/dto"
 	"errors"
 	"fmt"
 	"time"
@@ -21,26 +22,11 @@ type ProjectUseCase struct {
 	projectRepo port.ProjectRepository
 }
 
-type CreateProjectCommand struct {
-	Name        string  `json:"name" binding:"required,min=2,max=255"`
-	Description *string `json:"description,omitempty" binding:"omitempty,min=1,max=255"`
-	Icon        *string `json:"icon,omitempty" binding:"omitempty,max=100"`
-	Color       *string `json:"color,omitempty" binding:"omitempty,hexcolor"`
-}
-
-type UpdateProjectCommand struct {
-	ID          uuid.UUID // Is passed as a path variable in the controller
-	Name        *string   `json:"name,omitempty" binding:"omitempty,min=2,max=255"`
-	Description *string   `json:"description,omitempty" binding:"omitempty,min=1,max=255"`
-	Icon        *string   `json:"icon,omitempty" binding:"omitempty,max=100"`
-	Color       *string   `json:"color,omitempty" binding:"omitempty,hexcolor"`
-}
-
 func NewProjectUseCase(projectRepo port.ProjectRepository) *ProjectUseCase {
 	return &ProjectUseCase{projectRepo: projectRepo}
 }
 
-func (uc *ProjectUseCase) Create(ctx context.Context, cmd CreateProjectCommand) (*model.Project, error) {
+func (uc *ProjectUseCase) Create(ctx context.Context, cmd dto.CreateProjectCommand) (*model.Project, error) {
 	project := model.Project{
 		ID:          uuid.New(),
 		Name:        cmd.Name,
@@ -71,7 +57,7 @@ func (uc *ProjectUseCase) GetAll(ctx context.Context, page, size int) (model.Pag
 	return uc.projectRepo.FindAll(ctx, page, size)
 }
 
-func (uc *ProjectUseCase) Update(ctx context.Context, cmd UpdateProjectCommand) (*model.Project, error) {
+func (uc *ProjectUseCase) Update(ctx context.Context, cmd dto.UpdateProjectCommand) (*model.Project, error) {
 	project, err := uc.projectRepo.FindByID(ctx, cmd.ID)
 	if err != nil {
 		return nil, fmt.Errorf("error trying to find project: %w", err)

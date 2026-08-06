@@ -263,6 +263,10 @@ components:
           $ref: '#/components/schemas/SnippetLanguage'
         snippetType:
           $ref: '#/components/schemas/SnippetType'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
         createdAt:
           type: string
           format: date-time
@@ -382,6 +386,10 @@ components:
           type: string
           nullable: true
           example: "Official Go Documentation"
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
         createdAt:
           type: string
           format: date-time
@@ -507,6 +515,10 @@ components:
           $ref: '#/components/schemas/ProblemStatus'
         severity:
           $ref: '#/components/schemas/ProblemSeverity'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
         createdAt:
           type: string
           format: date-time
@@ -542,6 +554,10 @@ components:
           $ref: '#/components/schemas/ProblemStatus'
         severity:
           $ref: '#/components/schemas/ProblemSeverity'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
         createdAt:
           type: string
           format: date-time
@@ -637,6 +653,98 @@ components:
         totalPages:
           type: integer
           example: 1
+
+    ItemType:
+      type: string
+      enum:
+        - SNIPPET
+        - NOTE
+        - LINK
+        - PROBLEM
+        - CREDENTIAL
+      example: "SNIPPET"
+
+    TagSummary:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "06f891ae-368b-4bd6-b1e6-d957f1496f9a"
+        name:
+          type: string
+          example: "Go Backend"
+        color:
+          type: string
+          nullable: true
+          example: "#FF0000"
+
+    Tag:
+      type: object
+      required:
+        - id
+        - projectId
+        - name
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "06f891ae-368b-4bd6-b1e6-d957f1496f9a"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        name:
+          type: string
+          example: "Go Backend"
+        color:
+          type: string
+          nullable: true
+          example: "#FF0000"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-05T19:29:23.61280878-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-05T21:07:31.992077709-03:00"
+
+    CreateTagCommand:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 40
+          example: "Go Backend"
+        color:
+          type: string
+          nullable: true
+          pattern: "^#([A-Fa-f0-9]{3,4}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"
+          example: "#FF0000"
+
+    UpdateTagCommand:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 40
+          nullable: true
+          example: "Updated Tag Name"
+        color:
+          type: string
+          nullable: true
+          pattern: "^#([A-Fa-f0-9]{3,4}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"
+          example: "#00FF00"
 
 security:
   - ApiKeyAuth: []
@@ -1860,3 +1968,445 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/tags:
+    post:
+      summary: Create a new tag in a project
+      description: Creates a new tag linked to the specified project. Returns 400 if tag with same name already exists in project.
+      tags:
+        - Tags
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTagCommand'
+      responses:
+        '201':
+          description: Tag created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Relative URL path to the newly created tag
+              example: "/api/v1/projects/70d68fba-be62-46bb-8e6c-e4c4b6912e91/tags/06f891ae-368b-4bd6-b1e6-d957f1496f9a"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          description: Invalid JSON format, validation failure, or tag already exists in project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get all tags for a project
+      description: Fetches an unpaginated list of all tags for the specified project.
+      tags:
+        - Tags
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of tags retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/tags/search:
+    get:
+      summary: Search tags by name
+      description: Searches tags in a project by matching tag name prefix or substring.
+      tags:
+        - Tags
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: tag_name
+          in: query
+          description: Tag name search term
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Matching tags retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/tags/{tag_id}:
+    get:
+      summary: Get tag by ID
+      description: Retrieves a single tag entity by its UUID and parent project UUID.
+      tags:
+        - Tags
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: tag_id
+          in: path
+          description: Tag UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Tag details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Update tag (Partial Update)
+      description: Performs a partial update (PATCH) on tag fields (name, color). Returns 400 if updated name already exists in project.
+      tags:
+        - Tags
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: tag_id
+          in: path
+          description: Tag UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTagCommand'
+      responses:
+        '200':
+          description: Tag updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          description: Invalid UUID format, invalid JSON, or tag already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete tag by ID
+      description: Permanently deletes a tag by its UUID within a project.
+      tags:
+        - Tags
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: tag_id
+          in: path
+          description: Tag UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Tag deleted successfully (No Content)
+        '400':
+          description: Invalid UUID format or delete error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/items/{item_type}/{item_id}/tags/{tag_id}:
+    put:
+      summary: Associate tag to item
+      description: Associates an existing tag to an item (SNIPPET, NOTE, LINK, PROBLEM, CREDENTIAL) within a project.
+      tags:
+        - ItemTags
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: item_type
+          in: path
+          description: Type of item (SNIPPET, NOTE, LINK, PROBLEM, CREDENTIAL)
+          required: true
+          schema:
+            $ref: '#/components/schemas/ItemType'
+        - name: item_id
+          in: path
+          description: Target Item UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: tag_id
+          in: path
+          description: Tag UUID to associate
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Tag associated to item successfully (No Content)
+        '400':
+          description: Invalid UUID format or unsupported item type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project, Item, or Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Disassociate tag from item
+      description: Removes association between a tag and an item within a project.
+      tags:
+        - ItemTags
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: item_type
+          in: path
+          description: Type of item (SNIPPET, NOTE, LINK, PROBLEM, CREDENTIAL)
+          required: true
+          schema:
+            $ref: '#/components/schemas/ItemType'
+        - name: item_id
+          in: path
+          description: Target Item UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: tag_id
+          in: path
+          description: Tag UUID to disassociate
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Tag disassociated from item successfully (No Content)
+        '400':
+          description: Invalid UUID format or unsupported item type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project, Item, or Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"devaulty-backend/internal/domain/model"
+	"devaulty-backend/internal/dto"
 	"devaulty-backend/internal/usecase"
 
 	"github.com/google/uuid"
@@ -72,7 +73,7 @@ func TestTagUseCase_Create(t *testing.T) {
 	projectID := uuid.New()
 	color := "#FF0000"
 
-	cmd := usecase.CreateTagCommand{
+	cmd := dto.CreateTagCommand{
 		ProjectID: projectID,
 		Name:      "  Go Backend  ",
 		Color:     color,
@@ -361,7 +362,7 @@ func TestTagUseCase_Update(t *testing.T) {
 	newName := "Updated Tag Name"
 	newColor := "#00FF00"
 
-	cmd := usecase.UpdateTagCommand{
+	cmd := dto.UpdateTagCommand{
 		ID:        tagID,
 		ProjectID: projectID,
 		Name:      &newName,
@@ -407,7 +408,7 @@ func TestTagUseCase_Update(t *testing.T) {
 		}
 
 		sameNameUpper := "GOLANG"
-		updateCmd := usecase.UpdateTagCommand{
+		updateCmd := dto.UpdateTagCommand{
 			ID:        tagID,
 			ProjectID: projectID,
 			Name:      &sameNameUpper,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"devaulty-backend/internal/domain/model"
 	"devaulty-backend/internal/domain/port"
+	"devaulty-backend/internal/dto"
 	"errors"
 	"fmt"
 	"strings"
@@ -22,19 +23,6 @@ type TagUseCase struct {
 	projectRepo port.ProjectRepository
 }
 
-type CreateTagCommand struct {
-	ProjectID uuid.UUID
-	Name      string `json:"name" binding:"required,min=2,max=40"`
-	Color     string `json:"color" binding:"hexcolor"`
-}
-
-type UpdateTagCommand struct {
-	ID        uuid.UUID
-	ProjectID uuid.UUID
-	Name      *string `json:"name,omitempty" binding:"omitempty,min=1,max=40"`
-	Color     *string `json:"color,omitempty" binding:"omitempty,hexcolor"`
-}
-
 func NewTagUseCase(tagRepo port.TagRepository, projectRepo port.ProjectRepository) *TagUseCase {
 	return &TagUseCase{
 		tagRepo:     tagRepo,
@@ -42,7 +30,7 @@ func NewTagUseCase(tagRepo port.TagRepository, projectRepo port.ProjectRepositor
 	}
 }
 
-func (uc *TagUseCase) Create(ctx context.Context, cmd CreateTagCommand) (*model.Tag, error) {
+func (uc *TagUseCase) Create(ctx context.Context, cmd dto.CreateTagCommand) (*model.Tag, error) {
 	if err := ensureProjectExists(ctx, uc.projectRepo, cmd.ProjectID); err != nil {
 		return nil, err
 	}
@@ -97,7 +85,7 @@ func (uc *TagUseCase) SearchByName(ctx context.Context, projectID uuid.UUID, nam
 	return uc.tagRepo.SearchByNameAndProjectID(ctx, name, projectID)
 }
 
-func (uc *TagUseCase) Update(ctx context.Context, cmd UpdateTagCommand) (*model.Tag, error) {
+func (uc *TagUseCase) Update(ctx context.Context, cmd dto.UpdateTagCommand) (*model.Tag, error) {
 	if err := ensureProjectExists(ctx, uc.projectRepo, cmd.ProjectID); err != nil {
 		return nil, err
 	}
