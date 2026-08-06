@@ -456,6 +456,188 @@ components:
           type: integer
           example: 1
 
+    ProblemStatus:
+      type: string
+      enum:
+        - OPEN
+        - WORKING_ON
+        - RESOLVED
+        - WONT_FIX
+      example: "OPEN"
+
+    ProblemSeverity:
+      type: string
+      enum:
+        - LOW
+        - MEDIUM
+        - HIGH
+        - CRITICAL
+      example: "HIGH"
+
+    Problem:
+      type: object
+      required:
+        - id
+        - projectId
+        - title
+        - errorDescription
+        - status
+        - severity
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "24199dbd-36c4-43c6-aeb2-680155af8293"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        title:
+          type: string
+          example: "Database Connection Failure"
+        errorDescription:
+          type: string
+          example: "Connection refused at localhost:5432"
+        solution:
+          type: string
+          nullable: true
+          example: "Restart PostgreSQL database container"
+        status:
+          $ref: '#/components/schemas/ProblemStatus'
+        severity:
+          $ref: '#/components/schemas/ProblemSeverity'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-05T19:29:23.61280878-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-05T21:07:31.992077709-03:00"
+
+    ProblemSummary:
+      type: object
+      required:
+        - id
+        - projectId
+        - title
+        - status
+        - severity
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "24199dbd-36c4-43c6-aeb2-680155af8293"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        title:
+          type: string
+          example: "Database Connection Failure"
+        status:
+          $ref: '#/components/schemas/ProblemStatus'
+        severity:
+          $ref: '#/components/schemas/ProblemSeverity'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-05T19:29:23.61280878-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-05T21:07:31.992077709-03:00"
+
+    CreateProblemCommand:
+      type: object
+      required:
+        - title
+        - errorDescription
+        - status
+        - severity
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Database Connection Failure"
+        errorDescription:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Connection refused at localhost:5432"
+        solution:
+          type: string
+          minLength: 2
+          maxLength: 255
+          nullable: true
+          example: "Restart PostgreSQL database container"
+        status:
+          $ref: '#/components/schemas/ProblemStatus'
+        severity:
+          $ref: '#/components/schemas/ProblemSeverity'
+
+    UpdateProblemCommand:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Updated Problem Title"
+        errorDescription:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Updated error details"
+        solution:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Updated solution steps"
+        severity:
+          $ref: '#/components/schemas/ProblemSeverity'
+
+    UpdateProblemStatusCommand:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          $ref: '#/components/schemas/ProblemStatus'
+
+    ProblemSummaryPage:
+      type: object
+      required:
+        - content
+        - size
+        - number
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/ProblemSummary'
+        size:
+          type: integer
+          example: 10
+        number:
+          type: integer
+          example: 0
+        totalElements:
+          type: integer
+          format: int64
+          example: 1
+        totalPages:
+          type: integer
+          example: 1
+
 security:
   - ApiKeyAuth: []
 
@@ -1330,6 +1512,344 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Project or Link not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/problems:
+    post:
+      summary: Create a new problem in a project
+      description: Creates a new problem entity linked to the specified project.
+      tags:
+        - Problems
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProblemCommand'
+      responses:
+        '201':
+          description: Problem created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Relative URL path to the newly created problem
+              example: "/api/v1/projects/70d68fba-be62-46bb-8e6c-e4c4b6912e91/problems/24199dbd-36c4-43c6-aeb2-680155af8293"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '400':
+          description: Invalid JSON format or validation constraints failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get paginated list of problems for a project
+      description: Fetches a paginated list of problem summaries for the specified project ordered by creation date descending.
+      tags:
+        - Problems
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Zero-based page index
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Page size limit
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated list of problem summaries retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemSummaryPage'
+        '400':
+          description: Invalid query parameters or UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/problems/{problem_id}:
+    get:
+      summary: Get problem by ID
+      description: Retrieves a single problem entity by its UUID and parent project UUID.
+      tags:
+        - Problems
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: problem_id
+          in: path
+          description: Problem UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Problem details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Problem not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Update problem (Partial Update)
+      description: Performs a partial update (PATCH) on problem fields specified in the request body (title, errorDescription, solution, severity).
+      tags:
+        - Problems
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: problem_id
+          in: path
+          description: Problem UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProblemCommand'
+      responses:
+        '200':
+          description: Problem updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '400':
+          description: Invalid UUID format or invalid JSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Problem not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete problem by ID
+      description: Permanently deletes a problem by its UUID within a project.
+      tags:
+        - Problems
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: problem_id
+          in: path
+          description: Problem UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Problem deleted successfully (No Content)
+        '400':
+          description: Invalid UUID format or delete error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Problem not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/problems/{problem_id}/status:
+    patch:
+      summary: Update problem status
+      description: Updates problem status (OPEN, WORKING_ON, RESOLVED, WONT_FIX).
+      tags:
+        - Problems
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: problem_id
+          in: path
+          description: Problem UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProblemStatusCommand'
+      responses:
+        '200':
+          description: Problem status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '400':
+          description: Invalid UUID format or missing status field
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Problem not found
           content:
             application/json:
               schema:
