@@ -32,24 +32,38 @@ func main() {
 		devaultyInternalToken = "dev-token" // Default token for development
 	}
 
+	itemTagRepo := persistence.NewItemTagRepository(db)
+
 	projectRepo := persistence.NewProjectRepository(db)
 	projectUseCase := usecase.NewProjectUseCase(projectRepo)
 	projectHandler := handler.NewProjectHandler(projectUseCase)
+
 	snippetRepo := persistence.NewSnippetRepository(db)
-	snippetUseCase := usecase.NewSnippetUseCase(snippetRepo, projectRepo)
+	snippetUseCase := usecase.NewSnippetUseCase(snippetRepo, projectRepo, itemTagRepo)
 	snippetHandler := handler.NewSnippetHandler(snippetUseCase)
+
 	linkRepo := persistence.NewLinkRepository(db)
-	linkUseCase := usecase.NewLinkUseCase(linkRepo, projectRepo)
+	linkUseCase := usecase.NewLinkUseCase(linkRepo, projectRepo, itemTagRepo)
 	linkHandler := handler.NewLinkHandler(linkUseCase)
+
 	problemRepo := persistence.NewProblemRepository(db)
-	problemUseCase := usecase.NewProblemUseCase(problemRepo, projectRepo)
+	problemUseCase := usecase.NewProblemUseCase(problemRepo, projectRepo, itemTagRepo)
 	problemHandler := handler.NewProblemHandler(problemUseCase)
+
+	tagRepo := persistence.NewTagRepository(db)
+	tagUseCase := usecase.NewTagUseCase(tagRepo, projectRepo)
+	tagHandler := handler.NewTagHandler(tagUseCase)
+
+	itemTagUseCase := usecase.NewItemTagUseCase(itemTagRepo, tagRepo, projectRepo, snippetRepo, linkRepo, problemRepo)
+	itemTagHandler := handler.NewItemTagHandler(itemTagUseCase, tagUseCase, projectUseCase)
 
 	handlers := &web.Handlers{
 		Project: projectHandler,
 		Snippet: snippetHandler,
 		Link:    linkHandler,
 		Problem: problemHandler,
+		Tag:     tagHandler,
+		ItemTag: itemTagHandler,
 	}
 	r := web.SetupRouter(handlers, devaultyInternalToken)
 

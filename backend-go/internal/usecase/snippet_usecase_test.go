@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"devaulty-backend/internal/domain/model"
+	"devaulty-backend/internal/dto"
 	"devaulty-backend/internal/usecase"
 
 	"github.com/google/uuid"
@@ -57,14 +58,15 @@ func (m *MockSnippetRepository) FindExistingIDsByProjectID(ctx context.Context, 
 func TestSnippetUseCase_Create_Success(t *testing.T) {
 	mockSnippetRepo := new(MockSnippetRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
 	desc := "Snippet description"
 	lang := model.SnippetLangGo
 
-	cmd := usecase.CreateSnippetCommand{
+	cmd := dto.CreateSnippetCommand{
 		ProjectID:   projectID,
 		Title:       "Print Hello World",
 		Description: &desc,
@@ -98,11 +100,12 @@ func TestSnippetUseCase_Create_Success(t *testing.T) {
 func TestSnippetUseCase_Create_ProjectNotFound(t *testing.T) {
 	mockSnippetRepo := new(MockSnippetRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
-	cmd := usecase.CreateSnippetCommand{
+	cmd := dto.CreateSnippetCommand{
 		ProjectID:   projectID,
 		Title:       "Print Hello World",
 		Content:     `fmt.Println("Hello World")`,
@@ -122,7 +125,8 @@ func TestSnippetUseCase_Create_ProjectNotFound(t *testing.T) {
 func TestSnippetUseCase_GetByID_Success(t *testing.T) {
 	mockSnippetRepo := new(MockSnippetRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -135,6 +139,7 @@ func TestSnippetUseCase_GetByID_Success(t *testing.T) {
 
 	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 	mockSnippetRepo.On("FindByIDAndProjectID", ctx, projectID, snippetID).Return(expectedSnippet, nil)
+	mockItemTagRepo.On("FindTagsForItem", ctx, model.ItemTypeSnippet, projectID, snippetID).Return([]model.Tag{}, nil)
 
 	result, err := uc.GetByID(ctx, projectID, snippetID)
 
@@ -144,12 +149,14 @@ func TestSnippetUseCase_GetByID_Success(t *testing.T) {
 	assert.Equal(t, projectID, result.ProjectID)
 	mockProjectRepo.AssertExpectations(t)
 	mockSnippetRepo.AssertExpectations(t)
+	mockItemTagRepo.AssertExpectations(t)
 }
 
 func TestSnippetUseCase_GetByID_ProjectNotFound(t *testing.T) {
 	mockSnippetRepo := new(MockSnippetRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -167,7 +174,8 @@ func TestSnippetUseCase_GetByID_ProjectNotFound(t *testing.T) {
 func TestSnippetUseCase_GetByID_NotFound(t *testing.T) {
 	mockSnippetRepo := new(MockSnippetRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -187,17 +195,22 @@ func TestSnippetUseCase_GetByID_NotFound(t *testing.T) {
 func TestSnippetUseCase_GetAllByProjectID_Success(t *testing.T) {
 	mockSnippetRepo := new(MockSnippetRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
+	snip1ID := uuid.New()
+	snip2ID := uuid.New()
+
 	expectedPage := model.NewPage([]model.Snippet{
-		{ID: uuid.New(), ProjectID: projectID, Title: "Snippet 1"},
-		{ID: uuid.New(), ProjectID: projectID, Title: "Snippet 2"},
+		{ID: snip1ID, ProjectID: projectID, Title: "Snippet 1"},
+		{ID: snip2ID, ProjectID: projectID, Title: "Snippet 2"},
 	}, 0, 10, 2)
 
 	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 	mockSnippetRepo.On("FindAllByProjectID", ctx, projectID, 0, 10).Return(expectedPage, nil)
+	mockItemTagRepo.On("FindTagsForItems", ctx, model.ItemTypeSnippet, projectID, []uuid.UUID{snip1ID, snip2ID}).Return(map[uuid.UUID][]model.Tag{}, nil)
 
 	result, err := uc.GetAllByProjectID(ctx, projectID, 0, 10)
 
@@ -206,12 +219,14 @@ func TestSnippetUseCase_GetAllByProjectID_Success(t *testing.T) {
 	assert.Equal(t, int64(2), result.TotalElements)
 	mockProjectRepo.AssertExpectations(t)
 	mockSnippetRepo.AssertExpectations(t)
+	mockItemTagRepo.AssertExpectations(t)
 }
 
 func TestSnippetUseCase_GetAllByProjectID_ProjectNotFound(t *testing.T) {
 	mockSnippetRepo := new(MockSnippetRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -227,7 +242,8 @@ func TestSnippetUseCase_GetAllByProjectID_ProjectNotFound(t *testing.T) {
 func TestSnippetUseCase_Update_Success(t *testing.T) {
 	mockSnippetRepo := new(MockSnippetRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -241,7 +257,7 @@ func TestSnippetUseCase_Update_Success(t *testing.T) {
 	}
 
 	newTitle := "Updated Title"
-	cmd := usecase.UpdateSnippetCommand{
+	cmd := dto.UpdateSnippetCommand{
 		ProjectID: projectID,
 		ID:        snippetID,
 		Title:     &newTitle,
@@ -256,6 +272,7 @@ func TestSnippetUseCase_Update_Success(t *testing.T) {
 		ProjectID: projectID,
 		Title:     "Updated Title",
 	}, nil)
+	mockItemTagRepo.On("FindTagsForItem", ctx, model.ItemTypeSnippet, projectID, snippetID).Return([]model.Tag{}, nil)
 
 	updated, err := uc.Update(ctx, cmd)
 
@@ -264,18 +281,20 @@ func TestSnippetUseCase_Update_Success(t *testing.T) {
 	assert.Equal(t, "Updated Title", updated.Title)
 	mockProjectRepo.AssertExpectations(t)
 	mockSnippetRepo.AssertExpectations(t)
+	mockItemTagRepo.AssertExpectations(t)
 }
 
 func TestSnippetUseCase_Update_ProjectNotFound(t *testing.T) {
 	mockSnippetRepo := new(MockSnippetRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
 	snippetID := uuid.New()
 	newTitle := "Updated Title"
-	cmd := usecase.UpdateSnippetCommand{
+	cmd := dto.UpdateSnippetCommand{
 		ProjectID: projectID,
 		ID:        snippetID,
 		Title:     &newTitle,
@@ -293,13 +312,14 @@ func TestSnippetUseCase_Update_ProjectNotFound(t *testing.T) {
 func TestSnippetUseCase_Update_SnippetNotFound(t *testing.T) {
 	mockSnippetRepo := new(MockSnippetRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
 	snippetID := uuid.New()
 	newTitle := "Updated Title"
-	cmd := usecase.UpdateSnippetCommand{
+	cmd := dto.UpdateSnippetCommand{
 		ProjectID: projectID,
 		ID:        snippetID,
 		Title:     &newTitle,
@@ -319,7 +339,8 @@ func TestSnippetUseCase_Update_SnippetNotFound(t *testing.T) {
 func TestSnippetUseCase_Delete_Success(t *testing.T) {
 	mockSnippetRepo := new(MockSnippetRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -327,18 +348,21 @@ func TestSnippetUseCase_Delete_Success(t *testing.T) {
 
 	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 	mockSnippetRepo.On("DeleteByIDAndProjectID", ctx, projectID, snippetID).Return(true, nil)
+	mockItemTagRepo.On("RemoveAllTagsFromItem", ctx, model.ItemTypeSnippet, snippetID).Return(nil)
 
 	err := uc.Delete(ctx, projectID, snippetID)
 
 	assert.NoError(t, err)
 	mockProjectRepo.AssertExpectations(t)
 	mockSnippetRepo.AssertExpectations(t)
+	mockItemTagRepo.AssertExpectations(t)
 }
 
 func TestSnippetUseCase_Delete_ProjectNotFound(t *testing.T) {
 	mockSnippetRepo := new(MockSnippetRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -355,7 +379,8 @@ func TestSnippetUseCase_Delete_ProjectNotFound(t *testing.T) {
 func TestSnippetUseCase_Delete_SnippetNotFound(t *testing.T) {
 	mockSnippetRepo := new(MockSnippetRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewSnippetUseCase(mockSnippetRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()

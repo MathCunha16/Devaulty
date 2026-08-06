@@ -32,10 +32,10 @@ func (r *TagRepositoryAdapter) Save(ctx context.Context, tag *model.Tag) (*model
 	return tag, nil
 }
 
-func (r *TagRepositoryAdapter) FindByID(ctx context.Context, id uuid.UUID) (*model.Tag, error) {
-	query := `SELECT * FROM tags WHERE id = ?`
+func (r *TagRepositoryAdapter) FindByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) (*model.Tag, error) {
+	query := `SELECT * FROM tags WHERE id = ? AND project_id = ?`
 	var tag model.Tag
-	err := r.db.GetContext(ctx, &tag, query, id)
+	err := r.db.GetContext(ctx, &tag, query, id, projectID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -65,13 +65,17 @@ func (r *TagRepositoryAdapter) SearchByNameAndProjectID(ctx context.Context, nam
 	return tags, nil
 }
 
-func (r *TagRepositoryAdapter) DeleteByID(ctx context.Context, id uuid.UUID) error {
-	query := `DELETE FROM tags WHERE id = ?`
-	_, err := r.db.ExecContext(ctx, query, id)
+func (r *TagRepositoryAdapter) DeleteByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) (bool, error) {
+	query := `DELETE FROM tags WHERE id = ? AND project_id = ?`
+	res, err := r.db.ExecContext(ctx, query, id, projectID)
 	if err != nil {
-		return fmt.Errorf("error trying to delete tag: %w", err)
+		return false, fmt.Errorf("error trying to delete tag: %w", err)
 	}
-	return nil
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("error checking deleted rows: %w", err)
+	}
+	return rows > 0, nil
 }
 
 func (r *TagRepositoryAdapter) ExistsByNameAndProjectID(ctx context.Context, name string, projectID uuid.UUID) (bool, error) {

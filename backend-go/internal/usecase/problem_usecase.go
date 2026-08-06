@@ -4,8 +4,10 @@ import (
 	"context"
 	"devaulty-backend/internal/domain/model"
 	"devaulty-backend/internal/domain/port"
+	"devaulty-backend/internal/dto"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,40 +20,18 @@ var (
 type ProblemUseCase struct {
 	problemRepo port.ProblemRepository
 	projectRepo port.ProjectRepository
+	itemTagRepo port.ItemTagRepository
 }
 
-type CreateProblemCommand struct {
-	ProjectID        uuid.UUID
-	Title            string                `json:"title" binding:"required,min=2,max=255"`
-	ErrorDescription string                `json:"errorDescription" binding:"required,min=2,max=255"`
-	Solution         *string               `json:"solution,omitempty" binding:"omitempty,min=2,max=255"`
-	Status           model.ProblemStatus   `json:"status" binding:"required"`
-	Severity         model.ProblemSeverity `json:"severity" binding:"required"`
-}
-
-type UpdateProblemCommand struct {
-	ProjectID        uuid.UUID
-	ID               uuid.UUID
-	Title            *string                `json:"title,omitempty" binding:"omitempty,min=2,max=255"`
-	ErrorDescription *string                `json:"errorDescription,omitempty" binding:"omitempty,min=2,max=255"`
-	Solution         *string                `json:"solution,omitempty" binding:"omitempty,min=2,max=255"`
-	Severity         *model.ProblemSeverity `json:"severity,omitempty" binding:"omitempty"`
-}
-
-type UpdateProblemStatusCommand struct {
-	ProjectID uuid.UUID
-	ID        uuid.UUID
-	Status    model.ProblemStatus `json:"status" binding:"required"`
-}
-
-func NewProblemUseCase(problemRepo port.ProblemRepository, projectRepo port.ProjectRepository) *ProblemUseCase {
+func NewProblemUseCase(problemRepo port.ProblemRepository, projectRepo port.ProjectRepository, itemTagRepo port.ItemTagRepository) *ProblemUseCase {
 	return &ProblemUseCase{
 		problemRepo: problemRepo,
 		projectRepo: projectRepo,
+		itemTagRepo: itemTagRepo,
 	}
 }
 
-func (uc *ProblemUseCase) Create(ctx context.Context, cmd CreateProblemCommand) (*model.Problem, error) {
+func (uc *ProblemUseCase) Create(ctx context.Context, cmd dto.CreateProblemCommand) (*dto.ProblemView, error) {
 	if err := ensureProjectExists(ctx, uc.projectRepo, cmd.ProjectID); err != nil {
 		return nil, err
 	}
@@ -70,10 +50,14 @@ func (uc *ProblemUseCase) Create(ctx context.Context, cmd CreateProblemCommand) 
 		},
 	}
 
-	return uc.problemRepo.Save(ctx, &problem)
+	saved, err := uc.problemRepo.Save(ctx, &problem)
+	if err != nil {
+		return nil, err
+	}
+	return mapProblemToView(saved, nil), nil
 }
 
-func (uc *ProblemUseCase) GetByID(ctx context.Context, projectID, id uuid.UUID) (*model.Problem, error) {
+func (uc *ProblemUseCase) GetByID(ctx context.Context, projectID, id uuid.UUID) (*dto.ProblemView, error) {
 	if err := ensureProjectExists(ctx, uc.projectRepo, projectID); err != nil {
 		return nil, err
 	}
@@ -84,17 +68,62 @@ func (uc *ProblemUseCase) GetByID(ctx context.Context, projectID, id uuid.UUID) 
 	if problem == nil {
 		return nil, ErrProblemNotFound
 	}
-	return problem, nil
-}
-
-func (uc *ProblemUseCase) GetAllByProjectID(ctx context.Context, projectID uuid.UUID, page, size int) (model.Page[port.ProblemSummary], error) {
-	if err := ensureProjectExists(ctx, uc.projectRepo, projectID); err != nil {
-		return model.Page[port.ProblemSummary]{}, err
+	tags, err := uc.itemTagRepo.FindTagsForItem(ctx, model.ItemTypeProblem, projectID, id)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching tags for problem: %w", err)
 	}
-	return uc.problemRepo.FindAllByProjectID(ctx, projectID, page, size)
+	return mapProblemToView(problem, tags), nil
 }
 
-func (uc *ProblemUseCase) Update(ctx context.Context, cmd UpdateProblemCommand) (*model.Problem, error) {
+func (uc *ProblemUseCase) GetAllByProjectID(ctx context.Context, projectID uuid.UUID, page, size int) (model.Page[dto.ProblemSummary], error) {
+	if err := ensureProjectExists(ctx, uc.projectRepo, projectID); err != nil {
+		return model.Page[dto.ProblemSummary]{}, err
+	}
+	problemPage, err := uc.problemRepo.FindAllByProjectID(ctx, projectID, page, size)
+	if err != nil {
+		return model.Page[dto.ProblemSummary]{}, err
+	}
+	if len(problemPage.Content) == 0 {
+		return model.NewPage([]dto.ProblemSummary{}, problemPage.Number, problemPage.Size, problemPage.TotalElements), nil
+	}
+
+	problemIDs := make([]uuid.UUID, len(problemPage.Content))
+	for i, p := range problemPage.Content {
+		problemIDs[i] = p.ID
+	}
+
+	tagsMap, err := uc.itemTagRepo.FindTagsForItems(ctx, model.ItemTypeProblem, projectID, problemIDs)
+	if err != nil {
+		return model.Page[dto.ProblemSummary]{}, fmt.Errorf("error fetching tags for problems: %w", err)
+	}
+
+	summaries := make([]dto.ProblemSummary, len(problemPage.Content))
+	for i, p := range problemPage.Content {
+		tags := tagsMap[p.ID]
+		tagSummaries := make([]dto.TagSummary, len(tags))
+		for j, t := range tags {
+			tagSummaries[j] = dto.TagSummary{
+				ID:    t.ID,
+				Name:  t.Name,
+				Color: t.Color,
+			}
+		}
+		summaries[i] = dto.ProblemSummary{
+			ID:        p.ID,
+			ProjectID: p.ProjectID,
+			Title:     p.Title,
+			Status:    p.Status,
+			Severity:  p.Severity,
+			Tags:      tagSummaries,
+			CreatedAt: &p.CreatedAt,
+			UpdatedAt: p.UpdatedAt,
+		}
+	}
+
+	return model.NewPage(summaries, problemPage.Number, problemPage.Size, problemPage.TotalElements), nil
+}
+
+func (uc *ProblemUseCase) Update(ctx context.Context, cmd dto.UpdateProblemCommand) (*dto.ProblemView, error) {
 	if err := ensureProjectExists(ctx, uc.projectRepo, cmd.ProjectID); err != nil {
 		return nil, err
 	}
@@ -120,10 +149,18 @@ func (uc *ProblemUseCase) Update(ctx context.Context, cmd UpdateProblemCommand) 
 	}
 	now := time.Now()
 	problem.UpdatedAt = &now
-	return uc.problemRepo.Save(ctx, problem)
+	saved, err := uc.problemRepo.Save(ctx, problem)
+	if err != nil {
+		return nil, err
+	}
+	tags, err := uc.itemTagRepo.FindTagsForItem(ctx, model.ItemTypeProblem, cmd.ProjectID, cmd.ID)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching tags for problem: %w", err)
+	}
+	return mapProblemToView(saved, tags), nil
 }
 
-func (uc *ProblemUseCase) UpdateStatus(ctx context.Context, cmd UpdateProblemStatusCommand) (*model.Problem, error) {
+func (uc *ProblemUseCase) UpdateStatus(ctx context.Context, cmd dto.UpdateProblemStatusCommand) (*dto.ProblemView, error) {
 	if err := ensureProjectExists(ctx, uc.projectRepo, cmd.ProjectID); err != nil {
 		return nil, err
 	}
@@ -138,7 +175,15 @@ func (uc *ProblemUseCase) UpdateStatus(ctx context.Context, cmd UpdateProblemSta
 	problem.Status = cmd.Status
 	now := time.Now()
 	problem.UpdatedAt = &now
-	return uc.problemRepo.Save(ctx, problem)
+	saved, err := uc.problemRepo.Save(ctx, problem)
+	if err != nil {
+		return nil, err
+	}
+	tags, err := uc.itemTagRepo.FindTagsForItem(ctx, model.ItemTypeProblem, cmd.ProjectID, cmd.ID)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching tags for problem: %w", err)
+	}
+	return mapProblemToView(saved, tags), nil
 }
 
 func (uc *ProblemUseCase) Delete(ctx context.Context, projectID, id uuid.UUID) error {
@@ -153,5 +198,32 @@ func (uc *ProblemUseCase) Delete(ctx context.Context, projectID, id uuid.UUID) e
 	if !deleted {
 		return ErrProblemNotFound
 	}
+
+	if err := uc.itemTagRepo.RemoveAllTagsFromItem(ctx, model.ItemTypeProblem, id); err != nil {
+		log.Printf("warning: failed to remove tags from problem %s: %v", id, err)
+	}
 	return nil
+}
+
+func mapProblemToView(problem *model.Problem, tags []model.Tag) *dto.ProblemView {
+	tagSummaries := make([]dto.TagSummary, len(tags))
+	for i, t := range tags {
+		tagSummaries[i] = dto.TagSummary{
+			ID:    t.ID,
+			Name:  t.Name,
+			Color: t.Color,
+		}
+	}
+	return &dto.ProblemView{
+		ID:               problem.ID,
+		ProjectID:        problem.ProjectID,
+		Title:            problem.Title,
+		ErrorDescription: problem.ErrorDescription,
+		Solution:         problem.Solution,
+		Status:           problem.Status,
+		Severity:         problem.Severity,
+		Tags:             tagSummaries,
+		CreatedAt:        &problem.CreatedAt,
+		UpdatedAt:        problem.UpdatedAt,
+	}
 }

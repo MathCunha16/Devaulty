@@ -12,22 +12,21 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type ProblemHandler struct {
-	problemUseCase *usecase.ProblemUseCase
+type TagHandler struct {
+	tagUseCase *usecase.TagUseCase
 }
 
-func NewProblemHandler(problemUseCase *usecase.ProblemUseCase) *ProblemHandler {
-	return &ProblemHandler{problemUseCase: problemUseCase}
+func NewTagHandler(tagUseCase *usecase.TagUseCase) *TagHandler {
+	return &TagHandler{tagUseCase: tagUseCase}
 }
 
-func (h *ProblemHandler) Create(c *gin.Context) {
-	var cmd dto.CreateProblemCommand
+func (h *TagHandler) Create(c *gin.Context) {
+	var cmd dto.CreateTagCommand
 	err := c.ShouldBindJSON(&cmd)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	projectID, err := common.ExtractUUIDParam(c, "project_id")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -35,168 +34,157 @@ func (h *ProblemHandler) Create(c *gin.Context) {
 	}
 	cmd.ProjectID = projectID
 
-	problem, err := h.problemUseCase.Create(c.Request.Context(), cmd)
+	tag, err := h.tagUseCase.Create(c.Request.Context(), cmd)
 	if err != nil {
 		if errors.Is(err, usecase.ErrProjectNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
+		if errors.Is(err, usecase.ErrTagAlreadyExists) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		log.Printf("[TagHandler.Create] %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
-	location := fmt.Sprintf("%s/%s", c.Request.URL.Path, problem.ID)
+	location := fmt.Sprintf("%s/%s", c.Request.URL.Path, tag.ID)
 	c.Header("Location", location)
-	c.JSON(http.StatusCreated, problem)
+	c.JSON(http.StatusCreated, tag)
 }
 
-func (h *ProblemHandler) GetAll(c *gin.Context) {
-	var query common.PaginationQuery
-	if err := c.ShouldBindQuery(&query); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
+func (h *TagHandler) GetAll(c *gin.Context) {
 	projectID, err := common.ExtractUUIDParam(c, "project_id")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	paginatedProblems, err := h.problemUseCase.GetAllByProjectID(c.Request.Context(), projectID, query.PageNumber, query.PageSize)
+	tags, err := h.tagUseCase.GetAllByProjectID(c.Request.Context(), projectID)
 	if err != nil {
 		if errors.Is(err, usecase.ErrProjectNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		log.Printf("[ProblemHandler.GetAll] %v", err)
+		log.Printf("[TagHandler.GetAll] %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
-	c.JSON(http.StatusOK, paginatedProblems)
+
+	c.JSON(http.StatusOK, tags)
 }
 
-func (h *ProblemHandler) Get(c *gin.Context) {
+func (h *TagHandler) Get(c *gin.Context) {
 	projectID, err := common.ExtractUUIDParam(c, "project_id")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	id, err := common.ExtractUUIDParam(c, "problem_id")
+
+	id, err := common.ExtractUUIDParam(c, "tag_id")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	problem, err := h.problemUseCase.GetByID(c.Request.Context(), projectID, id)
+	tag, err := h.tagUseCase.GetByID(c.Request.Context(), projectID, id)
 	if err != nil {
-		if errors.Is(err, usecase.ErrProjectNotFound) || errors.Is(err, usecase.ErrProblemNotFound) {
+		if errors.Is(err, usecase.ErrProjectNotFound) || errors.Is(err, usecase.ErrTagNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		log.Printf("[ProblemHandler.Get] %v", err)
+		log.Printf("[TagHandler.Get] %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
-	if problem == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Problem not found"})
+
+	if tag == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Tag not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, problem)
+	c.JSON(http.StatusOK, tag)
 }
 
-func (h *ProblemHandler) Update(c *gin.Context) {
+func (h *TagHandler) SearchByName(c *gin.Context) {
 	projectID, err := common.ExtractUUIDParam(c, "project_id")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	name := c.Query("tag_name")
+	tags, err := h.tagUseCase.SearchByName(c.Request.Context(), projectID, name)
+	if err != nil {
+		if errors.Is(err, usecase.ErrProjectNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		log.Printf("[TagHandler.SearchByName] %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
 
-	id, err := common.ExtractUUIDParam(c, "problem_id")
+	c.JSON(http.StatusOK, tags)
+}
+
+func (h *TagHandler) Update(c *gin.Context) {
+	var cmd dto.UpdateTagCommand
+	err := c.ShouldBindJSON(&cmd)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	var cmd dto.UpdateProblemCommand
-	if err := c.ShouldBindJSON(&cmd); err != nil {
+	projectID, err := common.ExtractUUIDParam(c, "project_id")
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	cmd.ProjectID = projectID
+	id, err := common.ExtractUUIDParam(c, "tag_id")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	cmd.ID = id
-
-	problem, err := h.problemUseCase.Update(c.Request.Context(), cmd)
-	if err != nil {
-		if errors.Is(err, usecase.ErrProjectNotFound) || errors.Is(err, usecase.ErrProblemNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-			return
-		}
-		log.Printf("[ProblemHandler.Update] %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
-		return
-	}
-
-	c.JSON(http.StatusOK, problem)
-}
-
-func (h *ProblemHandler) UpdateStatus(c *gin.Context) {
-	projectID, err := common.ExtractUUIDParam(c, "project_id")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	id, err := common.ExtractUUIDParam(c, "problem_id")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	var cmd dto.UpdateProblemStatusCommand
-	if err := c.ShouldBindJSON(&cmd); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
 	cmd.ProjectID = projectID
-	cmd.ID = id
 
-	problem, err := h.problemUseCase.UpdateStatus(c.Request.Context(), cmd)
+	tag, err := h.tagUseCase.Update(c.Request.Context(), cmd)
 	if err != nil {
-		if errors.Is(err, usecase.ErrProjectNotFound) || errors.Is(err, usecase.ErrProblemNotFound) {
+		if errors.Is(err, usecase.ErrProjectNotFound) || errors.Is(err, usecase.ErrTagNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		log.Printf("[ProblemHandler.UpdateStatus] %v", err)
+		if errors.Is(err, usecase.ErrTagAlreadyExists) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		log.Printf("[TagHandler.Update] %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
-	c.JSON(http.StatusOK, problem)
+	c.JSON(http.StatusOK, tag)
 }
 
-func (h *ProblemHandler) Delete(c *gin.Context) {
+func (h *TagHandler) Delete(c *gin.Context) {
 	projectID, err := common.ExtractUUIDParam(c, "project_id")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	id, err := common.ExtractUUIDParam(c, "problem_id")
+	id, err := common.ExtractUUIDParam(c, "tag_id")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err = h.problemUseCase.Delete(c.Request.Context(), projectID, id)
+	err = h.tagUseCase.Delete(c.Request.Context(), projectID, id)
 	if err != nil {
-		if errors.Is(err, usecase.ErrProjectNotFound) || errors.Is(err, usecase.ErrProblemNotFound) {
+		if errors.Is(err, usecase.ErrProjectNotFound) || errors.Is(err, usecase.ErrTagNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		log.Printf("[ProblemHandler.Delete] %v", err)
+		log.Printf("[TagHandler.Delete] %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}

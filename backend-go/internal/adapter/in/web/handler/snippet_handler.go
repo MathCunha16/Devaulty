@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"devaulty-backend/internal/adapter/in/web/common"
+	"devaulty-backend/internal/dto"
 	"devaulty-backend/internal/usecase"
 
 	"github.com/gin-gonic/gin"
@@ -21,7 +22,7 @@ func NewSnippetHandler(snippetUseCase *usecase.SnippetUseCase) *SnippetHandler {
 }
 
 func (h *SnippetHandler) Create(c *gin.Context) {
-	var cmd usecase.CreateSnippetCommand
+	var cmd dto.CreateSnippetCommand
 	err := c.ShouldBindJSON(&cmd)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -124,7 +125,7 @@ func (h *SnippetHandler) Update(c *gin.Context) {
 		return
 	}
 
-	var cmd usecase.UpdateSnippetCommand
+	var cmd dto.UpdateSnippetCommand
 	err = c.ShouldBindJSON(&cmd)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

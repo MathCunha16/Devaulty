@@ -6,6 +6,7 @@ import (
 
 	"devaulty-backend/internal/domain/model"
 	"devaulty-backend/internal/domain/port"
+	"devaulty-backend/internal/dto"
 	"devaulty-backend/internal/usecase"
 
 	"github.com/google/uuid"
@@ -58,13 +59,14 @@ func (m *MockProblemRepository) FindExistingIDsByProjectID(ctx context.Context, 
 func TestProblemUseCase_Create_Success(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
 	solution := "Restart database service"
 
-	cmd := usecase.CreateProblemCommand{
+	cmd := dto.CreateProblemCommand{
 		ProjectID:        projectID,
 		Title:            "Connection Refused",
 		ErrorDescription: "Failed to connect to database at localhost:5432",
@@ -99,11 +101,12 @@ func TestProblemUseCase_Create_Success(t *testing.T) {
 func TestProblemUseCase_Create_ProjectNotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
-	cmd := usecase.CreateProblemCommand{
+	cmd := dto.CreateProblemCommand{
 		ProjectID:        projectID,
 		Title:            "Connection Refused",
 		ErrorDescription: "Failed to connect",
@@ -123,7 +126,8 @@ func TestProblemUseCase_Create_ProjectNotFound(t *testing.T) {
 func TestProblemUseCase_GetByID_Success(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -139,6 +143,7 @@ func TestProblemUseCase_GetByID_Success(t *testing.T) {
 
 	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 	mockProblemRepo.On("FindByIDAndProjectID", ctx, projectID, problemID).Return(expectedProblem, nil)
+	mockItemTagRepo.On("FindTagsForItem", ctx, model.ItemTypeProblem, projectID, problemID).Return([]model.Tag{}, nil)
 
 	result, err := uc.GetByID(ctx, projectID, problemID)
 
@@ -149,12 +154,14 @@ func TestProblemUseCase_GetByID_Success(t *testing.T) {
 	assert.Equal(t, model.ProblemSeverityCritical, result.Severity)
 	mockProjectRepo.AssertExpectations(t)
 	mockProblemRepo.AssertExpectations(t)
+	mockItemTagRepo.AssertExpectations(t)
 }
 
 func TestProblemUseCase_GetByID_ProjectNotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -172,7 +179,8 @@ func TestProblemUseCase_GetByID_ProjectNotFound(t *testing.T) {
 func TestProblemUseCase_GetByID_NotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -192,17 +200,22 @@ func TestProblemUseCase_GetByID_NotFound(t *testing.T) {
 func TestProblemUseCase_GetAllByProjectID_Success(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
+	p1ID := uuid.New()
+	p2ID := uuid.New()
+
 	expectedPage := model.NewPage([]port.ProblemSummary{
-		{ID: uuid.New(), ProjectID: projectID, Title: "Problem 1", Severity: model.ProblemSeverityLow},
-		{ID: uuid.New(), ProjectID: projectID, Title: "Problem 2", Severity: model.ProblemSeverityMedium},
+		{ID: p1ID, ProjectID: projectID, Title: "Problem 1", Severity: model.ProblemSeverityLow},
+		{ID: p2ID, ProjectID: projectID, Title: "Problem 2", Severity: model.ProblemSeverityMedium},
 	}, 0, 10, 2)
 
 	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 	mockProblemRepo.On("FindAllByProjectID", ctx, projectID, 0, 10).Return(expectedPage, nil)
+	mockItemTagRepo.On("FindTagsForItems", ctx, model.ItemTypeProblem, projectID, []uuid.UUID{p1ID, p2ID}).Return(map[uuid.UUID][]model.Tag{}, nil)
 
 	result, err := uc.GetAllByProjectID(ctx, projectID, 0, 10)
 
@@ -211,12 +224,14 @@ func TestProblemUseCase_GetAllByProjectID_Success(t *testing.T) {
 	assert.Equal(t, int64(2), result.TotalElements)
 	mockProjectRepo.AssertExpectations(t)
 	mockProblemRepo.AssertExpectations(t)
+	mockItemTagRepo.AssertExpectations(t)
 }
 
 func TestProblemUseCase_GetAllByProjectID_ProjectNotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -232,7 +247,8 @@ func TestProblemUseCase_GetAllByProjectID_ProjectNotFound(t *testing.T) {
 func TestProblemUseCase_Update_Success(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -249,7 +265,7 @@ func TestProblemUseCase_Update_Success(t *testing.T) {
 
 	newTitle := "Updated Title"
 	newSeverity := model.ProblemSeverityCritical
-	cmd := usecase.UpdateProblemCommand{
+	cmd := dto.UpdateProblemCommand{
 		ProjectID: projectID,
 		ID:        problemID,
 		Title:     &newTitle,
@@ -266,6 +282,7 @@ func TestProblemUseCase_Update_Success(t *testing.T) {
 		Title:     "Updated Title",
 		Severity:  model.ProblemSeverityCritical,
 	}, nil)
+	mockItemTagRepo.On("FindTagsForItem", ctx, model.ItemTypeProblem, projectID, problemID).Return([]model.Tag{}, nil)
 
 	updated, err := uc.Update(ctx, cmd)
 
@@ -275,18 +292,20 @@ func TestProblemUseCase_Update_Success(t *testing.T) {
 	assert.Equal(t, model.ProblemSeverityCritical, updated.Severity)
 	mockProjectRepo.AssertExpectations(t)
 	mockProblemRepo.AssertExpectations(t)
+	mockItemTagRepo.AssertExpectations(t)
 }
 
 func TestProblemUseCase_Update_ProjectNotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
 	problemID := uuid.New()
 	newTitle := "Updated Title"
-	cmd := usecase.UpdateProblemCommand{
+	cmd := dto.UpdateProblemCommand{
 		ProjectID: projectID,
 		ID:        problemID,
 		Title:     &newTitle,
@@ -304,13 +323,14 @@ func TestProblemUseCase_Update_ProjectNotFound(t *testing.T) {
 func TestProblemUseCase_Update_ProblemNotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
 	problemID := uuid.New()
 	newTitle := "Updated Title"
-	cmd := usecase.UpdateProblemCommand{
+	cmd := dto.UpdateProblemCommand{
 		ProjectID: projectID,
 		ID:        problemID,
 		Title:     &newTitle,
@@ -330,7 +350,8 @@ func TestProblemUseCase_Update_ProblemNotFound(t *testing.T) {
 func TestProblemUseCase_UpdateStatus_Success(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -343,7 +364,7 @@ func TestProblemUseCase_UpdateStatus_Success(t *testing.T) {
 		Status:    model.ProblemStatusOpen,
 	}
 
-	cmd := usecase.UpdateProblemStatusCommand{
+	cmd := dto.UpdateProblemStatusCommand{
 		ProjectID: projectID,
 		ID:        problemID,
 		Status:    model.ProblemStatusResolved,
@@ -359,6 +380,7 @@ func TestProblemUseCase_UpdateStatus_Success(t *testing.T) {
 		Title:     "Sample Problem",
 		Status:    model.ProblemStatusResolved,
 	}, nil)
+	mockItemTagRepo.On("FindTagsForItem", ctx, model.ItemTypeProblem, projectID, problemID).Return([]model.Tag{}, nil)
 
 	updated, err := uc.UpdateStatus(ctx, cmd)
 
@@ -367,18 +389,20 @@ func TestProblemUseCase_UpdateStatus_Success(t *testing.T) {
 	assert.Equal(t, model.ProblemStatusResolved, updated.Status)
 	mockProjectRepo.AssertExpectations(t)
 	mockProblemRepo.AssertExpectations(t)
+	mockItemTagRepo.AssertExpectations(t)
 }
 
 func TestProblemUseCase_UpdateStatus_ProjectNotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
 	problemID := uuid.New()
 
-	cmd := usecase.UpdateProblemStatusCommand{
+	cmd := dto.UpdateProblemStatusCommand{
 		ProjectID: projectID,
 		ID:        problemID,
 		Status:    model.ProblemStatusResolved,
@@ -396,13 +420,14 @@ func TestProblemUseCase_UpdateStatus_ProjectNotFound(t *testing.T) {
 func TestProblemUseCase_UpdateStatus_ProblemNotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
 	problemID := uuid.New()
 
-	cmd := usecase.UpdateProblemStatusCommand{
+	cmd := dto.UpdateProblemStatusCommand{
 		ProjectID: projectID,
 		ID:        problemID,
 		Status:    model.ProblemStatusResolved,
@@ -422,7 +447,8 @@ func TestProblemUseCase_UpdateStatus_ProblemNotFound(t *testing.T) {
 func TestProblemUseCase_Delete_Success(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -430,18 +456,21 @@ func TestProblemUseCase_Delete_Success(t *testing.T) {
 
 	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 	mockProblemRepo.On("DeleteByIDAndProjectID", ctx, projectID, problemID).Return(true, nil)
+	mockItemTagRepo.On("RemoveAllTagsFromItem", ctx, model.ItemTypeProblem, problemID).Return(nil)
 
 	err := uc.Delete(ctx, projectID, problemID)
 
 	assert.NoError(t, err)
 	mockProjectRepo.AssertExpectations(t)
 	mockProblemRepo.AssertExpectations(t)
+	mockItemTagRepo.AssertExpectations(t)
 }
 
 func TestProblemUseCase_Delete_ProjectNotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()
@@ -458,7 +487,8 @@ func TestProblemUseCase_Delete_ProjectNotFound(t *testing.T) {
 func TestProblemUseCase_Delete_ProblemNotFound(t *testing.T) {
 	mockProblemRepo := new(MockProblemRepository)
 	mockProjectRepo := new(MockProjectRepository)
-	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewProblemUseCase(mockProblemRepo, mockProjectRepo, mockItemTagRepo)
 	ctx := context.Background()
 
 	projectID := uuid.New()

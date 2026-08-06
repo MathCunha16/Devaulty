@@ -2,6 +2,7 @@ package handler
 
 import (
 	"devaulty-backend/internal/adapter/in/web/common"
+	"devaulty-backend/internal/dto"
 	"devaulty-backend/internal/usecase"
 	"errors"
 	"fmt"
@@ -20,7 +21,7 @@ func NewLinkHandler(linkUseCase *usecase.LinkUseCase) *LinkHandler {
 }
 
 func (h *LinkHandler) Create(c *gin.Context) {
-	var cmd usecase.CreateLinkCommand
+	var cmd dto.CreateLinkCommand
 	err := c.ShouldBindJSON(&cmd)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -116,7 +117,7 @@ func (h *LinkHandler) Update(c *gin.Context) {
 		return
 	}
 
-	var cmd usecase.UpdateLinkCommand
+	var cmd dto.UpdateLinkCommand
 	err = c.ShouldBindJSON(&cmd)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

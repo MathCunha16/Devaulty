@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"devaulty-backend/internal/domain/model"
+	"devaulty-backend/internal/dto"
 	"devaulty-backend/internal/usecase"
 
 	"github.com/google/uuid"
@@ -55,7 +56,7 @@ func TestProjectUseCase_Create_Success(t *testing.T) {
 	ctx := context.Background()
 
 	desc := "Project description"
-	cmd := usecase.CreateProjectCommand{
+	cmd := dto.CreateProjectCommand{
 		Name:        "Devaulty Go",
 		Description: &desc,
 	}
@@ -146,7 +147,7 @@ func TestProjectUseCase_Update_Success(t *testing.T) {
 	}
 
 	newName := "Updated Name"
-	cmd := usecase.UpdateProjectCommand{
+	cmd := dto.UpdateProjectCommand{
 		ID:   projectID,
 		Name: &newName,
 	}
@@ -174,7 +175,7 @@ func TestProjectUseCase_Update_NotFound(t *testing.T) {
 	projectID := uuid.New()
 
 	newName := "Updated Name"
-	cmd := usecase.UpdateProjectCommand{
+	cmd := dto.UpdateProjectCommand{
 		ID:   projectID,
 		Name: &newName,
 	}
