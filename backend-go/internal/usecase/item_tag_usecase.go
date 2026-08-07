@@ -28,6 +28,7 @@ func NewItemTagUseCase(
 	snippetRepo port.SnippetRepository,
 	linkRepo port.LinkRepository,
 	problemRepo port.ProblemRepository,
+	noteRepo port.NoteRepository,
 ) *ItemTagUseCase {
 	return &ItemTagUseCase{
 		itemTagRepo: itemTagRepo,
@@ -37,6 +38,7 @@ func NewItemTagUseCase(
 			model.ItemTypeSnippet: snippetRepo,
 			model.ItemTypeLink:    linkRepo,
 			model.ItemTypeProblem: problemRepo,
+			model.ItemTypeNote:    noteRepo,
 		},
 	}
 }
