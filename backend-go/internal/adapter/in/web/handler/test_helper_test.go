@@ -46,6 +46,8 @@ func SetupTestApp(t *testing.T) *TestApp {
 	tagHandler := handler.NewTagHandler(tagUseCase)
 
 	noteRepo := persistence.NewNoteRepository(db)
+	noteUseCase := usecase.NewNoteUseCase(noteRepo, projectRepo, itemTagRepo)
+	noteHandler := handler.NewNoteHandler(noteUseCase)
 
 	itemTagUseCase := usecase.NewItemTagUseCase(itemTagRepo, tagRepo, projectRepo, snippetRepo, linkRepo, problemRepo, noteRepo)
 	itemTagHandler := handler.NewItemTagHandler(itemTagUseCase, tagUseCase, projectUseCase)
@@ -55,6 +57,7 @@ func SetupTestApp(t *testing.T) *TestApp {
 		Snippet: snippetHandler,
 		Link:    linkHandler,
 		Problem: problemHandler,
+		Note:    noteHandler,
 		Tag:     tagHandler,
 		ItemTag: itemTagHandler,
 	}

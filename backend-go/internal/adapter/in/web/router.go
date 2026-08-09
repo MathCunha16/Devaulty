@@ -15,6 +15,7 @@ type Handlers struct {
 	Snippet *handler.SnippetHandler
 	Link    *handler.LinkHandler
 	Problem *handler.ProblemHandler
+	Note    *handler.NoteHandler
 	Tag     *handler.TagHandler
 	ItemTag *handler.ItemTagHandler
 }
@@ -38,6 +39,7 @@ func SetupRouter(h *Handlers, apiToken string) *gin.Engine {
 			mapSnippetRoutes(protected, h.Snippet)
 			mapLinkRoutes(protected, h.Link)
 			mapProblemRoutes(protected, h.Problem)
+			mapNoteRoutes(protected, h.Note)
 			mapTagRoutes(protected, h.Tag)
 			mapItemTagRoutes(protected, h.ItemTag)
 		}
@@ -89,6 +91,17 @@ func mapProblemRoutes(rg *gin.RouterGroup, h *handler.ProblemHandler) {
 		problems.PATCH("/:problem_id", h.Update)
 		problems.PATCH("/:problem_id/status", h.UpdateStatus)
 		problems.DELETE("/:problem_id", h.Delete)
+	}
+}
+
+func mapNoteRoutes(rg *gin.RouterGroup, h *handler.NoteHandler) {
+	notes := rg.Group("/projects/:project_id/notes")
+	{
+		notes.POST("", h.Create)
+		notes.GET("", h.GetAll)
+		notes.GET("/:note_id", h.Get)
+		notes.PATCH("/:note_id", h.Update)
+		notes.DELETE("/:note_id", h.Delete)
 	}
 }
 
