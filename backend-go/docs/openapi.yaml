@@ -2703,7 +2703,7 @@ paths:
   /projects/{project_id}/items/{item_type}/{item_id}/tags/{tag_id}:
     put:
       summary: Associate tag to item
-      description: Associates an existing tag to an item (SNIPPET, LINK, PROBLEM) within a project.
+      description: Associates an existing tag to an item (SNIPPET, LINK, PROBLEM, NOTE) within a project.
       tags:
         - ItemTags
       parameters:
@@ -2716,7 +2716,7 @@ paths:
             format: uuid
         - name: item_type
           in: path
-          description: Type of item (SNIPPET, LINK, PROBLEM)
+          description: Type of item (SNIPPET, LINK, PROBLEM, NOTE)
           required: true
           schema:
             $ref: '#/components/schemas/ItemType'
@@ -2764,7 +2764,7 @@ paths:
 
     delete:
       summary: Disassociate tag from item
-      description: Removes association between a tag and an item (SNIPPET, LINK, PROBLEM) within a project.
+      description: Removes association between a tag and an item (SNIPPET, LINK, PROBLEM, NOTE) within a project.
       tags:
         - ItemTags
       parameters:
@@ -2777,7 +2777,7 @@ paths:
             format: uuid
         - name: item_type
           in: path
-          description: Type of item (SNIPPET, LINK, PROBLEM)
+          description: Type of item (SNIPPET, LINK, PROBLEM, NOTE)
           required: true
           schema:
             $ref: '#/components/schemas/ItemType'
