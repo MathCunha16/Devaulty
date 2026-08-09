@@ -654,12 +654,148 @@ components:
           type: integer
           example: 1
 
+    Note:
+      type: object
+      required:
+        - id
+        - projectId
+        - title
+        - content
+        - archived
+        - tags
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "784f6f5c-57af-4313-b160-688a3e0d283b"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        title:
+          type: string
+          example: "Meeting Notes"
+        content:
+          type: string
+          example: "Discussed system architecture and hexagonal pattern."
+        archived:
+          type: boolean
+          example: false
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    NoteSummary:
+      type: object
+      required:
+        - id
+        - projectId
+        - title
+        - archived
+        - tags
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "784f6f5c-57af-4313-b160-688a3e0d283b"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        title:
+          type: string
+          example: "Meeting Notes"
+        archived:
+          type: boolean
+          example: false
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    CreateNoteCommand:
+      type: object
+      required:
+        - title
+        - content
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Meeting Notes"
+        content:
+          type: string
+          minLength: 1
+          example: "Discussed system architecture and hexagonal pattern."
+
+    UpdateNoteCommand:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          nullable: true
+          example: "Updated Meeting Notes"
+        content:
+          type: string
+          minLength: 1
+          nullable: true
+          example: "Updated content"
+
+    NoteSummaryPage:
+      type: object
+      required:
+        - content
+        - size
+        - number
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/NoteSummary'
+        size:
+          type: integer
+          example: 10
+        number:
+          type: integer
+          example: 0
+        totalElements:
+          type: integer
+          format: int64
+          example: 1
+        totalPages:
+          type: integer
+          example: 1
+
     ItemType:
       type: string
       enum:
         - SNIPPET
         - LINK
         - PROBLEM
+        - NOTE
       example: "SNIPPET"
 
     TagSummary:
@@ -1956,6 +2092,285 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Project or Problem not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/notes:
+    post:
+      summary: Create a new note in a project
+      description: Creates a new note linked to the specified project.
+      tags:
+        - Notes
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNoteCommand'
+      responses:
+        '201':
+          description: Note created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Relative URL path to the newly created note
+              example: "/api/v1/projects/70d68fba-be62-46bb-8e6c-e4c4b6912e91/notes/784f6f5c-57af-4313-b160-688a3e0d283b"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '400':
+          description: Invalid UUID format or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: List all notes for a project
+      description: Returns a paginated list of notes for a project with attached tags.
+      tags:
+        - Notes
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Page number (0-indexed)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated list of notes retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoteSummaryPage'
+        '400':
+          description: Invalid UUID format or query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/notes/{note_id}:
+    get:
+      summary: Get note by ID
+      description: Returns a single note by ID with attached tags.
+      tags:
+        - Notes
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: note_id
+          in: path
+          description: Target Note UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Note retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Note not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Update a note
+      description: Updates title and/or content of an existing note.
+      tags:
+        - Notes
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: note_id
+          in: path
+          description: Target Note UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNoteCommand'
+      responses:
+        '200':
+          description: Note updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '400':
+          description: Invalid UUID format or payload validation failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Note not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete a note
+      description: Deletes a note by ID and removes its tag associations.
+      tags:
+        - Notes
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: note_id
+          in: path
+          description: Target Note UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Note deleted successfully (No Content)
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Note not found
           content:
             application/json:
               schema:
