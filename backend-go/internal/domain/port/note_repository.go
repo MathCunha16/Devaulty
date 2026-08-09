@@ -9,8 +9,8 @@ import (
 
 type NoteRepository interface {
 	Save(ctx context.Context, note *model.Note) (*model.Note, error)
-	FindByID(ctx context.Context, id uuid.UUID) (*model.Note, error)
+	FindByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) (*model.Note, error)
 	FindAllByProjectID(ctx context.Context, projectID uuid.UUID, page int, size int) (model.Page[model.Note], error)
-	DeleteByID(ctx context.Context, id uuid.UUID) error
+	DeleteByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) (bool, error)
 	ProjectScopedRepository
 }

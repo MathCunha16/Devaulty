@@ -32,10 +32,10 @@ func (r *NoteRepositoryAdapter) Save(ctx context.Context, note *model.Note) (*mo
 	return note, nil
 }
 
-func (r *NoteRepositoryAdapter) FindByID(ctx context.Context, id uuid.UUID) (*model.Note, error) {
-	query := `SELECT * FROM notes WHERE id = ?`
+func (r *NoteRepositoryAdapter) FindByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) (*model.Note, error) {
+	query := `SELECT * FROM notes WHERE id = ? AND project_id = ?`
 	var note model.Note
-	err := r.db.GetContext(ctx, &note, query, id)
+	err := r.db.GetContext(ctx, &note, query, id, projectID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -51,13 +51,17 @@ func (r *NoteRepositoryAdapter) FindAllByProjectID(ctx context.Context, projectI
 	return PaginateExec[model.Note](ctx, r.db, countQuery, selectQuery, page, size, projectID)
 }
 
-func (r *NoteRepositoryAdapter) DeleteByID(ctx context.Context, id uuid.UUID) error {
-	query := `DELETE FROM notes WHERE id = ?`
-	_, err := r.db.ExecContext(ctx, query, id)
+func (r *NoteRepositoryAdapter) DeleteByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) (bool, error) {
+	query := `DELETE FROM notes WHERE id = ? AND project_id = ?`
+	res, err := r.db.ExecContext(ctx, query, id, projectID)
 	if err != nil {
-		return err
+		return false, fmt.Errorf("error trying to delete note: %w", err)
 	}
-	return nil
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("error checking deleted rows: %w", err)
+	}
+	return rows > 0, nil
 }
 
 func (r *NoteRepositoryAdapter) ExistsByIDAndProjectID(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (bool, error) {
