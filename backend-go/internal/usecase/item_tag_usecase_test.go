@@ -48,6 +48,46 @@ func (m *MockItemTagRepository) FindTagsForItems(ctx context.Context, itemType m
 	return args.Get(0).(map[uuid.UUID][]model.Tag), args.Error(1)
 }
 
+type MockNoteRepository struct {
+	mock.Mock
+}
+
+func (m *MockNoteRepository) Save(ctx context.Context, note *model.Note) (*model.Note, error) {
+	args := m.Called(ctx, note)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.Note), args.Error(1)
+}
+
+func (m *MockNoteRepository) FindByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) (*model.Note, error) {
+	args := m.Called(ctx, projectID, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.Note), args.Error(1)
+}
+
+func (m *MockNoteRepository) FindAllByProjectID(ctx context.Context, projectID uuid.UUID, page, size int) (model.Page[model.Note], error) {
+	args := m.Called(ctx, projectID, page, size)
+	return args.Get(0).(model.Page[model.Note]), args.Error(1)
+}
+
+func (m *MockNoteRepository) DeleteByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) (bool, error) {
+	args := m.Called(ctx, projectID, id)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *MockNoteRepository) ExistsByIDAndProjectID(ctx context.Context, id, projectID uuid.UUID) (bool, error) {
+	args := m.Called(ctx, id, projectID)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *MockNoteRepository) FindExistingIDsByProjectID(ctx context.Context, ids []uuid.UUID, projectID uuid.UUID) ([]uuid.UUID, error) {
+	args := m.Called(ctx, ids, projectID)
+	return args.Get(0).([]uuid.UUID), args.Error(1)
+}
+
 // --- UNIT TESTS ---
 
 func SetupItemTagUseCaseTest() (
@@ -65,6 +105,7 @@ func SetupItemTagUseCaseTest() (
 	mockSnippetRepo := new(MockSnippetRepository)
 	mockLinkRepo := new(MockLinkRepository)
 	mockProblemRepo := new(MockProblemRepository)
+	mockNoteRepo := new(MockNoteRepository)
 
 	uc := usecase.NewItemTagUseCase(
 		mockItemTagRepo,
@@ -73,6 +114,7 @@ func SetupItemTagUseCaseTest() (
 		mockSnippetRepo,
 		mockLinkRepo,
 		mockProblemRepo,
+		mockNoteRepo,
 	)
 
 	return mockItemTagRepo, mockTagRepo, mockProjectRepo, mockSnippetRepo, mockLinkRepo, mockProblemRepo, uc

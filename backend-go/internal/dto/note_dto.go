@@ -20,8 +20,8 @@ type UpdateNoteCommand struct {
 }
 
 type NoteView struct {
-	ID        uuid.UUID    `json:"-"`
-	ProjectID uuid.UUID    `json:"-"`
+	ID        uuid.UUID    `json:"id"`
+	ProjectID uuid.UUID    `json:"projectId"`
 	Title     string       `json:"title"`
 	Content   string       `json:"content"`
 	Archived  bool         `json:"archived"`
@@ -31,8 +31,8 @@ type NoteView struct {
 }
 
 type NoteSummary struct {
-	ID        uuid.UUID    `json:"-"`
-	ProjectID uuid.UUID    `json:"-"`
+	ID        uuid.UUID    `json:"id"`
+	ProjectID uuid.UUID    `json:"projectId"`
 	Title     string       `json:"title"`
 	Archived  bool         `json:"archived"`
 	Tags      []TagSummary `json:"tags"`

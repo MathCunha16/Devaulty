@@ -7,6 +7,7 @@ import (
 	"devaulty-backend/internal/dto"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -59,6 +60,9 @@ func (uc *NoteUseCase) GetByID(ctx context.Context, projectID, id uuid.UUID) (*d
 	}
 	note, err := uc.noteRepo.FindByIDAndProjectID(ctx, projectID, id)
 	if err != nil {
+		return nil, fmt.Errorf("error trying to find note: %w", err)
+	}
+	if note == nil {
 		return nil, ErrNoteNotFound
 	}
 	tags, err := uc.itemTagRepo.FindTagsForItem(ctx, model.ItemTypeNote, projectID, id)
@@ -115,6 +119,56 @@ func (uc *NoteUseCase) GetAllByProjectID(ctx context.Context, projectID uuid.UUI
 	return model.NewPage(summaries, notePage.Number, notePage.Size, notePage.TotalElements), nil
 }
 
+func (uc *NoteUseCase) Update(ctx context.Context, cmd dto.UpdateNoteCommand) (*dto.NoteView, error) {
+	if err := ensureProjectExists(ctx, uc.projectRepo, cmd.ProjectID); err != nil {
+		return nil, err
+	}
+	note, err := uc.noteRepo.FindByIDAndProjectID(ctx, cmd.ProjectID, cmd.ID)
+	if err != nil {
+		return nil, fmt.Errorf("error trying to find note: %w", err)
+	}
+	if note == nil {
+		return nil, ErrNoteNotFound
+	}
+
+	if cmd.Title != nil {
+		note.Title = *cmd.Title
+	}
+	if cmd.Content != nil {
+		note.Content = cmd.Content
+	}
+	now := time.Now()
+	note.UpdatedAt = &now
+	savedNote, err := uc.noteRepo.Save(ctx, note)
+	if err != nil {
+		return nil, err
+	}
+	tags, err := uc.itemTagRepo.FindTagsForItem(ctx, model.ItemTypeNote, cmd.ProjectID, cmd.ID)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching tags for note: %w", err)
+	}
+
+	return mapNoteToView(savedNote, tags), nil
+
+}
+
+func (uc *NoteUseCase) Delete(ctx context.Context, projectID, id uuid.UUID) error {
+	if err := ensureProjectExists(ctx, uc.projectRepo, projectID); err != nil {
+		return err
+	}
+	deleted, err := uc.noteRepo.DeleteByIDAndProjectID(ctx, projectID, id)
+	if err != nil {
+		return fmt.Errorf("error deleting note: %w", err)
+	}
+	if !deleted {
+		return ErrNoteNotFound
+	}
+	if err := uc.itemTagRepo.RemoveAllTagsFromItem(ctx, model.ItemTypeNote, id); err != nil {
+		log.Printf("warning: failed to remove tags from note %s: %v", id, err)
+	}
+	return nil
+}
+
 // --- auxiliary methods ---
 func mapNoteToView(note *model.Note, tags []model.Tag) *dto.NoteView {
 	tagSummaries := make([]dto.TagSummary, len(tags))
@@ -125,11 +179,15 @@ func mapNoteToView(note *model.Note, tags []model.Tag) *dto.NoteView {
 			Color: t.Color,
 		}
 	}
+	var content string
+	if note.Content != nil {
+		content = *note.Content
+	}
 	return &dto.NoteView{
 		ID:        note.ID,
 		ProjectID: note.ProjectID,
 		Title:     note.Title,
-		Content:   *note.Content,
+		Content:   content,
 		Archived:  note.Archived,
 		Tags:      tagSummaries,
 		CreatedAt: &note.CreatedAt,
