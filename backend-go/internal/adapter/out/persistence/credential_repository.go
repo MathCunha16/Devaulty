@@ -53,7 +53,8 @@ func (r *CredentialRepositoryAdapter) FindByID(ctx context.Context, id uuid.UUID
 
 func (r *CredentialRepositoryAdapter) FindAllByProjectID(ctx context.Context, projectID uuid.UUID, page int, size int) (model.Page[model.Credential], error) {
 	countQuery := `SELECT COUNT(*) FROM credentials WHERE project_id = ?`
-	selectQuery := `SELECT * FROM credentials WHERE project_id = ? ORDER BY created_at DESC`
+	selectQuery := `SELECT id, project_id, title, secret_type, related_url, created_at, updated_at
+					FROM credentials WHERE project_id = ? ORDER BY created_at DESC`
 	return PaginateExec[model.Credential](ctx, r.db, countQuery, selectQuery, page, size, projectID)
 }
 
