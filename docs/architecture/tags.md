@@ -99,4 +99,4 @@ SnippetHandler.GetAll
 - [ ] In UseCase `GetAllByProjectID`: collect IDs, call `itemTagRepo.FindTagsForItems` (batched), and attach tags.
 - [ ] In UseCase `Create`: pass empty tag slice `[]dto.TagSummary{}`.
 - [ ] In UseCase `Delete`: call `itemTagRepo.RemoveAllTagsFromItem(ctx, itemType, id)` after deleting the item.
-- [ ] Register repository in `NewItemTagUseCase` and add corresponding `model.ItemType` enum constant (e.g. `SNIPPET`, `LINK`, `PROBLEM`).
+- [ ] Register repository in `NewItemTagUseCase` and add corresponding `model.ItemType` enum constant (e.g. `SNIPPET`, `LINK`, `PROBLEM`, `NOTE`).

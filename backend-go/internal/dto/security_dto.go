@@ -1,7 +1,7 @@
 package dto
 
 type MasterPassword struct {
-	MasterPassword string `json:"masterPassword" binding:"required,min=8"`
+	MasterPassword string `json:"masterPassword" binding:"required,min=8,max=255"`
 }
 
 type VaultStatusView struct {

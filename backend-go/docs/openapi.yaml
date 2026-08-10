@@ -789,6 +789,40 @@ components:
           type: integer
           example: 1
 
+    MasterPasswordRequest:
+      type: object
+      required:
+        - masterPassword
+      properties:
+        masterPassword:
+          type: string
+          minLength: 8
+          maxLength: 255
+          example: "mySuperSecretPassword123"
+
+    MasterPasswordSetupRequiredView:
+      type: object
+      required:
+        - isRequired
+      properties:
+        isRequired:
+          type: boolean
+          example: true
+
+    VaultStatusView:
+      type: object
+      required:
+        - active
+        - secondsLeft
+      properties:
+        active:
+          type: boolean
+          example: true
+        secondsLeft:
+          type: integer
+          format: int64
+          example: 895
+
     ItemType:
       type: string
       enum:
@@ -2812,6 +2846,153 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Project, Item, or Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /security/master-password:
+    post:
+      summary: Setup initial master password
+      description: Configures the master password for the vault during initial setup. Returns 400 if master password is already configured.
+      tags:
+        - Security
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MasterPasswordRequest'
+      responses:
+        '204':
+          description: Master password configured successfully (No Content)
+        '400':
+          description: Invalid master password format or already configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /security/master-password/required-status:
+    get:
+      summary: Check if master password setup is required
+      description: Returns true if the vault has not been initialized with a master password yet.
+      tags:
+        - Security
+      responses:
+        '200':
+          description: Master password setup requirement status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MasterPasswordSetupRequiredView'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /security/vault/status:
+    get:
+      summary: Get active vault session status
+      description: Returns whether the vault session is currently unlocked and the remaining inactive seconds before auto-lock.
+      tags:
+        - Security
+      responses:
+        '200':
+          description: Vault session status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VaultStatusView'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /security/vault/unlock:
+    post:
+      summary: Unlock vault with master password
+      description: Verifies master password and initializes the in-memory AES key session.
+      tags:
+        - Security
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MasterPasswordRequest'
+      responses:
+        '200':
+          description: Vault unlocked successfully
+          content:
+            application/json:
+              schema:
+                type: boolean
+                example: true
+        '400':
+          description: Invalid payload or master password not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid master password or missing DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /security/vault/lock:
+    post:
+      summary: Lock vault
+      description: Immediately purges the master key from memory RAM and invalidates active session.
+      tags:
+        - Security
+      responses:
+        '204':
+          description: Vault locked successfully (No Content)
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
           content:
             application/json:
               schema:
