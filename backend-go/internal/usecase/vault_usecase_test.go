@@ -108,6 +108,11 @@ func (m *MockAppSettingRepository) ExistsByKey(ctx context.Context, key string) 
 	return args.Bool(0), args.Error(1)
 }
 
+func (m *MockAppSettingRepository) SaveMasterPasswordSettings(ctx context.Context, hashValue, saltValue string) error {
+	args := m.Called(ctx, hashValue, saltValue)
+	return args.Error(0)
+}
+
 // --- UNIT TESTS ---
 
 func TestVaultUseCase_SetupMasterPassword(t *testing.T) {
@@ -124,17 +129,12 @@ func TestVaultUseCase_SetupMasterPassword(t *testing.T) {
 		hashedPassword := []byte("32BytesHashedPasswordOutputBytes")
 		secretKey := []byte("32BytesDerivedKeyAES256SecretBytes")
 
-		mockAppSettingRepo.On("ExistsByKey", ctx, usecase.MasterPasswordHashKey).Return(false, nil)
+		hashBase64 := base64.StdEncoding.EncodeToString(hashedPassword)
+		saltBase64 := base64.StdEncoding.EncodeToString(saltBytes)
+
 		mockKeyDeriver.On("GenerateSalt", usecase.SaltLength).Return(saltBytes, nil)
 		mockKeyDeriver.On("HashPassword", mock.Anything, mock.Anything).Return(hashedPassword, nil)
-		mockAppSettingRepo.On("Save", ctx, mock.MatchedBy(func(s *model.AppSetting) bool {
-			return s.Key == usecase.MasterPasswordHashKey && s.Value == base64.StdEncoding.EncodeToString(hashedPassword)
-		})).Return(&model.AppSetting{Key: usecase.MasterPasswordHashKey, Value: "hash"}, nil)
-
-		mockAppSettingRepo.On("Save", ctx, mock.MatchedBy(func(s *model.AppSetting) bool {
-			return s.Key == usecase.MasterPasswordSaltKey && s.Value == base64.StdEncoding.EncodeToString(saltBytes)
-		})).Return(&model.AppSetting{Key: usecase.MasterPasswordSaltKey, Value: "salt"}, nil)
-
+		mockAppSettingRepo.On("SaveMasterPasswordSettings", ctx, hashBase64, saltBase64).Return(nil)
 		mockKeyDeriver.On("DeriveKey", mock.Anything, mock.Anything).Return(secretKey, nil)
 		mockSession.On("SetKey", secretKey).Return()
 
@@ -153,13 +153,21 @@ func TestVaultUseCase_SetupMasterPassword(t *testing.T) {
 		uc := usecase.NewVaultUseCase(mockKeyDeriver, mockSession, mockAppSettingRepo)
 
 		password := []byte("MySuperSecretPassword123")
-		mockAppSettingRepo.On("ExistsByKey", ctx, usecase.MasterPasswordHashKey).Return(true, nil)
+		saltBytes := []byte("0123456789abcdef")
+		hashedPassword := []byte("32BytesHashedPasswordOutputBytes")
+
+		hashBase64 := base64.StdEncoding.EncodeToString(hashedPassword)
+		saltBase64 := base64.StdEncoding.EncodeToString(saltBytes)
+
+		mockKeyDeriver.On("GenerateSalt", usecase.SaltLength).Return(saltBytes, nil)
+		mockKeyDeriver.On("HashPassword", mock.Anything, mock.Anything).Return(hashedPassword, nil)
+		mockAppSettingRepo.On("SaveMasterPasswordSettings", ctx, hashBase64, saltBase64).Return(usecase.ErrMasterPasswordAlreadyConfigured)
 
 		err := uc.SetupMasterPassword(ctx, password)
 
 		assert.ErrorIs(t, err, usecase.ErrMasterPasswordAlreadyConfigured)
 		mockAppSettingRepo.AssertExpectations(t)
-		mockKeyDeriver.AssertNotCalled(t, "GenerateSalt", mock.Anything)
+		mockKeyDeriver.AssertNotCalled(t, "DeriveKey", mock.Anything, mock.Anything)
 	})
 
 	t.Run("SetupMasterPassword_GenerateSaltError", func(t *testing.T) {
@@ -169,7 +177,6 @@ func TestVaultUseCase_SetupMasterPassword(t *testing.T) {
 		uc := usecase.NewVaultUseCase(mockKeyDeriver, mockSession, mockAppSettingRepo)
 
 		password := []byte("MySuperSecretPassword123")
-		mockAppSettingRepo.On("ExistsByKey", ctx, usecase.MasterPasswordHashKey).Return(false, nil)
 		mockKeyDeriver.On("GenerateSalt", usecase.SaltLength).Return(nil, errors.New("entropy error"))
 
 		err := uc.SetupMasterPassword(ctx, password)
@@ -188,10 +195,12 @@ func TestVaultUseCase_SetupMasterPassword(t *testing.T) {
 		saltBytes := []byte("0123456789abcdef")
 		hashedPassword := []byte("32BytesHashedPasswordOutputBytes")
 
-		mockAppSettingRepo.On("ExistsByKey", ctx, usecase.MasterPasswordHashKey).Return(false, nil)
+		hashBase64 := base64.StdEncoding.EncodeToString(hashedPassword)
+		saltBase64 := base64.StdEncoding.EncodeToString(saltBytes)
+
 		mockKeyDeriver.On("GenerateSalt", usecase.SaltLength).Return(saltBytes, nil)
 		mockKeyDeriver.On("HashPassword", mock.Anything, mock.Anything).Return(hashedPassword, nil)
-		mockAppSettingRepo.On("Save", ctx, mock.Anything).Return(nil, errors.New("db error"))
+		mockAppSettingRepo.On("SaveMasterPasswordSettings", ctx, hashBase64, saltBase64).Return(errors.New("db error"))
 
 		err := uc.SetupMasterPassword(ctx, password)
 

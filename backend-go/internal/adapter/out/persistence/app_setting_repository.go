@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"devaulty-backend/internal/domain/model"
 	"devaulty-backend/internal/domain/port"
+	"devaulty-backend/internal/usecase"
 	"errors"
 	"fmt"
 
@@ -53,4 +54,30 @@ func (r *AppSettingRepositoryAdapter) ExistsByKey(ctx context.Context, key strin
 		return false, fmt.Errorf("error trying to check if app setting exists: %w", err)
 	}
 	return exits, nil
+}
+
+func (r *AppSettingRepositoryAdapter) SaveMasterPasswordSettings(ctx context.Context, hashValue, saltValue string) error {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("error starting transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	var count int
+	queryCheck := `SELECT COUNT(*) FROM app_settings WHERE key IN ('master_password_hash', 'master_password_salt')`
+	err = tx.GetContext(ctx, &count, queryCheck)
+	if err != nil {
+		return fmt.Errorf("error checking existing master password keys: %w", err)
+	}
+	if count > 0 {
+		return usecase.ErrMasterPasswordAlreadyConfigured
+	}
+
+	queryInsert := `INSERT INTO app_settings (key, value) VALUES ('master_password_hash', ?), ('master_password_salt', ?)`
+	_, err = tx.ExecContext(ctx, queryInsert, hashValue, saltValue)
+	if err != nil {
+		return fmt.Errorf("error inserting master password settings: %w", err)
+	}
+
+	return tx.Commit()
 }

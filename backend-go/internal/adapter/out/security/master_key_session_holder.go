@@ -47,13 +47,25 @@ func (m *MasterKeySessionHolderAdapter) GetKey() []byte {
 		}
 		m.touchLocked()
 	}
-	return m.masterKey
+	if m.masterKey == nil {
+		return nil
+	}
+	keyCopy := make([]byte, len(m.masterKey))
+	copy(keyCopy, m.masterKey)
+	return keyCopy
 }
 
 func (m *MasterKeySessionHolderAdapter) HasKey() bool {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.hasKeyLocked()
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if !m.hasKeyLocked() {
+		return false
+	}
+	if m.isExpired(DefaultTimeout) {
+		m.clearLocked()
+		return false
+	}
+	return true
 }
 
 func (m *MasterKeySessionHolderAdapter) hasKeyLocked() bool {

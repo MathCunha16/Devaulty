@@ -6,25 +6,25 @@ This document defines how `[]byte` slices holding sensitive cryptographic materi
 
 At any point in a execution path, a sensitive byte slice has exactly **one current owner** — the function or struct currently holding a live reference to it.
 
-- Use **mutable `[]byte` slices** instead of Go `string`s for sensitive cryptographic data wherever possible. (Go `string`s are immutable and cannot be zeroed in memory).
-- Only the **owner** or **terminal consumer** may zero the slice memory using `clear(slice)` or `for i := range slice { slice[i] = 0 }`.
-- In Go functions that process sensitive `[]byte` parameters, use `defer clear(slice)` to guarantee memory wipe upon function completion, even if errors occur.
-- When passing a byte slice into another component (e.g., copying a key into `MasterKeySession.SetKey`), the receiver must make its own copy (`copy(dst, src)`) or explicitly assume ownership.
+- Use **mutable `[]byte` slices** instead of Go `string`s for sensitive cryptographic data wherever possible (Go `string`s are immutable and cannot be zeroed in memory).
+- **Single Ownership Transfer**: Passing a sensitive `[]byte` slice into a downstream method (e.g. passing `password` from `SecurityHandler` to `VaultUseCase`) **transfers ownership** to that component.
+- Only the **terminal consumer owner** zeroes the slice memory using `defer clear(slice)`. Callers must **not** perform duplicate zeroing after transferring ownership, unless they explicitly pass a defensive copy.
+- When storing a byte slice in a long-lived component (e.g. `MasterKeySession.SetKey`), the receiver must make a defensive copy (`copy(dst, src)`) or explicitly assume ownership.
 
 In short:
 
 ```text
-HTTP Handler (reads JSON, converts to []byte, defer clear)
-  → UseCase (receives []byte, defer clear)
-    → Key Derivation (computes derived key []byte, defer clear temp buffers)
-      → Session Holder (copies bytes into RAM, zeroes old key via clear(oldKey))
+HTTP Handler (converts JSON to []byte, clears DTO string, transfers ownership)
+  → UseCase (terminal consumer owner: runs `defer clear(password)`)
+    → Key Derivation (computes derived key []byte, runs `defer clear(secretKey)`)
+      → Session Holder (copies bytes into RAM, zeroes old key via `clear(oldKey)`)
 ```
 
 ## Why This Matters
 
 Leaving sensitive passwords or cryptographic keys in memory RAM indefinitely creates vulnerability windows for heap-dumping attacks or cold-boot attacks.
 
-In Go, `clear(slice)` (available in Go 1.21+) overwrites all byte elements with zero values (`0x00`) immediately, avoiding sensitive data persistence in memory before garbage collection cycles.
+In Go, `clear(slice)` (available in Go 1.21+) overwrites all byte elements with zero values (`0x00`) immediately, significantly reducing the retention window of sensitive data in RAM (though it zeroes the provided slice specifically rather than immutable strings or intermediate CPU/system buffers).
 
 ## Code Patterns in `backend-go`
 
@@ -41,8 +41,7 @@ func (h *SecurityHandler) SetupMasterPassword(c *gin.Context) {
     }
 
     password := []byte(req.MasterPassword)
-    req.MasterPassword = "" // clear reference to string DTO
-    defer clear(password)   // guarantee RAM wipe on return
+    req.MasterPassword = "" // clear reference to string DTO (ownership of password slice transfers to VaultUseCase)
 
     err := h.vaultUseCase.SetupMasterPassword(c.Request.Context(), password)
     // ...
@@ -73,7 +72,7 @@ In `internal/adapter/out/security/master_key_session_holder.go`:
 
 ```go
 func (m *MasterKeySessionHolderAdapter) clearLocked() {
-    clear(m.masterKey) // zeroes underlying RAM bytes
+    clear(m.masterKey) // zeroes provided slice bytes to reduce retention window
     m.masterKey = nil
     m.lastActivityAt = nil
 }
@@ -84,4 +83,4 @@ func (m *MasterKeySessionHolderAdapter) clearLocked() {
 - [ ] Does this function receive or construct a sensitive `[]byte` slice (password, salt, raw key)?
 - [ ] Is `defer clear(slice)` called immediately after slice creation/reception?
 - [ ] If storing key bytes in a long-lived struct, does `Clear()` / `SetKey()` overwrite existing bytes with `clear(m.key)` before nil-assigning?
-- [ ] Are input DTO string references cleared (`req.Password = ""`) immediately after converting to `[]byte`?
+- [ ] Are input DTO string references cleared (`req.MasterPassword = ""`) immediately after converting to `[]byte`?

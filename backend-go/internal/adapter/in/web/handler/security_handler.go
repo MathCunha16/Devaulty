@@ -27,8 +27,7 @@ func (h *SecurityHandler) SetupMasterPassword(c *gin.Context) {
 		return
 	}
 	password := []byte(masterPassword.MasterPassword)
-	masterPassword.MasterPassword = "" // this will only remove the reference to the string, GC will handle eventually
-	defer clear(password)
+	masterPassword.MasterPassword = "" // clear reference to string DTO (ownership of password slice transfers to VaultUseCase)
 
 	err = h.vaultUseCase.SetupMasterPassword(c.Request.Context(), password)
 	if err != nil {
@@ -67,8 +66,7 @@ func (h *SecurityHandler) UnlockVault(c *gin.Context) {
 		return
 	}
 	password := []byte(masterPassword.MasterPassword)
-	masterPassword.MasterPassword = "" // this will only remove the reference to the string, GC will handle eventually
-	defer clear(password)
+	masterPassword.MasterPassword = "" // clear reference to string DTO (ownership of password slice transfers to VaultUseCase)
 
 	result, err := h.vaultUseCase.UnlockVault(c.Request.Context(), password)
 	if err != nil {

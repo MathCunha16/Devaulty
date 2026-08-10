@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"devaulty-backend/internal/domain/model"
 	"devaulty-backend/internal/domain/port"
 	"devaulty-backend/internal/dto"
 	"encoding/base64"
@@ -41,14 +40,6 @@ func NewVaultUseCase(keyDeriver port.KeyDeriver, masterKeySession port.MasterKey
 func (uc *VaultUseCase) SetupMasterPassword(ctx context.Context, password []byte) error {
 	defer clear(password)
 
-	exitsByKey, err := uc.appSettingRepo.ExistsByKey(ctx, MasterPasswordHashKey)
-	if err != nil {
-		return fmt.Errorf("error checking if master password exists: %w", err)
-	}
-	if exitsByKey {
-		return ErrMasterPasswordAlreadyConfigured
-	}
-
 	saltBytes, err := uc.keyDeriver.GenerateSalt(SaltLength)
 	if err != nil {
 		return err
@@ -60,17 +51,10 @@ func (uc *VaultUseCase) SetupMasterPassword(ctx context.Context, password []byte
 		return err
 	}
 
-	_, err = uc.appSettingRepo.Save(ctx, &model.AppSetting{
-		Key:   MasterPasswordHashKey,
-		Value: base64.StdEncoding.EncodeToString(hashedPassword),
-	})
-	if err != nil {
-		return err
-	}
-	_, err = uc.appSettingRepo.Save(ctx, &model.AppSetting{
-		Key:   MasterPasswordSaltKey,
-		Value: base64.StdEncoding.EncodeToString(saltBytes),
-	})
+	hashBase64 := base64.StdEncoding.EncodeToString(hashedPassword)
+	saltBase64 := base64.StdEncoding.EncodeToString(saltBytes)
+
+	err = uc.appSettingRepo.SaveMasterPasswordSettings(ctx, hashBase64, saltBase64)
 	if err != nil {
 		return err
 	}
@@ -79,6 +63,7 @@ func (uc *VaultUseCase) SetupMasterPassword(ctx context.Context, password []byte
 	if err != nil {
 		return err
 	}
+	defer clear(secretKey)
 
 	uc.masterKeySession.SetKey(secretKey)
 	return nil
@@ -129,6 +114,8 @@ func (uc *VaultUseCase) UnlockVault(ctx context.Context, password []byte) (bool,
 	if err != nil {
 		return false, fmt.Errorf("error deriving key: %w", err)
 	}
+	defer clear(secretKey)
+
 	uc.masterKeySession.SetKey(secretKey)
 
 	return true, nil
