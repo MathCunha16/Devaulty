@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"devaulty-backend/internal/adapter/out/persistence"
+	"devaulty-backend/internal/adapter/out/security"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -31,6 +32,12 @@ func main() {
 	if devaultyInternalToken == "" {
 		devaultyInternalToken = "dev-token" // Default token for development
 	}
+
+	appSettingRepo := persistence.NewAppSettingRepository(db)
+	masterKeySession := security.NewMasterKeySessionHolder()
+	keyDeriver := security.NewArgon2KeyDeriver()
+	vaultUseCase := usecase.NewVaultUseCase(keyDeriver, masterKeySession, appSettingRepo)
+	securityHandler := handler.NewSecurityHandler(vaultUseCase)
 
 	itemTagRepo := persistence.NewItemTagRepository(db)
 
@@ -62,13 +69,14 @@ func main() {
 	itemTagHandler := handler.NewItemTagHandler(itemTagUseCase, tagUseCase, projectUseCase)
 
 	handlers := &web.Handlers{
-		Project: projectHandler,
-		Snippet: snippetHandler,
-		Link:    linkHandler,
-		Problem: problemHandler,
-		Note:    noteHandler,
-		Tag:     tagHandler,
-		ItemTag: itemTagHandler,
+		Project:  projectHandler,
+		Snippet:  snippetHandler,
+		Link:     linkHandler,
+		Problem:  problemHandler,
+		Note:     noteHandler,
+		Tag:      tagHandler,
+		ItemTag:  itemTagHandler,
+		Security: securityHandler,
 	}
 	r := web.SetupRouter(handlers, devaultyInternalToken)
 

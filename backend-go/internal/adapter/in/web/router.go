@@ -11,13 +11,14 @@ import (
 )
 
 type Handlers struct {
-	Project *handler.ProjectHandler
-	Snippet *handler.SnippetHandler
-	Link    *handler.LinkHandler
-	Problem *handler.ProblemHandler
-	Note    *handler.NoteHandler
-	Tag     *handler.TagHandler
-	ItemTag *handler.ItemTagHandler
+	Project  *handler.ProjectHandler
+	Snippet  *handler.SnippetHandler
+	Link     *handler.LinkHandler
+	Problem  *handler.ProblemHandler
+	Note     *handler.NoteHandler
+	Tag      *handler.TagHandler
+	ItemTag  *handler.ItemTagHandler
+	Security *handler.SecurityHandler
 }
 
 func SetupRouter(h *Handlers, apiToken string) *gin.Engine {
@@ -42,6 +43,7 @@ func SetupRouter(h *Handlers, apiToken string) *gin.Engine {
 			mapNoteRoutes(protected, h.Note)
 			mapTagRoutes(protected, h.Tag)
 			mapItemTagRoutes(protected, h.ItemTag)
+			mapSecurityRoutes(protected, h.Security)
 		}
 	}
 	return r
@@ -122,6 +124,17 @@ func mapItemTagRoutes(rg *gin.RouterGroup, h *handler.ItemTagHandler) {
 	{
 		itemTags.PUT("/:tag_id", h.Associate)
 		itemTags.DELETE("/:tag_id", h.Disassociate)
+	}
+}
+
+func mapSecurityRoutes(rg *gin.RouterGroup, h *handler.SecurityHandler) {
+	security := rg.Group("/security")
+	{
+		security.POST("/master-password", h.SetupMasterPassword)
+		security.GET("/master-password/required-status", h.CheckMasterPasswordSetup)
+		security.GET("/vault/status", h.GetSessionStatus)
+		security.POST("/vault/unlock", h.UnlockVault)
+		security.POST("/vault/lock", h.LockVault)
 	}
 }
 

@@ -1,76 +1,86 @@
-# Sensitive Memory Ownership Rule
+# Sensitive Memory Ownership & Hygiene Rule (Go Backend)
 
-This document defines how `byte[]` / `char[]` arrays holding sensitive
-cryptographic material (master passwords, decrypted credential payloads) must
-be handled across the Devaulty backend.
+This document defines how `[]byte` slices holding sensitive cryptographic material (master passwords, derived AES keys, decrypted credential payloads) must be handled across Devaulty's Go backend (`backend-go`).
 
-## The rule
+## The Rule
 
-At any point in a call chain, a sensitive array has exactly **one current
-owner** — the last piece of code holding a live reference to it.
+At any point in a execution path, a sensitive byte slice has exactly **one current owner** — the function or struct currently holding a live reference to it.
 
-- Only the **owner** may zero the array (`Arrays.fill(array, (byte) 0)` for
-  `byte[]`, `Arrays.fill(array, '\0')` for `char[]`).
-- Passing the array into another object (a record field, a return value,
-  a collaborator method) **transfers ownership**. The original holder must
-  **not** zero it afterward — doing so corrupts the data for whoever
-  received it.
-- Ownership transfers **once**. The new owner either passes it along again
-  (transferring ownership further) or is the **terminal consumer**, in
-  which case it must zero the array once it's done extracting what it needs.
+- Use **mutable `[]byte` slices** instead of Go `string`s for sensitive cryptographic data wherever possible (Go `string`s are immutable and cannot be zeroed in memory).
+- **Single Ownership Transfer**: Passing a sensitive `[]byte` slice into a downstream method (e.g. passing `password` from `SecurityHandler` to `VaultUseCase`) **transfers ownership** to that component.
+- Only the **terminal consumer owner** zeroes the slice memory using `defer clear(slice)`. Callers must **not** perform duplicate zeroing after transferring ownership, unless they explicitly pass a defensive copy.
+- When storing a byte slice in a long-lived component (e.g. `MasterKeySession.SetKey`), the receiver must make a defensive copy (`copy(dst, src)`) or explicitly assume ownership.
 
 In short:
 
+```text
+HTTP Handler (converts JSON to []byte, clears DTO string, transfers ownership)
+  → UseCase (terminal consumer owner: runs `defer clear(password)`)
+    → Key Derivation (computes derived key []byte, runs `defer clear(secretKey)`)
+      → Session Holder (copies bytes into RAM, zeroes old key via `clear(oldKey)`)
 ```
-Creator → [passes along, does NOT zero] → ... → Terminal consumer → ZEROES
+
+## Why This Matters
+
+Leaving sensitive passwords or cryptographic keys in memory RAM indefinitely creates vulnerability windows for heap-dumping attacks or cold-boot attacks.
+
+In Go, `clear(slice)` (available in Go 1.21+) overwrites all byte elements with zero values (`0x00`) immediately, significantly reducing the retention window of sensitive data in RAM (though it zeroes the provided slice specifically rather than immutable strings or intermediate CPU/system buffers).
+
+## Code Patterns in `backend-go`
+
+### 1. HTTP Handlers (`SecurityHandler`)
+
+In `internal/adapter/in/web/handler/security_handler.go`:
+
+```go
+func (h *SecurityHandler) SetupMasterPassword(c *gin.Context) {
+    var req dto.MasterPassword
+    if err := c.ShouldBindJSON(&req); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+
+    password := []byte(req.MasterPassword)
+    req.MasterPassword = "" // clear reference to string DTO (ownership of password slice transfers to VaultUseCase)
+
+    err := h.vaultUseCase.SetupMasterPassword(c.Request.Context(), password)
+    // ...
+}
 ```
 
-## Why this matters
+### 2. Use Cases (`VaultUseCase`)
 
-Zeroing an array that another object still references doesn't throw an
-exception — it silently overwrites the data everyone else sees. The bug is
-invisible until something downstream tries to read the (now-blank) value,
-often producing a confusing, unrelated-looking error (e.g. a JSON parser
-choking on null bytes) far from the line that actually caused it.
+In `internal/usecase/vault_usecase.go`:
 
-## Real example from this codebase
+```go
+func (uc *VaultUseCase) SetupMasterPassword(ctx context.Context, password []byte) error {
+    defer clear(password) // terminal consumer of input password
 
-**Bug (July 2026):** `CredentialWebMapper#toCreateCredentialCommand` built a
-`char[] serializedPayload`, passed it into `CreateCredentialCommand`, and
-then zeroed `serializedPayload` in its own `finally` block "for safety."
-Since `CreateCredentialCommand.payload()` held the *same* array reference,
-the command reached `CreateCredentialImpl` already blanked out. The
-resulting ciphertext encrypted null bytes, and decryption later failed to
-parse as JSON — the error surfaced in a completely different class
-(`CredentialWebMapper#jsonToMap`) than the one that caused it.
+    saltBytes, err := uc.keyDeriver.GenerateSalt(SaltLength)
+    if err != nil {
+        return err
+    }
+    defer clear(saltBytes) // terminal consumer of salt bytes
 
-**Fix:** the creator of `serializedPayload` stopped zeroing it. Ownership
-now flows cleanly: `toCreateCredentialCommand` → `CreateCredentialImpl` (uses
-it to encrypt, then zeroes it, since nothing downstream needs the plaintext
-payload anymore) → the *decrypted* result flows separately to
-`DecryptedCredential` → `CredentialWebMapper#jsonToMap` (the terminal
-consumer, which zeroes it after parsing).
+    // ...
+}
+```
 
-## Checklist when writing code that touches sensitive arrays
+### 3. Session Holder (`MasterKeySessionHolderAdapter`)
 
-- [ ] Does this method receive a sensitive array as a parameter?
-  - If yes: am I the terminal consumer, or am I passing it further
-    (directly, or wrapped inside another object/record)?
-- [ ] If I'm passing it further: do **not** zero it in my `finally` block.
-  Say so explicitly in a comment, so the next person doesn't "helpfully"
-  add a zero-fill.
-- [ ] If I'm the terminal consumer: zero it in a `finally` block,
-  unconditionally, right after I've extracted what I need.
-- [ ] Document the ownership contract in the method's Javadoc if the
-  method is a public/protected entry point others will call — see
-  `CreateCredentialImpl#execute` for the expected format.
+In `internal/adapter/out/security/master_key_session_holder.go`:
 
-## Where this currently applies
+```go
+func (m *MasterKeySessionHolderAdapter) clearLocked() {
+    clear(m.masterKey) // zeroes provided slice bytes to reduce retention window
+    m.masterKey = nil
+    m.lastActivityAt = nil
+}
+```
 
-- `SetupMasterPasswordImpl` / `UnlockVaultImpl` — the `char[] password` input
-- `CreateCredentialImpl` — `command.payload()` (input), `decryptedBytes`
-  (output, ownership transferred via `DecryptedCredential`)
-- `CredentialWebMapper` — `serializedPayload` (transferred to the command),
-  `decryptedBytes` in `jsonToMap` (terminal — zeroed after parsing)
-- Any future use case that decrypts a credential (e.g. `GetCredentialImpl`,
-  `UpdateCredentialImpl`) must follow the same pattern.
+## Checklist for Sensitive Data Handling
+
+- [ ] Does this function receive or construct a sensitive `[]byte` slice (password, salt, raw key)?
+- [ ] Is `defer clear(slice)` called immediately after slice creation/reception?
+- [ ] If storing key bytes in a long-lived struct, does `Clear()` / `SetKey()` overwrite existing bytes with `clear(m.key)` before nil-assigning?
+- [ ] Are input DTO string references cleared (`req.MasterPassword = ""`) immediately after converting to `[]byte`?

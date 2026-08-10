@@ -9,6 +9,7 @@ import (
 	"devaulty-backend/internal/adapter/in/web"
 	"devaulty-backend/internal/adapter/in/web/handler"
 	"devaulty-backend/internal/adapter/out/persistence"
+	"devaulty-backend/internal/adapter/out/security"
 	"devaulty-backend/internal/usecase"
 
 	"github.com/stretchr/testify/require"
@@ -49,17 +50,24 @@ func SetupTestApp(t *testing.T) *TestApp {
 	noteUseCase := usecase.NewNoteUseCase(noteRepo, projectRepo, itemTagRepo)
 	noteHandler := handler.NewNoteHandler(noteUseCase)
 
+	appSettingRepo := persistence.NewAppSettingRepository(db)
+	masterKeySession := security.NewMasterKeySessionHolder()
+	keyDeriver := security.NewArgon2KeyDeriver()
+	vaultUseCase := usecase.NewVaultUseCase(keyDeriver, masterKeySession, appSettingRepo)
+	securityHandler := handler.NewSecurityHandler(vaultUseCase)
+
 	itemTagUseCase := usecase.NewItemTagUseCase(itemTagRepo, tagRepo, projectRepo, snippetRepo, linkRepo, problemRepo, noteRepo)
 	itemTagHandler := handler.NewItemTagHandler(itemTagUseCase, tagUseCase, projectUseCase)
 
 	handlers := &web.Handlers{
-		Project: projectHandler,
-		Snippet: snippetHandler,
-		Link:    linkHandler,
-		Problem: problemHandler,
-		Note:    noteHandler,
-		Tag:     tagHandler,
-		ItemTag: itemTagHandler,
+		Project:  projectHandler,
+		Snippet:  snippetHandler,
+		Link:     linkHandler,
+		Problem:  problemHandler,
+		Note:     noteHandler,
+		Tag:      tagHandler,
+		ItemTag:  itemTagHandler,
+		Security: securityHandler,
 	}
 
 	token := "test-internal-token-12345"
