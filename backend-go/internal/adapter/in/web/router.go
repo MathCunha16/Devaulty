@@ -11,14 +11,15 @@ import (
 )
 
 type Handlers struct {
-	Project  *handler.ProjectHandler
-	Snippet  *handler.SnippetHandler
-	Link     *handler.LinkHandler
-	Problem  *handler.ProblemHandler
-	Note     *handler.NoteHandler
-	Tag      *handler.TagHandler
-	ItemTag  *handler.ItemTagHandler
-	Security *handler.SecurityHandler
+	Project    *handler.ProjectHandler
+	Snippet    *handler.SnippetHandler
+	Credential *handler.CredentialHandler
+	Link       *handler.LinkHandler
+	Problem    *handler.ProblemHandler
+	Note       *handler.NoteHandler
+	Tag        *handler.TagHandler
+	ItemTag    *handler.ItemTagHandler
+	Security   *handler.SecurityHandler
 }
 
 func SetupRouter(h *Handlers, apiToken string) *gin.Engine {
@@ -38,6 +39,7 @@ func SetupRouter(h *Handlers, apiToken string) *gin.Engine {
 		{
 			mapProjectRoutes(protected, h.Project)
 			mapSnippetRoutes(protected, h.Snippet)
+			mapCredentialRoutes(protected, h.Credential)
 			mapLinkRoutes(protected, h.Link)
 			mapProblemRoutes(protected, h.Problem)
 			mapNoteRoutes(protected, h.Note)
@@ -70,6 +72,17 @@ func mapSnippetRoutes(rg *gin.RouterGroup, h *handler.SnippetHandler) {
 		snippets.GET("/:snippet_id", h.Get)
 		snippets.PATCH("/:snippet_id", h.Update)
 		snippets.DELETE("/:snippet_id", h.Delete)
+	}
+}
+
+func mapCredentialRoutes(rg *gin.RouterGroup, h *handler.CredentialHandler) {
+	credentials := rg.Group("/projects/:project_id/credentials")
+	{
+		credentials.POST("", h.Create)
+		credentials.GET("", h.GetAll)
+		credentials.GET("/:credential_id", h.Get)
+		credentials.PATCH("/:credential_id", h.Update)
+		credentials.DELETE("/:credential_id", h.Delete)
 	}
 }
 

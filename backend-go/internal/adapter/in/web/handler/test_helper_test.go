@@ -56,18 +56,24 @@ func SetupTestApp(t *testing.T) *TestApp {
 	vaultUseCase := usecase.NewVaultUseCase(keyDeriver, masterKeySession, appSettingRepo)
 	securityHandler := handler.NewSecurityHandler(vaultUseCase)
 
-	itemTagUseCase := usecase.NewItemTagUseCase(itemTagRepo, tagRepo, projectRepo, snippetRepo, linkRepo, problemRepo, noteRepo)
+	cryptoAdapter := security.NewAESGCMCrypto()
+	credentialRepo := persistence.NewCredentialRepository(db)
+	credentialUseCase := usecase.NewCredentialUseCase(credentialRepo, projectRepo, itemTagRepo, cryptoAdapter, masterKeySession, *vaultUseCase)
+	credentialHandler := handler.NewCredentialHandler(credentialUseCase)
+
+	itemTagUseCase := usecase.NewItemTagUseCase(itemTagRepo, tagRepo, projectRepo, snippetRepo, credentialRepo, linkRepo, problemRepo, noteRepo)
 	itemTagHandler := handler.NewItemTagHandler(itemTagUseCase, tagUseCase, projectUseCase)
 
 	handlers := &web.Handlers{
-		Project:  projectHandler,
-		Snippet:  snippetHandler,
-		Link:     linkHandler,
-		Problem:  problemHandler,
-		Note:     noteHandler,
-		Tag:      tagHandler,
-		ItemTag:  itemTagHandler,
-		Security: securityHandler,
+		Project:    projectHandler,
+		Snippet:    snippetHandler,
+		Credential: credentialHandler,
+		Link:       linkHandler,
+		Problem:    problemHandler,
+		Note:       noteHandler,
+		Tag:        tagHandler,
+		ItemTag:    itemTagHandler,
+		Security:   securityHandler,
 	}
 
 	token := "test-internal-token-12345"

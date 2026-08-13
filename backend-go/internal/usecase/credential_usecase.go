@@ -16,7 +16,8 @@ import (
 )
 
 var (
-	ErrCredentialNotFound = errors.New("credential not found")
+	ErrCredentialNotFound   = errors.New("credential not found")
+	ErrInvalidSecretPayload = errors.New("invalid secret payload")
 )
 
 type CredentialUseCase struct {
@@ -211,7 +212,6 @@ func (uc *CredentialUseCase) GetAllByProjectID(ctx context.Context, projectID uu
 			ProjectID:  c.ProjectID,
 			Title:      c.Title,
 			SecretType: c.SecretType,
-			Notes:      c.Notes,
 			RelatedURL: c.RelatedUrl,
 			Tags:       tagSummaries,
 			CreatedAt:  c.CreatedAt,
@@ -348,7 +348,7 @@ func buildSecretPayloadBytes(secretType model.CredentialSecretType, username, pa
 	switch secretType {
 	case model.CredentialSecretTypeLogin:
 		if len(bytes.TrimSpace(password)) == 0 {
-			return nil, fmt.Errorf("password is required for LOGIN secret type")
+			return nil, fmt.Errorf("%w: password is required for LOGIN secret type", ErrInvalidSecretPayload)
 		}
 		secretMap = map[string]string{
 			"username": string(username),
@@ -356,20 +356,20 @@ func buildSecretPayloadBytes(secretType model.CredentialSecretType, username, pa
 		}
 	case model.CredentialSecretTypeApiKey:
 		if len(bytes.TrimSpace(apikey)) == 0 {
-			return nil, fmt.Errorf("apikey is required for APIKEY secret type")
+			return nil, fmt.Errorf("%w: apikey is required for APIKEY secret type", ErrInvalidSecretPayload)
 		}
 		secretMap = map[string]string{
 			"apiKey": string(apikey),
 		}
 	case model.CredentialSecretTypeRawText:
 		if len(bytes.TrimSpace(rawText)) == 0 {
-			return nil, fmt.Errorf("raw text is required for RAWTEXT secret type")
+			return nil, fmt.Errorf("%w: raw text is required for RAWTEXT secret type", ErrInvalidSecretPayload)
 		}
 		secretMap = map[string]string{
 			"rawText": string(rawText),
 		}
 	default:
-		return nil, fmt.Errorf("unsupported secret type: %s", secretType)
+		return nil, ErrInvalidSecretPayload
 	}
 
 	payloadBytes, err := json.Marshal(secretMap)
