@@ -8,6 +8,7 @@ import (
 )
 
 type CreateCredentialCommand struct {
+	ProjectID      uuid.UUID                  `json:"-"`
 	Title          string                     `json:"title" binding:"required,min=2,max=255"`
 	SecretType     model.CredentialSecretType `json:"secretType" binding:"required"`
 	Username       []byte                     `json:"username,omitempty"`

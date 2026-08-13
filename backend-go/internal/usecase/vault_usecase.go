@@ -21,6 +21,7 @@ var (
 	ErrMasterPasswordAlreadyConfigured = errors.New("master password already configured")
 	ErrMasterPasswordNotConfigured     = errors.New("master password not configured")
 	ErrInvalidMasterPassword           = errors.New("invalid master password")
+	ErrVaultLocked                     = errors.New("vault is locked")
 )
 
 type VaultUseCase struct {
