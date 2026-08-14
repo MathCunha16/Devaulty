@@ -8,7 +8,10 @@ spring:
         format_sql: true
   devtools:
     restart:
-      additional-exclude: static/**,jpackage/**,db/**
+      additional-exclude: static/**,db/**
 devaulty:
   dev:
     token: "dev-secret-token"
+
+server:
+  port: 8080
