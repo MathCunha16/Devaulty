@@ -67,6 +67,15 @@ If you want to contribute, inspect the codebase, or build Devaulty from source, 
 
 ---
 
+## License
+
+Devaulty is distributed under the **[PolyForm Noncommercial License 1.0.0](LICENSE)**.
+
+- **Permitted**: Noncommercial use, personal customization, educational research, and open-source contributions.
+- **Prohibited**: Commercial exploitation, reselling, or distribution for monetary compensation.
+
+---
+
 <p align="center">
   <img src="docs/assets/icon.png" alt="Devaulty Icon" width="48" /><br/>
   <sub>Devaulty — Keep your developer workflow secure and organized.</sub>

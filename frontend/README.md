@@ -13,6 +13,7 @@
 ## 📐 Overview
 
 The Devaulty frontend is organized into two primary layers:
+
 1. **React Web UI (`src/`)**: A fast, responsive Single Page Application (SPA) built with React 19, TypeScript, and Vite.
 2. **Tauri v2 Desktop Shell (`src-tauri/`)**: A lightweight Rust container responsible for window management, native OS integration, and managing the local Go backend lifecycle.
 
@@ -21,6 +22,7 @@ The Devaulty frontend is organized into two primary layers:
 ## 🎨 Part 1: React Application Architecture
 
 ### 1. Feature-Driven Organization (`src/features/`)
+
 The frontend codebase follows a **Feature-Driven Architecture**. Domain features encapsulate their own API hooks, React components, and state logic:
 
 ```text
@@ -44,10 +46,12 @@ src/
 ```
 
 ### 2. State & Data Fetching (TanStack Stack)
+
 - **TanStack Router**: Provides type-safe file-based client routing.
 - **TanStack React Query**: Manages async server state, caching, optimistic updates, and background revalidation.
 
 ### 3. Rich UI Components & Editors
+
 - **Monaco Editor (`@monaco-editor/react`)**: Embedded VS Code editor powering the code snippets vault.
 - **Markdown Processing (`marked` + `dompurify`)**: Renders markdown notes securely with XSS sanitization.
 - **Lucide Icons (`lucide-react`)**: Dynamic icon resolution for project badges and UI navigation.
@@ -60,14 +64,18 @@ src/
 The desktop shell is built in Rust using **Tauri v2** (`src-tauri/`). It bridges the React frontend with the native Go backend executable.
 
 ### 1. Backend Process Lifecycle
+
 When Devaulty is launched:
+
 1. **Binary Location**: The Rust shell checks `app.path().resource_dir()` for the bundled Go binary (`devaulty-backend` or `devaulty-backend.exe`).
 2. **Dynamic Session Token**: A cryptographically random UUID v4 token is generated in memory.
 3. **Child Process Spawn**: Rust spawns the Go backend as a child process, injecting `DEVAULTY_INTERNAL_TOKEN` and `DEVAULTY_DATA_DIR` into its private environment.
 4. **IPC Handshake**: Rust reads the Go backend's `stdout` pipe to extract the dynamically bound HTTP port.
 
 ### 2. Splash Screen & Health-Check Flow
+
 To provide a smooth startup experience and guarantee API readiness:
+
 - **Phase 1 (Handshake)**: Rust waits for `[DEVAULTY_SESSION] PORT=xxxxx TOKEN=...` via the stdout pipe.
 - **Phase 2 (HTTP Health Check)**: Rust polls `GET http://127.0.0.1:{port}/health` using `reqwest` until receiving a `200 OK` response.
 - **Phase 3 (Splash Duration)**: Rust enforces a **minimum 2.0-second display duration** for the splash screen window (`/splash.html`) before transitioning to the maximized main window.
@@ -90,7 +98,9 @@ sequenceDiagram
 ```
 
 ### 3. Multi-Platform Packaging
+
 The desktop app is packaged using Tauri's cross-platform bundler into native installers:
+
 - **Linux**: `.deb` (Debian/Ubuntu) and `.rpm` (Fedora/RHEL)
 - **Windows**: `.msi` (WiX Toolset installer)
 - **macOS**: `.dmg` disk image
@@ -116,6 +126,7 @@ The `scripts/` directory contains cross-platform Node.js automation scripts:
 ## 🚀 Running Locally
 
 ### Development Mode (Web + Tauri)
+
 ```bash
 # Install dependencies
 npm install
@@ -125,7 +136,9 @@ npm run dev
 ```
 
 ### Full Production Build Prep
+
 ```bash
 npm run build:all
 ```
-*Compiles the Go backend, synchronizes versions, and builds Vite frontend web assets into `dist/`.*
+
+_Compiles the Go backend, synchronizes versions, and builds Vite frontend web assets into `dist/`._
