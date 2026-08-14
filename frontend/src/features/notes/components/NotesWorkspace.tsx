@@ -15,8 +15,6 @@ import {
   useNoteQuery,
   useUpdateNoteMutation,
   useDeleteNoteMutation,
-  useArchiveNoteMutation,
-  useUnarchiveNoteMutation,
 } from "../hooks/useNotes";
 import styles from "../../../routes/projects.$projectId.module.css";
 
@@ -31,8 +29,6 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
 }) => {
   const { data: notesData } = useNotesQuery(projectId);
   const deleteNoteMutation = useDeleteNoteMutation(projectId);
-  const archiveNoteMutation = useArchiveNoteMutation(projectId);
-  const unarchiveNoteMutation = useUnarchiveNoteMutation(projectId);
 
   const [selectedNoteId, setSelectedNoteId] = useState<string | undefined>(undefined);
   const [noteSearchQuery, setNoteSearchQuery] = useState("");
@@ -103,20 +99,6 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
     return matchesSearch && matchesArchived;
   });
 
-
-  const handleToggleArchiveNote = async (noteId: string, currentArchived: boolean) => {
-    try {
-      if (currentArchived) {
-        await unarchiveNoteMutation.mutateAsync(noteId);
-        toast.success("Note restored from archive");
-      } else {
-        await archiveNoteMutation.mutateAsync(noteId);
-        toast.success("Note archived successfully");
-      }
-    } catch {
-      toast.error("Failed to update note status");
-    }
-  };
 
   const handleDeleteNote = (noteId: string, title: string) => {
     setConfirmModal({
@@ -367,14 +349,6 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
                   >
                     <Icons.Edit3 size={12} />
                     <span>Edit Metadata</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleArchiveNote(noteDetail.id, noteDetail.archived)}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-border px-2.5 py-1.5 rounded bg-card transition-colors cursor-pointer"
-                  >
-                    <Icons.Archive size={12} />
-                    <span>{noteDetail.archived ? "Restore" : "Archive"}</span>
                   </button>
                   <button
                     type="button"

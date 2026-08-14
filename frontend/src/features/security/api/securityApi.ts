@@ -1,13 +1,15 @@
 import { apiClient } from "@/api/client";
-import type { MasterPasswordRequest, SessionStatus } from "~types/api";
+import type { MasterPasswordRequest, MasterPasswordSetupRequiredView, SessionStatus } from "~types/api";
 
 export const securityApi = {
   /**
    * Returns true if master password setup is required (not configured yet), false if configured.
    */
   checkMasterPasswordSetup: async (): Promise<boolean> => {
-    const response = await apiClient.get<boolean>("/security/master-password/required-status");
-    return response.data;
+    const response = await apiClient.get<MasterPasswordSetupRequiredView>(
+      "/security/master-password/required-status"
+    );
+    return response.data.isRequired;
   },
 
   /**

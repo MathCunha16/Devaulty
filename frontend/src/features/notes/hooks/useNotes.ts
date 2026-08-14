@@ -55,25 +55,3 @@ export const useDeleteNoteMutation = (projectId: string) => {
     },
   });
 };
-
-export const useArchiveNoteMutation = (projectId: string) => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (noteId: string) => notesApi.archive(projectId, noteId),
-    onSuccess: (_, noteId) => {
-      queryClient.invalidateQueries({ queryKey: notesKeys.all(projectId) });
-      queryClient.invalidateQueries({ queryKey: notesKeys.detail(projectId, noteId) });
-    },
-  });
-};
-
-export const useUnarchiveNoteMutation = (projectId: string) => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (noteId: string) => notesApi.unarchive(projectId, noteId),
-    onSuccess: (_, noteId) => {
-      queryClient.invalidateQueries({ queryKey: notesKeys.all(projectId) });
-      queryClient.invalidateQueries({ queryKey: notesKeys.detail(projectId, noteId) });
-    },
-  });
-};

@@ -24,10 +24,10 @@ export const getInternalToken = (): string | undefined => {
   if (typeof window !== "undefined" && window.DEVAULTY_INTERNAL_TOKEN) {
     return window.DEVAULTY_INTERNAL_TOKEN;
   }
-  // Strictly in development mode (import.meta.env.DEV), fallback to dev secret token.
+  // Strictly in development mode (import.meta.env.DEV), fallback to dev token.
   // In production builds, Vite tree-shakes and completely eliminates this fallback.
   if (import.meta.env.DEV) {
-    return "dev-secret-token";
+    return "dev-token";
   }
   return undefined;
 };
@@ -57,7 +57,7 @@ apiClient.interceptors.request.use((config) => {
   const internalToken = getInternalToken();
 
   if (internalToken) {
-    config.headers["X-Devaulty-Internal-Token"] = internalToken;
+    config.headers["DEVAULTY_INTERNAL_TOKEN"] = internalToken;
   }
 
   return config;
@@ -71,7 +71,7 @@ apiClient.interceptors.response.use(
       // that falls out of the range of 2xx
       const status = error.response.status;
       const data = error.response.data;
-      const message = data?.message || error.message || "Request failed";
+      const message = data?.error || data?.message || error.message || "Request failed";
       
       throw new ApiError(message, status, data);
     } else if (error.request) {

@@ -5,65 +5,49 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Path to application.yaml (source of truth)
-const appYamlPath = path.resolve(__dirname, "../../backend/src/main/resources/application.yaml");
+// Source of truth: package.json version field
 const packageJsonPath = path.resolve(__dirname, "../package.json");
 const cargoTomlPath = path.resolve(__dirname, "../src-tauri/Cargo.toml");
 const tauriConfPath = path.resolve(__dirname, "../src-tauri/tauri.conf.json");
 
 function syncVersion() {
-  if (!fs.existsSync(appYamlPath)) {
-    console.error(`Source of truth file not found at: ${appYamlPath}`);
+  if (!fs.existsSync(packageJsonPath)) {
+    console.error(`Source of truth file not found at: ${packageJsonPath}`);
     process.exit(1);
   }
 
-  // 1. Read raw version from application.yaml
-  const yamlContent = fs.readFileSync(appYamlPath, "utf-8");
-  const versionLine = yamlContent
-    .split("\n")
-    .find((line) => line.trim().startsWith("version:"));
+  // 1. Read version from package.json (source of truth)
+  const pkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
+  const version = pkg.version;
 
-  if (!versionLine) {
-    console.error("Could not find 'version:' line in application.yaml");
+  if (!version) {
+    console.error("Could not find 'version' field in package.json");
     process.exit(1);
   }
 
-  // Extract raw version string (e.g., "0.1.6-alpha" or '0.1.6')
-  const rawVersion = versionLine
-    .split("version:")[1]
-    .trim()
-    .replace(/^["']|["']$/g, "");
+  console.log(`Source version (package.json): "${version}"`);
 
-  // Clean version without suffix for npm/semver/cargo (e.g., "0.1.6")
-  const cleanVersion = rawVersion.replace(/-.*$/, "");
-
-  console.log(`Extracted Backend Version: "${rawVersion}" (Clean SemVer: "${cleanVersion}")`);
-
-  // 2. Update package.json
-  if (fs.existsSync(packageJsonPath)) {
-    const pkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
-    pkg.version = cleanVersion;
-    fs.writeFileSync(packageJsonPath, JSON.stringify(pkg, null, 2) + "\n");
-    console.log(`Updated package.json -> ${cleanVersion}`);
-  }
-
-  // 3. Update Cargo.toml
+  // 2. Update Cargo.toml (supports full SemVer including pre-release tags like 0.1.6-alpha.1)
   if (fs.existsSync(cargoTomlPath)) {
     let cargoContent = fs.readFileSync(cargoTomlPath, "utf-8");
-    cargoContent = cargoContent.replace(/^version = ".*?"/m, `version = "${cleanVersion}"`);
+    cargoContent = cargoContent.replace(/^version = ".*?"/m, `version = "${version}"`);
     fs.writeFileSync(cargoTomlPath, cargoContent);
-    console.log(`Updated src-tauri/Cargo.toml -> ${cleanVersion}`);
+    console.log(`Updated src-tauri/Cargo.toml -> ${version}`);
   }
 
-  // 4. Update tauri.conf.json
+  // 3. Update tauri.conf.json
+  // Windows MSI (WiX Toolset) & macOS bundle require a strict numeric Major.Minor.Patch version.
+  // We extract the numeric prefix (e.g. "0.1.6-alpha.1" -> "0.1.6") for tauri.conf.json.
+  const numericVersion = version.split("-")[0];
+
   if (fs.existsSync(tauriConfPath)) {
     const tauriConf = JSON.parse(fs.readFileSync(tauriConfPath, "utf-8"));
-    tauriConf.version = cleanVersion;
+    tauriConf.version = numericVersion;
     fs.writeFileSync(tauriConfPath, JSON.stringify(tauriConf, null, 2) + "\n");
-    console.log(`Updated src-tauri/tauri.conf.json -> ${cleanVersion}`);
+    console.log(`Updated src-tauri/tauri.conf.json -> ${numericVersion} (normalized from ${version})`);
   }
 
-  console.log("\nAll frontend & Tauri version fields are synchronized with Backend!");
+  console.log("\nAll frontend & Tauri version fields are synchronized!");
 }
 
 syncVersion();

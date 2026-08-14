@@ -215,19 +215,11 @@ const RootLayoutInner: React.FC = () => {
         if (info) {
           window.DEVAULTY_INTERNAL_TOKEN = info.token;
           window.DEVAULTY_API_BASE_URL = `http://localhost:${info.port}/api/v1`;
-
-          // Health check ping to ensure Spring Boot HTTP listener is active before dropping splash
-          try {
-            await fetch(`http://localhost:${info.port}/api/v1/releases/current-app-version`, {
-              headers: { "X-Devaulty-Internal-Token": info.token },
-            });
-          } catch {
-            // Silently ignore health check ping errors
-          }
+          await invoke("close_splash").catch(() => {});
         }
-      } catch {
-        // Silently ignore if running outside Tauri
-      } finally {
+      } catch (err) {
+        console.error("Failed to initialize backend native session:", err);
+        // Fallback for non-Tauri or dev environment
         await invoke("close_splash").catch(() => {});
       }
     };
