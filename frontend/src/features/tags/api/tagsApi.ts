@@ -40,7 +40,7 @@ export const tagsApi = {
   search: async (projectId: string, name: string): Promise<TagViewResponse[]> => {
     const response = await apiClient.get<TagViewResponse[]>(
       `/projects/${projectId}/tags/search`,
-      { params: { name } }
+      { params: { tag_name: name } }
     );
     return response.data;
   },

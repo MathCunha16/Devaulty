@@ -4,6 +4,7 @@ import type { ApiErrorResponse } from "../types/api";
 declare global {
   interface Window {
     DEVAULTY_INTERNAL_TOKEN?: string;
+    DEVAULTY_API_BASE_URL?: string;
   }
 }
 
@@ -23,21 +24,24 @@ export const getInternalToken = (): string | undefined => {
   if (typeof window !== "undefined" && window.DEVAULTY_INTERNAL_TOKEN) {
     return window.DEVAULTY_INTERNAL_TOKEN;
   }
-  // Strictly in development mode (import.meta.env.DEV), fallback to dev secret token.
+  // Strictly in development mode (import.meta.env.DEV), fallback to dev token.
   // In production builds, Vite tree-shakes and completely eliminates this fallback.
   if (import.meta.env.DEV) {
-    return "dev-secret-token";
+    return "dev-token";
   }
   return undefined;
 };
 
 export const getApiBaseUrl = (): string => {
+  if (typeof window !== "undefined" && window.DEVAULTY_API_BASE_URL) {
+    return window.DEVAULTY_API_BASE_URL;
+  }
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL;
   }
-  if (typeof window !== "undefined" && window.location.origin && window.location.origin !== "null") {
-    return `${window.location.origin}/api/v1`;
-  }
+  // Always fall back to localhost:8080 — never use window.location.origin
+  // because in a Tauri webview that would return "tauri://localhost" which
+  // is not a valid HTTP base URL for fetch/axios requests.
   return "http://localhost:8080/api/v1";
 };
 
@@ -53,7 +57,7 @@ apiClient.interceptors.request.use((config) => {
   const internalToken = getInternalToken();
 
   if (internalToken) {
-    config.headers["X-Devaulty-Internal-Token"] = internalToken;
+    config.headers["DEVAULTY_INTERNAL_TOKEN"] = internalToken;
   }
 
   return config;
@@ -67,7 +71,7 @@ apiClient.interceptors.response.use(
       // that falls out of the range of 2xx
       const status = error.response.status;
       const data = error.response.data;
-      const message = data?.message || error.message || "Request failed";
+      const message = data?.error || data?.message || error.message || "Request failed";
       
       throw new ApiError(message, status, data);
     } else if (error.request) {

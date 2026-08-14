@@ -1,0 +1,3531 @@
+openapi: 3.0.3
+info:
+  title: Devaulty API Documentation
+  description: REST API for Devaulty Desktop App Engine
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development Server
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: DEVAULTY_INTERNAL_TOKEN
+      description: |
+        Internal security token generated in memory per app lifecycle.
+        Note: When running in DEV environment (APP_ENV=dev), this token defaults to 'dev-token' for interactive testing.
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: "Invalid project ID"
+
+    MessageResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: "Project archived"
+
+    Project:
+      type: object
+      required:
+        - id
+        - name
+        - archived
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "06f891ae-368b-4bd6-b1e6-d957f1496f9a"
+        name:
+          type: string
+          example: "Devaulty Go"
+        description:
+          type: string
+          nullable: true
+          example: "Developer Vault Application"
+        icon:
+          type: string
+          nullable: true
+          example: "rocket"
+        color:
+          type: string
+          nullable: true
+          example: "#4A90E2"
+        archived:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-01T12:35:07.84097684-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-01T16:22:46.12345678-03:00"
+
+    CreateProjectCommand:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Devaulty Go"
+        description:
+          type: string
+          minLength: 1
+          maxLength: 255
+          nullable: true
+          example: "Developer Vault Application"
+        icon:
+          type: string
+          maxLength: 100
+          nullable: true
+          example: "rocket"
+        color:
+          type: string
+          nullable: true
+          pattern: "^#([A-Fa-f0-9]{3,4}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"
+          example: "#4A90E2"
+
+    UpdateProjectCommand:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+          example: "Updated Devaulty Name"
+        description:
+          type: string
+          nullable: true
+          example: "Updated Description"
+        icon:
+          type: string
+          nullable: true
+          example: "folder"
+        color:
+          type: string
+          nullable: true
+          example: "#00FF00"
+
+    ProjectPage:
+      type: object
+      required:
+        - content
+        - size
+        - number
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/Project'
+        size:
+          type: integer
+          example: 10
+        number:
+          type: integer
+          example: 0
+        totalElements:
+          type: integer
+          format: int64
+          example: 1
+        totalPages:
+          type: integer
+          example: 1
+
+    SnippetType:
+      type: string
+      enum:
+        - COMMAND
+        - CODE
+      example: "CODE"
+
+    SnippetLanguage:
+      type: string
+      enum:
+        - BASH
+        - FISH
+        - ZSH
+        - SH
+        - POWERSHELL
+        - BATCH
+        - JAVA
+        - KOTLIN
+        - JAVASCRIPT
+        - TYPESCRIPT
+        - PYTHON
+        - GO
+        - RUST
+        - C
+        - CPP
+        - CSHARP
+        - PHP
+        - RUBY
+        - SWIFT
+        - DART
+        - SCALA
+        - LUA
+        - PERL
+        - R
+        - ELIXIR
+        - HASKELL
+        - CLOJURE
+        - GROOVY
+        - HTML
+        - CSS
+        - SCSS
+        - LESS
+        - JSX
+        - TSX
+        - VUE
+        - SVELTE
+        - JSON
+        - YAML
+        - XML
+        - TOML
+        - INI
+        - ENV
+        - CSV
+        - MARKDOWN
+        - PROPERTIES
+        - DOCKERFILE
+        - DOCKER_COMPOSE
+        - NGINX
+        - APACHE
+        - TERRAFORM
+        - ANSIBLE
+        - KUBERNETES_YAML
+        - HELM
+        - MAKEFILE
+        - CMAKE
+        - GRADLE
+        - MAVEN_POM
+        - SQL
+        - PLSQL
+        - GRAPHQL
+        - MONGODB
+        - GITHUB_ACTIONS
+        - GITLAB_CI
+        - JENKINSFILE
+        - REGEX
+        - DIFF
+        - LOG
+        - PLAIN_TEXT
+      example: "GO"
+
+    Snippet:
+      type: object
+      required:
+        - id
+        - projectId
+        - title
+        - content
+        - snippetType
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "784f6f5c-57af-4313-b160-688a3e0d283b"
+        projectId:
+          type: string
+          format: uuid
+          example: "06f891ae-368b-4bd6-b1e6-d957f1496f9a"
+        title:
+          type: string
+          example: "Print Hello World"
+        description:
+          type: string
+          nullable: true
+          example: "Simple print example in Go"
+        content:
+          type: string
+          example: "fmt.Println(\"Hello World\")"
+        language:
+          $ref: '#/components/schemas/SnippetLanguage'
+        snippetType:
+          $ref: '#/components/schemas/SnippetType'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-03T12:35:07.84097684-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-03T16:22:46.12345678-03:00"
+
+    CreateSnippetCommand:
+      type: object
+      required:
+        - title
+        - content
+        - language
+        - snippetType
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Print Hello World"
+        description:
+          type: string
+          minLength: 1
+          maxLength: 255
+          nullable: true
+          example: "Simple print example in Go"
+        content:
+          type: string
+          minLength: 1
+          example: "fmt.Println(\"Hello World\")"
+        language:
+          $ref: '#/components/schemas/SnippetLanguage'
+        snippetType:
+          $ref: '#/components/schemas/SnippetType'
+
+    UpdateSnippetCommand:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          nullable: true
+          example: "Updated Snippet Title"
+        description:
+          type: string
+          minLength: 1
+          maxLength: 255
+          nullable: true
+          example: "Updated description"
+        content:
+          type: string
+          minLength: 1
+          nullable: true
+          example: "log.Println(\"Updated Content\")"
+        language:
+          $ref: '#/components/schemas/SnippetLanguage'
+        snippetType:
+          $ref: '#/components/schemas/SnippetType'
+
+    SnippetPage:
+      type: object
+      required:
+        - content
+        - size
+        - number
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/Snippet'
+        size:
+          type: integer
+          example: 10
+        number:
+          type: integer
+          example: 0
+        totalElements:
+          type: integer
+          format: int64
+          example: 1
+        totalPages:
+          type: integer
+          example: 1
+
+    Link:
+      type: object
+      required:
+        - id
+        - projectId
+        - title
+        - url
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "784f6f5c-57af-4313-b160-688a3e0d283b"
+        projectId:
+          type: string
+          format: uuid
+          example: "06f891ae-368b-4bd6-b1e6-d957f1496f9a"
+        title:
+          type: string
+          example: "Go Documentation"
+        url:
+          type: string
+          format: uri
+          example: "https://go.dev/doc"
+        description:
+          type: string
+          nullable: true
+          example: "Official Go Documentation"
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-03T12:35:07.84097684-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-03T16:22:46.12345678-03:00"
+
+    CreateLinkCommand:
+      type: object
+      required:
+        - title
+        - url
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Go Documentation"
+        url:
+          type: string
+          format: uri
+          example: "https://go.dev/doc"
+        description:
+          type: string
+          nullable: true
+          example: "Official Go Documentation"
+
+    UpdateLinkCommand:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Updated Go Documentation"
+        url:
+          type: string
+          format: uri
+          example: "https://go.dev/doc"
+        description:
+          type: string
+          example: "Updated description"
+
+    LinkPage:
+      type: object
+      required:
+        - content
+        - size
+        - number
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/Link'
+        size:
+          type: integer
+          example: 10
+        number:
+          type: integer
+          example: 0
+        totalElements:
+          type: integer
+          format: int64
+          example: 1
+        totalPages:
+          type: integer
+          example: 1
+
+    ProblemStatus:
+      type: string
+      enum:
+        - OPEN
+        - WORKING_ON
+        - RESOLVED
+        - WONT_FIX
+      example: "OPEN"
+
+    ProblemSeverity:
+      type: string
+      enum:
+        - LOW
+        - MEDIUM
+        - HIGH
+        - CRITICAL
+      example: "HIGH"
+
+    Problem:
+      type: object
+      required:
+        - id
+        - projectId
+        - title
+        - errorDescription
+        - status
+        - severity
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "24199dbd-36c4-43c6-aeb2-680155af8293"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        title:
+          type: string
+          example: "Database Connection Failure"
+        errorDescription:
+          type: string
+          example: "Connection refused at localhost:5432"
+        solution:
+          type: string
+          nullable: true
+          example: "Restart PostgreSQL database container"
+        status:
+          $ref: '#/components/schemas/ProblemStatus'
+        severity:
+          $ref: '#/components/schemas/ProblemSeverity'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-05T19:29:23.61280878-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-05T21:07:31.992077709-03:00"
+
+    ProblemSummary:
+      type: object
+      required:
+        - id
+        - projectId
+        - title
+        - status
+        - severity
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "24199dbd-36c4-43c6-aeb2-680155af8293"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        title:
+          type: string
+          example: "Database Connection Failure"
+        status:
+          $ref: '#/components/schemas/ProblemStatus'
+        severity:
+          $ref: '#/components/schemas/ProblemSeverity'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-05T19:29:23.61280878-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-05T21:07:31.992077709-03:00"
+
+    CreateProblemCommand:
+      type: object
+      required:
+        - title
+        - errorDescription
+        - status
+        - severity
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Database Connection Failure"
+        errorDescription:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Connection refused at localhost:5432"
+        solution:
+          type: string
+          minLength: 2
+          maxLength: 255
+          nullable: true
+          example: "Restart PostgreSQL database container"
+        status:
+          $ref: '#/components/schemas/ProblemStatus'
+        severity:
+          $ref: '#/components/schemas/ProblemSeverity'
+
+    UpdateProblemCommand:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Updated Problem Title"
+        errorDescription:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Updated error details"
+        solution:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Updated solution steps"
+        severity:
+          $ref: '#/components/schemas/ProblemSeverity'
+
+    UpdateProblemStatusCommand:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          $ref: '#/components/schemas/ProblemStatus'
+
+    ProblemSummaryPage:
+      type: object
+      required:
+        - content
+        - size
+        - number
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/ProblemSummary'
+        size:
+          type: integer
+          example: 10
+        number:
+          type: integer
+          example: 0
+        totalElements:
+          type: integer
+          format: int64
+          example: 1
+        totalPages:
+          type: integer
+          example: 1
+
+    Note:
+      type: object
+      required:
+        - id
+        - projectId
+        - title
+        - content
+        - archived
+        - tags
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "784f6f5c-57af-4313-b160-688a3e0d283b"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        title:
+          type: string
+          example: "Meeting Notes"
+        content:
+          type: string
+          example: "Discussed system architecture and hexagonal pattern."
+        archived:
+          type: boolean
+          example: false
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    NoteSummary:
+      type: object
+      required:
+        - id
+        - projectId
+        - title
+        - archived
+        - tags
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "784f6f5c-57af-4313-b160-688a3e0d283b"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        title:
+          type: string
+          example: "Meeting Notes"
+        archived:
+          type: boolean
+          example: false
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    CreateNoteCommand:
+      type: object
+      required:
+        - title
+        - content
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Meeting Notes"
+        content:
+          type: string
+          minLength: 1
+          example: "Discussed system architecture and hexagonal pattern."
+
+    UpdateNoteCommand:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          nullable: true
+          example: "Updated Meeting Notes"
+        content:
+          type: string
+          minLength: 1
+          nullable: true
+          example: "Updated content"
+
+    NoteSummaryPage:
+      type: object
+      required:
+        - content
+        - size
+        - number
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/NoteSummary'
+        size:
+          type: integer
+          example: 10
+        number:
+          type: integer
+          example: 0
+        totalElements:
+          type: integer
+          format: int64
+          example: 1
+        totalPages:
+          type: integer
+          example: 1
+
+    MasterPasswordRequest:
+      type: object
+      required:
+        - masterPassword
+      properties:
+        masterPassword:
+          type: string
+          minLength: 8
+          maxLength: 255
+          example: "mySuperSecretPassword123"
+
+    MasterPasswordSetupRequiredView:
+      type: object
+      required:
+        - isRequired
+      properties:
+        isRequired:
+          type: boolean
+          example: true
+
+    VaultStatusView:
+      type: object
+      required:
+        - active
+        - secondsLeft
+      properties:
+        active:
+          type: boolean
+          example: true
+        secondsLeft:
+          type: integer
+          format: int64
+          example: 895
+
+    ItemType:
+      type: string
+      enum:
+        - SNIPPET
+        - LINK
+        - PROBLEM
+        - NOTE
+        - CREDENTIAL
+      example: "CREDENTIAL"
+
+    TagSummary:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "06f891ae-368b-4bd6-b1e6-d957f1496f9a"
+        name:
+          type: string
+          example: "Go Backend"
+        color:
+          type: string
+          nullable: true
+          example: "#FF0000"
+
+    Tag:
+      type: object
+      required:
+        - id
+        - projectId
+        - name
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "06f891ae-368b-4bd6-b1e6-d957f1496f9a"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        name:
+          type: string
+          example: "Go Backend"
+        color:
+          type: string
+          nullable: true
+          example: "#FF0000"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-05T19:29:23.61280878-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-05T21:07:31.992077709-03:00"
+
+    CreateTagCommand:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 40
+          example: "Go Backend"
+        color:
+          type: string
+          nullable: true
+          pattern: "^#([A-Fa-f0-9]{3,4}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"
+          example: "#FF0000"
+
+    UpdateTagCommand:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 40
+          nullable: true
+          example: "Updated Tag Name"
+        color:
+          type: string
+          nullable: true
+          pattern: "^#([A-Fa-f0-9]{3,4}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"
+          example: "#00FF00"
+
+    CredentialSecretType:
+      type: string
+      enum:
+        - LOGIN
+        - API_KEY
+        - RAW_TEXT
+      example: "LOGIN"
+
+    CreateCredentialCommand:
+      type: object
+      required:
+        - title
+        - secretType
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "My AWS Login"
+        secretType:
+          $ref: '#/components/schemas/CredentialSecretType'
+        username:
+          type: string
+          nullable: true
+          example: "admin@aws.com"
+        password:
+          type: string
+          nullable: true
+          example: "SuperSecretPassword123!"
+        apiKey:
+          type: string
+          nullable: true
+          example: "sk_test_123456789"
+        rawTextContent:
+          type: string
+          nullable: true
+          example: "pem_certificate_content"
+        notes:
+          type: string
+          nullable: true
+          example: "Main AWS root account"
+        relatedUrl:
+          type: string
+          nullable: true
+          example: "https://aws.amazon.com"
+
+    UpdateCredentialCommand:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          nullable: true
+          example: "Updated AWS Title"
+        secretType:
+          $ref: '#/components/schemas/CredentialSecretType'
+        username:
+          type: string
+          nullable: true
+          example: "updated_admin"
+        password:
+          type: string
+          nullable: true
+          example: "NewPassword123!"
+        apiKey:
+          type: string
+          nullable: true
+          example: "new_sk_test_999"
+        rawTextContent:
+          type: string
+          nullable: true
+          example: "new_raw_content"
+        notes:
+          type: string
+          nullable: true
+          example: "Updated notes"
+        relatedUrl:
+          type: string
+          nullable: true
+          example: "https://new-url.com"
+
+    CredentialSummaryView:
+      type: object
+      required:
+        - id
+        - projectId
+        - title
+        - secretType
+        - tags
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "81e5768c-2598-4e37-a08d-013e7f4ca48d"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        title:
+          type: string
+          example: "My AWS Login"
+        secretType:
+          $ref: '#/components/schemas/CredentialSecretType'
+        relatedUrl:
+          type: string
+          nullable: true
+          example: "https://aws.amazon.com"
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-13T19:30:25.081066457-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-13T20:15:00.123456789-03:00"
+
+    CredentialView:
+      type: object
+      required:
+        - id
+        - projectId
+        - title
+        - secretType
+        - decryptedPayload
+        - tags
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "81e5768c-2598-4e37-a08d-013e7f4ca48d"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        title:
+          type: string
+          example: "My AWS Login"
+        secretType:
+          $ref: '#/components/schemas/CredentialSecretType'
+        decryptedPayload:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            username: "admin@aws.com"
+            password: "SuperSecretPassword123!"
+        notes:
+          type: string
+          nullable: true
+          example: "Main AWS root account"
+        relatedUrl:
+          type: string
+          nullable: true
+          example: "https://aws.amazon.com"
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-13T19:30:25.081066457-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-13T20:15:00.123456789-03:00"
+
+    CredentialSummaryPage:
+      type: object
+      required:
+        - content
+        - size
+        - number
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/CredentialSummaryView'
+        size:
+          type: integer
+          example: 10
+        number:
+          type: integer
+          example: 0
+        totalElements:
+          type: integer
+          format: int64
+          example: 1
+        totalPages:
+          type: integer
+          example: 1
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /projects:
+    post:
+      summary: Create a new project
+      description: Creates a new project entity in the database.
+      tags:
+        - Projects
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectCommand'
+      responses:
+        '201':
+          description: Project created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Relative URL path to the newly created project
+              example: "/api/v1/projects/06f891ae-368b-4bd6-b1e6-d957f1496f9a"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          description: Invalid JSON format or validation constraints failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get paginated list of projects
+      description: Fetches a paginated list of projects ordered by creation date descending.
+      tags:
+        - Projects
+      parameters:
+        - name: page
+          in: query
+          description: Zero-based page index
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Page size limit
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated list of projects retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectPage'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{id}:
+    get:
+      summary: Get project by ID
+      description: Retrieves a single project entity by its UUID.
+      tags:
+        - Projects
+      parameters:
+        - name: id
+          in: path
+          description: Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Project details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          description: Invalid project ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Update project (Partial Update)
+      description: Performs a partial update (PATCH) on project fields specified in the request body.
+      tags:
+        - Projects
+      parameters:
+        - name: id
+          in: path
+          description: Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectCommand'
+      responses:
+        '200':
+          description: Project updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          description: Invalid UUID format or invalid JSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete project by ID
+      description: Permanently deletes a project by its UUID.
+      tags:
+        - Projects
+      parameters:
+        - name: id
+          in: path
+          description: Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Project deleted successfully (No Content)
+        '400':
+          description: Invalid UUID format or delete error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{id}/archive:
+    patch:
+      summary: Archive project
+      description: Sets project archived status to true.
+      tags:
+        - Projects
+      parameters:
+        - name: id
+          in: path
+          description: Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Project archived successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Invalid UUID or project already archived
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{id}/unarchive:
+    patch:
+      summary: Unarchive project
+      description: Sets project archived status back to false.
+      tags:
+        - Projects
+      parameters:
+        - name: id
+          in: path
+          description: Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Project unarchived successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Invalid UUID or project already active
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/snippets:
+    post:
+      summary: Create a new snippet in a project
+      description: Creates a new code or command snippet linked to the specified project.
+      tags:
+        - Snippets
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSnippetCommand'
+      responses:
+        '201':
+          description: Snippet created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Relative URL path to the newly created snippet
+              example: "/api/v1/projects/06f891ae-368b-4bd6-b1e6-d957f1496f9a/snippets/784f6f5c-57af-4313-b160-688a3e0d283b"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snippet'
+        '400':
+          description: Invalid JSON format or validation constraints failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get paginated list of snippets for a project
+      description: Fetches a paginated list of snippets for the specified project ordered by creation date descending.
+      tags:
+        - Snippets
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Zero-based page index
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Page size limit
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated list of snippets retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnippetPage'
+        '400':
+          description: Invalid query parameters or UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/snippets/{snippet_id}:
+    get:
+      summary: Get snippet by ID
+      description: Retrieves a single snippet entity by its UUID and parent project UUID.
+      tags:
+        - Snippets
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: snippet_id
+          in: path
+          description: Snippet UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Snippet details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snippet'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Snippet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Update snippet (Partial Update)
+      description: Performs a partial update (PATCH) on snippet fields specified in the request body.
+      tags:
+        - Snippets
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: snippet_id
+          in: path
+          description: Snippet UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSnippetCommand'
+      responses:
+        '200':
+          description: Snippet updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snippet'
+        '400':
+          description: Invalid UUID format or invalid JSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Snippet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete snippet by ID
+      description: Permanently deletes a snippet by its UUID within a project.
+      tags:
+        - Snippets
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: snippet_id
+          in: path
+          description: Snippet UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Snippet deleted successfully (No Content)
+        '400':
+          description: Invalid UUID format or delete error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Snippet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/credentials:
+    post:
+      summary: Create a new credential in a project
+      description: |
+        Creates and encrypts a new credential for the specified project.
+        The secret payload is encrypted at-rest using AES-256-GCM authenticated with AAD binding (project_id + credential_id).
+        Requires the vault to be unlocked.
+      tags:
+        - Credentials
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCredentialCommand'
+      responses:
+        '201':
+          description: Credential created and encrypted successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Relative URL path to the newly created credential
+              example: "/api/v1/projects/70d68fba-be62-46bb-8e6c-e4c4b6912e91/credentials/81e5768c-2598-4e37-a08d-013e7f4ca48d"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialView'
+        '400':
+          description: Invalid JSON payload, validation constraint failure, or missing required secret fields per secretType
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Vault is locked, please unlock it first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Master password not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get paginated list of credential summaries for a project
+      description: |
+        Fetches a paginated list of credential summaries for the specified project ordered by creation date descending.
+        For security, summaries do NOT contain decrypted secret payloads.
+      tags:
+        - Credentials
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Zero-based page index
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Page size limit
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated list of credential summaries retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialSummaryPage'
+        '400':
+          description: Invalid query parameters or UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Vault is locked, please unlock it first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Master password not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/credentials/{credential_id}:
+    get:
+      summary: Get credential by ID (with decrypted payload)
+      description: |
+        Retrieves a single credential entity by its UUID and parent project UUID, including its decrypted secret payload.
+        Requires the vault to be unlocked.
+      tags:
+        - Credentials
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: credential_id
+          in: path
+          description: Credential UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Credential details and decrypted payload retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialView'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Vault is locked, please unlock it first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Master password not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Credential not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Update credential (Partial Update)
+      description: |
+        Performs a partial update on a credential entity.
+        If title or metadata fields are passed without secret payload fields, metadata is updated and existing encrypted payload is preserved.
+        If new secret payload fields are passed, the secret payload is re-encrypted with AES-256-GCM.
+      tags:
+        - Credentials
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: credential_id
+          in: path
+          description: Credential UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCredentialCommand'
+      responses:
+        '200':
+          description: Credential updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialView'
+        '400':
+          description: Invalid JSON format or validation constraints failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Vault is locked, please unlock it first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Master password not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Credential not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete credential by ID
+      description: |
+        Permanently deletes a credential by its UUID within a project.
+        Automatically removes associated item tags.
+      tags:
+        - Credentials
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: credential_id
+          in: path
+          description: Credential UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Credential deleted successfully (No Content)
+        '400':
+          description: Invalid project_id or credential_id UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Vault is locked, please unlock it first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Master password not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Credential not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/links:
+    post:
+      summary: Create a new link in a project
+      description: Creates a new link entity linked to the specified project.
+      tags:
+        - Links
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLinkCommand'
+      responses:
+        '201':
+          description: Link created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Relative URL path to the newly created link
+              example: "/api/v1/projects/06f891ae-368b-4bd6-b1e6-d957f1496f9a/links/784f6f5c-57af-4313-b160-688a3e0d283b"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Link'
+        '400':
+          description: Invalid JSON format or validation constraints failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get paginated list of links for a project
+      description: Fetches a paginated list of links for the specified project ordered by creation date descending.
+      tags:
+        - Links
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Zero-based page index
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Page size limit
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated list of links retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkPage'
+        '400':
+          description: Invalid query parameters or UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/links/{link_id}:
+    get:
+      summary: Get link by ID
+      description: Retrieves a single link entity by its UUID and parent project UUID.
+      tags:
+        - Links
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: link_id
+          in: path
+          description: Link UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Link details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Link'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Link not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Update link (Partial Update)
+      description: Performs a partial update (PATCH) on link fields specified in the request body.
+      tags:
+        - Links
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: link_id
+          in: path
+          description: Link UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLinkCommand'
+      responses:
+        '200':
+          description: Link updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Link'
+        '400':
+          description: Invalid UUID format or invalid JSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Link not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete link by ID
+      description: Permanently deletes a link by its UUID within a project.
+      tags:
+        - Links
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: link_id
+          in: path
+          description: Link UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Link deleted successfully (No Content)
+        '400':
+          description: Invalid UUID format or delete error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Link not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/problems:
+    post:
+      summary: Create a new problem in a project
+      description: Creates a new problem entity linked to the specified project.
+      tags:
+        - Problems
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProblemCommand'
+      responses:
+        '201':
+          description: Problem created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Relative URL path to the newly created problem
+              example: "/api/v1/projects/70d68fba-be62-46bb-8e6c-e4c4b6912e91/problems/24199dbd-36c4-43c6-aeb2-680155af8293"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '400':
+          description: Invalid JSON format or validation constraints failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get paginated list of problems for a project
+      description: Fetches a paginated list of problem summaries for the specified project ordered by creation date descending.
+      tags:
+        - Problems
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Zero-based page index
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Page size limit
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated list of problem summaries retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemSummaryPage'
+        '400':
+          description: Invalid query parameters or UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/problems/{problem_id}:
+    get:
+      summary: Get problem by ID
+      description: Retrieves a single problem entity by its UUID and parent project UUID.
+      tags:
+        - Problems
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: problem_id
+          in: path
+          description: Problem UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Problem details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Problem not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Update problem (Partial Update)
+      description: Performs a partial update (PATCH) on problem fields specified in the request body (title, errorDescription, solution, severity).
+      tags:
+        - Problems
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: problem_id
+          in: path
+          description: Problem UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProblemCommand'
+      responses:
+        '200':
+          description: Problem updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '400':
+          description: Invalid UUID format or invalid JSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Problem not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete problem by ID
+      description: Permanently deletes a problem by its UUID within a project.
+      tags:
+        - Problems
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: problem_id
+          in: path
+          description: Problem UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Problem deleted successfully (No Content)
+        '400':
+          description: Invalid UUID format or delete error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Problem not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/problems/{problem_id}/status:
+    patch:
+      summary: Update problem status
+      description: Updates problem status (OPEN, WORKING_ON, RESOLVED, WONT_FIX).
+      tags:
+        - Problems
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: problem_id
+          in: path
+          description: Problem UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProblemStatusCommand'
+      responses:
+        '200':
+          description: Problem status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '400':
+          description: Invalid UUID format or missing status field
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Problem not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/notes:
+    post:
+      summary: Create a new note in a project
+      description: Creates a new note linked to the specified project.
+      tags:
+        - Notes
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNoteCommand'
+      responses:
+        '201':
+          description: Note created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Relative URL path to the newly created note
+              example: "/api/v1/projects/70d68fba-be62-46bb-8e6c-e4c4b6912e91/notes/784f6f5c-57af-4313-b160-688a3e0d283b"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '400':
+          description: Invalid UUID format or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: List all notes for a project
+      description: Returns a paginated list of notes for a project with attached tags.
+      tags:
+        - Notes
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Page number (0-indexed)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated list of notes retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoteSummaryPage'
+        '400':
+          description: Invalid UUID format or query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/notes/{note_id}:
+    get:
+      summary: Get note by ID
+      description: Returns a single note by ID with attached tags.
+      tags:
+        - Notes
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: note_id
+          in: path
+          description: Target Note UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Note retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Note not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Update a note
+      description: Updates title and/or content of an existing note.
+      tags:
+        - Notes
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: note_id
+          in: path
+          description: Target Note UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNoteCommand'
+      responses:
+        '200':
+          description: Note updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '400':
+          description: Invalid UUID format or payload validation failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Note not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete a note
+      description: Deletes a note by ID and removes its tag associations.
+      tags:
+        - Notes
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: note_id
+          in: path
+          description: Target Note UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Note deleted successfully (No Content)
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Note not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/tags:
+    post:
+      summary: Create a new tag in a project
+      description: Creates a new tag linked to the specified project. Returns 400 if tag with same name already exists in project.
+      tags:
+        - Tags
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTagCommand'
+      responses:
+        '201':
+          description: Tag created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Relative URL path to the newly created tag
+              example: "/api/v1/projects/70d68fba-be62-46bb-8e6c-e4c4b6912e91/tags/06f891ae-368b-4bd6-b1e6-d957f1496f9a"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          description: Invalid JSON format, validation failure, or tag already exists in project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get all tags for a project
+      description: Fetches an unpaginated list of all tags for the specified project.
+      tags:
+        - Tags
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of tags retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/tags/search:
+    get:
+      summary: Search tags by name
+      description: Searches tags in a project by matching tag name prefix or substring.
+      tags:
+        - Tags
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: tag_name
+          in: query
+          description: Tag name search term
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Matching tags retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/tags/{tag_id}:
+    get:
+      summary: Get tag by ID
+      description: Retrieves a single tag entity by its UUID and parent project UUID.
+      tags:
+        - Tags
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: tag_id
+          in: path
+          description: Tag UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Tag details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Update tag (Partial Update)
+      description: Performs a partial update (PATCH) on tag fields (name, color). Returns 400 if updated name already exists in project.
+      tags:
+        - Tags
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: tag_id
+          in: path
+          description: Tag UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTagCommand'
+      responses:
+        '200':
+          description: Tag updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          description: Invalid UUID format, invalid JSON, or tag already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete tag by ID
+      description: Permanently deletes a tag by its UUID within a project.
+      tags:
+        - Tags
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: tag_id
+          in: path
+          description: Tag UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Tag deleted successfully (No Content)
+        '400':
+          description: Invalid UUID format or delete error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/items/{item_type}/{item_id}/tags/{tag_id}:
+    put:
+      summary: Associate tag to item
+      description: Associates an existing tag to an item (SNIPPET, LINK, PROBLEM, NOTE) within a project.
+      tags:
+        - ItemTags
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: item_type
+          in: path
+          description: Type of item (SNIPPET, LINK, PROBLEM, NOTE)
+          required: true
+          schema:
+            $ref: '#/components/schemas/ItemType'
+        - name: item_id
+          in: path
+          description: Target Item UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: tag_id
+          in: path
+          description: Tag UUID to associate
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Tag associated to item successfully (No Content)
+        '400':
+          description: Invalid UUID format or unsupported item type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project, Item, or Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Disassociate tag from item
+      description: Removes association between a tag and an item (SNIPPET, LINK, PROBLEM, NOTE) within a project.
+      tags:
+        - ItemTags
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: item_type
+          in: path
+          description: Type of item (SNIPPET, LINK, PROBLEM, NOTE)
+          required: true
+          schema:
+            $ref: '#/components/schemas/ItemType'
+        - name: item_id
+          in: path
+          description: Target Item UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: tag_id
+          in: path
+          description: Tag UUID to disassociate
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Tag disassociated from item successfully (No Content)
+        '400':
+          description: Invalid UUID format or unsupported item type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project, Item, or Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /security/master-password:
+    post:
+      summary: Setup initial master password
+      description: Configures the master password for the vault during initial setup. Returns 400 if master password is already configured.
+      tags:
+        - Security
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MasterPasswordRequest'
+      responses:
+        '204':
+          description: Master password configured successfully (No Content)
+        '400':
+          description: Invalid master password format or already configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /security/master-password/required-status:
+    get:
+      summary: Check if master password setup is required
+      description: Returns true if the vault has not been initialized with a master password yet.
+      tags:
+        - Security
+      responses:
+        '200':
+          description: Master password setup requirement status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MasterPasswordSetupRequiredView'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /security/vault/status:
+    get:
+      summary: Get active vault session status
+      description: Returns whether the vault session is currently unlocked and the remaining inactive seconds before auto-lock.
+      tags:
+        - Security
+      responses:
+        '200':
+          description: Vault session status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VaultStatusView'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /security/vault/unlock:
+    post:
+      summary: Unlock vault with master password
+      description: Verifies master password and initializes the in-memory AES key session.
+      tags:
+        - Security
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MasterPasswordRequest'
+      responses:
+        '200':
+          description: Vault unlocked successfully
+          content:
+            application/json:
+              schema:
+                type: boolean
+                example: true
+        '400':
+          description: Invalid payload or master password not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid master password or missing DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /security/vault/lock:
+    post:
+      summary: Lock vault
+      description: Immediately purges the master key from memory RAM and invalidates active session.
+      tags:
+        - Security
+      responses:
+        '204':
+          description: Vault locked successfully (No Content)
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
