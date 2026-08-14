@@ -26,6 +26,7 @@ dist-ssr
 # Tauri / Rust build targets
 src-tauri/target/
 src-tauri/gen/
+src-tauri/resources/devaulty-backend*
 
 .skills
 api-docs.json

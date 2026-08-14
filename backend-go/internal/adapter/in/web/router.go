@@ -23,7 +23,11 @@ type Handlers struct {
 }
 
 func SetupRouter(h *Handlers, apiToken string) *gin.Engine {
-	r := gin.Default()
+	if os.Getenv("APP_ENV") != "dev" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+	r := gin.New()
+	r.Use(gin.Recovery())
 	r.Use(middleware.CORSMiddleware())
 
 	registerDocsRoutes(r)

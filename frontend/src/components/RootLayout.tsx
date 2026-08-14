@@ -216,10 +216,10 @@ const RootLayoutInner: React.FC = () => {
           window.DEVAULTY_INTERNAL_TOKEN = info.token;
           window.DEVAULTY_API_BASE_URL = `http://localhost:${info.port}/api/v1`;
 
-          // Health check ping to ensure Spring Boot HTTP listener is active before dropping splash
+          // Health check ping to ensure Go backend HTTP listener is active before dropping splash
           try {
             await fetch(`http://localhost:${info.port}/api/v1/releases/current-app-version`, {
-              headers: { "X-Devaulty-Internal-Token": info.token },
+              headers: { "DEVAULTY_INTERNAL_TOKEN": info.token },
             });
           } catch {
             // Silently ignore health check ping errors

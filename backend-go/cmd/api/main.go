@@ -5,9 +5,13 @@ import (
 	"devaulty-backend/internal/adapter/in/web"
 	"devaulty-backend/internal/adapter/in/web/handler"
 	"devaulty-backend/internal/usecase"
+	"devaulty-backend/migrations"
+	"fmt"
 	"log"
 	"net"
 	"os"
+	"path/filepath"
+	"runtime/debug"
 
 	"devaulty-backend/internal/adapter/out/persistence"
 	"devaulty-backend/internal/adapter/out/security"
@@ -15,9 +19,38 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// resolveDataDir returns the absolute path to the application data directory.
+// In production, Tauri sets DEVAULTY_DATA_DIR to the OS user config path.
+// In development, it falls back to a relative "data" directory.
+func resolveDataDir() string {
+	if dir := os.Getenv("DEVAULTY_DATA_DIR"); dir != "" {
+		return dir
+	}
+	return "data"
+}
+
 func main() {
+	if os.Getenv("APP_ENV") != "dev" {
+		debug.SetGCPercent(20)
+	}
 	log.Println("Starting Devaulty API")
-	db, err := persistence.InitDB("data/devaulty.db", "migrations")
+
+	dataDir := resolveDataDir()
+	if err := os.MkdirAll(dataDir, 0700); err != nil {
+		log.Fatalf("Critical error while creating data directory %s: %v", dataDir, err)
+	}
+
+	dbPath := filepath.Join(dataDir, "devaulty.db")
+
+	// Use embedded migrations in production for a self-contained binary.
+	// In development (APP_ENV=dev), use file-based migrations for hot-reload convenience.
+	var db *sqlx.DB
+	var err error
+	if os.Getenv("APP_ENV") == "dev" {
+		db, err = persistence.InitDB(dbPath, "migrations")
+	} else {
+		db, err = persistence.InitDBWithFS(dbPath, migrations.FS)
+	}
 	if err != nil {
 		log.Fatalf("Critical error while initializing Devaulty database: %v", err)
 	}
@@ -101,7 +134,12 @@ func main() {
 	}
 
 	port := listener.Addr().(*net.TCPAddr).Port
-	log.Printf("DEVAULTY_API_BASE_URL=%d", port) // Exposes for TAURI
+
+	// Structured session handshake line for Tauri IPC.
+	// Tauri reads stdout via a private pipe and parses this exact format
+	// to extract the dynamic port and security token.
+	fmt.Printf("[DEVAULTY_SESSION] PORT=%d TOKEN=%s\n", port, devaultyInternalToken)
+	os.Stdout.Sync()
 
 	log.Printf("Starting server on port %d...", port)
 	if err := r.RunListener(listener); err != nil {

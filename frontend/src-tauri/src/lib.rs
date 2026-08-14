@@ -3,14 +3,15 @@ use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tauri::Manager;
+use uuid::Uuid;
 
-// In-memory structure to store port, token, child process, and jar mode status.
+// In-memory state shared between Tauri commands and the backend child process.
 #[derive(Default)]
 pub struct SessionState {
   pub port: Mutex<Option<u16>>,
   pub token: Mutex<Option<String>>,
   pub child_process: Mutex<Option<Child>>,
-  pub is_jar_mode: Mutex<bool>,
+  pub is_bundled_mode: Mutex<bool>,
 }
 
 // Response sent to React when it calls `invoke("get_backend_info")`
@@ -20,44 +21,79 @@ pub struct BackendInfo {
   pub token: String,
 }
 
+// Minimum duration the splash screen is displayed, ensuring a polished
+// startup experience even when the Go backend initializes instantly.
+const MIN_SPLASH_DURATION: Duration = Duration::from_secs(2);
+
 // Async IPC command:
-//   - If bundled JAR exists (production): waits up to 60s for Spring Boot to print [DEVAULTY_SESSION]
-//   - If no JAR (dev mode with tauri dev): returns fallback immediately
+//   - Bundled mode (production): waits up to 30s for Go backend to print [DEVAULTY_SESSION],
+//     then performs a health check, ensuring a minimum 2s splash display.
+//   - Dev mode (no bundled binary): returns dev fallback immediately
 #[tauri::command]
 async fn get_backend_info(state: tauri::State<'_, Arc<SessionState>>) -> Result<BackendInfo, String> {
-  let is_jar = *state.is_jar_mode.lock().unwrap();
+  let is_bundled = *state.is_bundled_mode.lock().unwrap();
 
-  // Dev mode: no bundled JAR — return immediately so splash closes fast
-  if !is_jar {
+  // Dev mode: no bundled binary — return immediately so splash closes fast
+  if !is_bundled {
     return Ok(BackendInfo {
       port: 8080,
-      token: "dev-session-token".to_string(),
+      token: "dev-token".to_string(),
     });
   }
 
-  // Production mode: poll until Spring Boot writes the session line to stdout
-  let start_time = Instant::now();
-  let timeout = Duration::from_secs(60);
+  let splash_start = Instant::now();
+  let timeout = Duration::from_secs(30);
 
-  loop {
+  // Phase 1: Wait for the Go backend to emit its session handshake via stdout
+  let info = loop {
     {
       let port = state.port.lock().unwrap();
       let token = state.token.lock().unwrap();
 
       if let (Some(p), Some(ref t)) = (*port, token.as_ref()) {
-        return Ok(BackendInfo {
+        break BackendInfo {
           port: p,
           token: t.to_string(),
-        });
+        };
       }
     }
 
-    if start_time.elapsed() > timeout {
-      return Err("Backend initialization timeout after 60s".to_string());
+    if splash_start.elapsed() > timeout {
+      return Err("Backend initialization timeout after 30s".to_string());
     }
 
-    tokio::time::sleep(Duration::from_millis(100)).await;
+    tokio::time::sleep(Duration::from_millis(50)).await;
+  };
+
+  // Phase 2: Wait for the HTTP health check endpoint to respond
+  let health_url = format!("http://127.0.0.1:{}/health", info.port);
+  let health_timeout = Duration::from_secs(10);
+  let health_start = Instant::now();
+
+  loop {
+    match reqwest::Client::new()
+      .get(&health_url)
+      .timeout(Duration::from_secs(2))
+      .send()
+      .await
+    {
+      Ok(resp) if resp.status().is_success() => break,
+      _ => {
+        if health_start.elapsed() > health_timeout {
+          return Err("Backend health check timeout after 10s".to_string());
+        }
+        tokio::time::sleep(Duration::from_millis(100)).await;
+      }
+    }
   }
+
+  // Phase 3: Ensure the splash screen is shown for at least MIN_SPLASH_DURATION
+  let elapsed = splash_start.elapsed();
+  if elapsed < MIN_SPLASH_DURATION {
+    tokio::time::sleep(MIN_SPLASH_DURATION - elapsed).await;
+  }
+
+  Ok(info)
 }
 
 #[tauri::command]
@@ -73,40 +109,52 @@ fn close_splash(app_handle: tauri::AppHandle) {
   }
 }
 
-// Resolves the `java` executable path, checking common install locations on Linux/macOS
-// to work around missing PATH when app is launched from the desktop launcher.
-fn resolve_java_binary() -> Option<String> {
-  // 1. Try java directly from PATH
-  if Command::new("java").arg("-version").stdout(Stdio::null()).stderr(Stdio::null()).status().is_ok() {
-    return Some("java".to_string());
+// Resolves the native Go backend binary name based on the current platform.
+fn backend_binary_name() -> &'static str {
+  if cfg!(target_os = "windows") {
+    "devaulty-backend.exe"
+  } else {
+    "devaulty-backend"
   }
+}
 
-  // 2. Common explicit paths as fallback
+// Locates the bundled backend binary inside the Tauri resource directory.
+// Tries both `resources/<name>` (Tauri v2 default) and `<name>` (flat layout).
+fn find_backend_binary(resource_dir: &std::path::Path) -> Option<std::path::PathBuf> {
+  let name = backend_binary_name();
+
   let candidates = [
-    "/usr/bin/java",
-    "/usr/local/bin/java",
-    "/usr/lib/jvm/default/bin/java",
-    "/usr/lib/jvm/default-java/bin/java",
-    "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
-    "/usr/lib/jvm/java-17-openjdk-amd64/bin/java",
+    resource_dir.join("resources").join(name),
+    resource_dir.join(name),
   ];
 
-  for path in candidates {
-    if std::path::Path::new(path).exists() {
-      return Some(path.to_string());
-    }
-  }
+  candidates.into_iter().find(|p| p.exists())
+}
 
-  None
+// Sets executable permission on Unix systems (Linux & macOS).
+// On Windows this is a no-op since executability is determined by file extension.
+#[cfg(unix)]
+fn ensure_executable(path: &std::path::Path) -> std::io::Result<()> {
+  use std::os::unix::fs::PermissionsExt;
+  let mut perms = std::fs::metadata(path)?.permissions();
+  perms.set_mode(0o755);
+  std::fs::set_permissions(path, perms)
+}
+
+#[cfg(not(unix))]
+fn ensure_executable(_path: &std::path::Path) -> std::io::Result<()> {
+  Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  if let Some(config_dir) = dirs::config_dir() {
-    let devaulty_dir = config_dir.join("devaulty");
-    if !devaulty_dir.exists() {
-      let _ = std::fs::create_dir_all(devaulty_dir);
-    }
+  // Ensure the user config directory exists for database storage
+  let devaulty_data_dir = dirs::config_dir()
+    .map(|config| config.join("devaulty"))
+    .unwrap_or_else(|| std::path::PathBuf::from("data"));
+
+  if !devaulty_data_dir.exists() {
+    let _ = std::fs::create_dir_all(&devaulty_data_dir);
   }
 
   let session_state = Arc::new(SessionState::default());
@@ -125,36 +173,35 @@ pub fn run() {
       }
 
       let resource_dir = app.path().resource_dir().ok();
-      if let Some(res_path) = resource_dir {
-        // Try both possible paths: Tauri v2 preserves the resources/ subdir by default
-        let jar_path = if res_path.join("resources/backend.jar").exists() {
-          res_path.join("resources/backend.jar")
-        } else {
-          res_path.join("backend.jar")
-        };
-        if jar_path.exists() {
-          // Mark as production JAR mode BEFORE spawning Java
-          *state_clone.is_jar_mode.lock().unwrap() = true;
+      if let Some(ref res_path) = resource_dir {
+        if let Some(binary_path) = find_backend_binary(res_path) {
+          // Mark as bundled production mode
+          *state_clone.is_bundled_mode.lock().unwrap() = true;
 
-          if let Some(java_bin) = resolve_java_binary() {
-            if let Ok(mut child) = Command::new(&java_bin)
-              .env("SPRING_PROFILES_ACTIVE", "prod")
-              .args([
-                "-Xms64m",
-                "-Xmx256m",
-                "-XX:MetaspaceSize=96m",
-                "-XX:MaxMetaspaceSize=192m",
-                "-XX:ParallelGCThreads=2",
-                "-XX:ConcGCThreads=1",
-                "-XX:+UseG1GC",
-                "-XX:MaxGCPauseMillis=100",
-                "-jar",
-                jar_path.to_str().unwrap(),
-                "--spring.profiles.active=prod",
-              ])
-              .stdout(Stdio::piped())
-              .spawn()
-            {
+          // Ensure executable permission on Unix platforms
+          if let Err(e) = ensure_executable(&binary_path) {
+            log::error!("Failed to set executable permission on backend binary: {}", e);
+          }
+
+          // Generate a cryptographically secure random session token.
+          // This token is injected exclusively via the child process environment
+          // and never exposed to disk, logs, or other OS processes.
+          let session_token = Uuid::new_v4().to_string();
+
+          let data_dir_str = devaulty_data_dir.to_string_lossy().to_string();
+
+          // Spawn the native Go backend process.
+          // Migrations are embedded in the Go binary via go:embed,
+          // so no external migration files need to be shipped.
+          match Command::new(&binary_path)
+            .env("APP_ENV", "prod")
+            .env("DEVAULTY_INTERNAL_TOKEN", &session_token)
+            .env("DEVAULTY_DATA_DIR", &data_dir_str)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::inherit())
+            .spawn()
+          {
+            Ok(mut child) => {
               if let Some(stdout) = child.stdout.take() {
                 let state_inner = Arc::clone(&state_clone);
                 std::thread::spawn(move || {
@@ -165,10 +212,10 @@ pub fn run() {
                       let mut port_val = None;
                       let mut token_val = None;
                       for part in parts {
-                        if part.starts_with("PORT=") {
-                          port_val = part.trim_start_matches("PORT=").parse::<u16>().ok();
-                        } else if part.starts_with("TOKEN=") {
-                          token_val = Some(part.trim_start_matches("TOKEN=").to_string());
+                        if let Some(stripped) = part.strip_prefix("PORT=") {
+                          port_val = stripped.parse::<u16>().ok();
+                        } else if let Some(stripped) = part.strip_prefix("TOKEN=") {
+                          token_val = Some(stripped.to_string());
                         }
                       }
                       if let (Some(p), Some(t)) = (port_val, token_val) {
@@ -180,6 +227,9 @@ pub fn run() {
                 });
               }
               *state_clone.child_process.lock().unwrap() = Some(child);
+            }
+            Err(e) => {
+              log::error!("Failed to spawn Go backend process: {}", e);
             }
           }
         }
