@@ -1,6 +1,7 @@
 package main
 
 import (
+	"devaulty-backend/internal/adapter/in/scheduler"
 	"devaulty-backend/internal/adapter/in/web"
 	"devaulty-backend/internal/adapter/in/web/handler"
 	"devaulty-backend/internal/usecase"
@@ -85,6 +86,9 @@ func main() {
 		Security:   securityHandler,
 	}
 	r := web.SetupRouter(handlers, devaultyInternalToken)
+
+	autoLock := scheduler.NewVaultAutoLock(masterKeySession)
+	go autoLock.PurgeExpiredSession()
 
 	addr := "127.0.0.1:0"
 	if os.Getenv("APP_ENV") == "dev" {

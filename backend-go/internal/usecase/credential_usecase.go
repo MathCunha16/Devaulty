@@ -25,7 +25,7 @@ type CredentialUseCase struct {
 	projectRepo      port.ProjectRepository
 	itemTagRepo      port.ItemTagRepository
 	crypto           port.Crypto
-	MasterKeySession port.MasterKeySession
+	masterKeySession port.MasterKeySession
 	VaultUseCase
 }
 
@@ -35,7 +35,7 @@ func NewCredentialUseCase(credentialRepo port.CredentialRepository, projectRepo 
 		projectRepo:      projectRepo,
 		itemTagRepo:      itemTagRepo,
 		crypto:           crypto,
-		MasterKeySession: masterKeySession,
+		masterKeySession: masterKeySession,
 		VaultUseCase:     vaultUseCase,
 	}
 }
