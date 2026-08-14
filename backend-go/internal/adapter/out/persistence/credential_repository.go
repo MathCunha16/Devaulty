@@ -38,10 +38,10 @@ func (r *CredentialRepositoryAdapter) Save(ctx context.Context, credential *mode
 	return credential, nil
 }
 
-func (r *CredentialRepositoryAdapter) FindByID(ctx context.Context, id uuid.UUID) (*model.Credential, error) {
-	query := `SELECT * FROM credentials WHERE id = ?`
+func (r *CredentialRepositoryAdapter) FindByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) (*model.Credential, error) {
+	query := `SELECT * FROM credentials WHERE id = ? AND project_id = ?`
 	var credential model.Credential
-	err := r.db.GetContext(ctx, &credential, query, id)
+	err := r.db.GetContext(ctx, &credential, query, id, projectID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -53,17 +53,22 @@ func (r *CredentialRepositoryAdapter) FindByID(ctx context.Context, id uuid.UUID
 
 func (r *CredentialRepositoryAdapter) FindAllByProjectID(ctx context.Context, projectID uuid.UUID, page int, size int) (model.Page[model.Credential], error) {
 	countQuery := `SELECT COUNT(*) FROM credentials WHERE project_id = ?`
-	selectQuery := `SELECT * FROM credentials WHERE project_id = ? ORDER BY created_at DESC`
+	selectQuery := `SELECT id, project_id, title, secret_type, related_url, created_at, updated_at
+					FROM credentials WHERE project_id = ? ORDER BY created_at DESC`
 	return PaginateExec[model.Credential](ctx, r.db, countQuery, selectQuery, page, size, projectID)
 }
 
-func (r *CredentialRepositoryAdapter) DeleteByID(ctx context.Context, id uuid.UUID) error {
-	query := `DELETE FROM credentials WHERE id = ?`
-	_, err := r.db.ExecContext(ctx, query, id)
+func (r *CredentialRepositoryAdapter) DeleteByIDAndProjectID(ctx context.Context, projectID, id uuid.UUID) (bool, error) {
+	query := `DELETE FROM credentials WHERE id = ? AND project_id = ?`
+	res, err := r.db.ExecContext(ctx, query, id, projectID)
 	if err != nil {
-		return fmt.Errorf("error trying to delete credential: %w", err)
+		return false, fmt.Errorf("error trying to delete credential: %w", err)
 	}
-	return nil
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("error checking deleted rows: %w", err)
+	}
+	return rows > 0, nil
 }
 
 func (r *CredentialRepositoryAdapter) ExistsByIDAndProjectID(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (bool, error) {

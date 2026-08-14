@@ -1,6 +1,7 @@
 package main
 
 import (
+	"devaulty-backend/internal/adapter/in/scheduler"
 	"devaulty-backend/internal/adapter/in/web"
 	"devaulty-backend/internal/adapter/in/web/handler"
 	"devaulty-backend/internal/usecase"
@@ -49,6 +50,11 @@ func main() {
 	snippetUseCase := usecase.NewSnippetUseCase(snippetRepo, projectRepo, itemTagRepo)
 	snippetHandler := handler.NewSnippetHandler(snippetUseCase)
 
+	cryptoAdapter := security.NewAESGCMCrypto()
+	credentialRepo := persistence.NewCredentialRepository(db)
+	credentialUseCase := usecase.NewCredentialUseCase(credentialRepo, projectRepo, itemTagRepo, cryptoAdapter, masterKeySession, *vaultUseCase)
+	credentialHandler := handler.NewCredentialHandler(credentialUseCase)
+
 	linkRepo := persistence.NewLinkRepository(db)
 	linkUseCase := usecase.NewLinkUseCase(linkRepo, projectRepo, itemTagRepo)
 	linkHandler := handler.NewLinkHandler(linkUseCase)
@@ -65,20 +71,24 @@ func main() {
 	noteUseCase := usecase.NewNoteUseCase(noteRepo, projectRepo, itemTagRepo)
 	noteHandler := handler.NewNoteHandler(noteUseCase)
 
-	itemTagUseCase := usecase.NewItemTagUseCase(itemTagRepo, tagRepo, projectRepo, snippetRepo, linkRepo, problemRepo, noteRepo)
+	itemTagUseCase := usecase.NewItemTagUseCase(itemTagRepo, tagRepo, projectRepo, snippetRepo, credentialRepo, linkRepo, problemRepo, noteRepo)
 	itemTagHandler := handler.NewItemTagHandler(itemTagUseCase, tagUseCase, projectUseCase)
 
 	handlers := &web.Handlers{
-		Project:  projectHandler,
-		Snippet:  snippetHandler,
-		Link:     linkHandler,
-		Problem:  problemHandler,
-		Note:     noteHandler,
-		Tag:      tagHandler,
-		ItemTag:  itemTagHandler,
-		Security: securityHandler,
+		Project:    projectHandler,
+		Snippet:    snippetHandler,
+		Credential: credentialHandler,
+		Link:       linkHandler,
+		Problem:    problemHandler,
+		Note:       noteHandler,
+		Tag:        tagHandler,
+		ItemTag:    itemTagHandler,
+		Security:   securityHandler,
 	}
 	r := web.SetupRouter(handlers, devaultyInternalToken)
+
+	autoLock := scheduler.NewVaultAutoLock(masterKeySession)
+	go autoLock.PurgeExpiredSession()
 
 	addr := "127.0.0.1:0"
 	if os.Getenv("APP_ENV") == "dev" {

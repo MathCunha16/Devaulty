@@ -26,6 +26,7 @@ func NewItemTagUseCase(
 	tagRepo port.TagRepository,
 	projectRepo port.ProjectRepository,
 	snippetRepo port.SnippetRepository,
+	credentialRepo port.CredentialRepository,
 	linkRepo port.LinkRepository,
 	problemRepo port.ProblemRepository,
 	noteRepo port.NoteRepository,
@@ -35,10 +36,11 @@ func NewItemTagUseCase(
 		tagRepo:     tagRepo,
 		projectRepo: projectRepo,
 		itemRepos: map[model.ItemType]port.ProjectScopedRepository{
-			model.ItemTypeSnippet: snippetRepo,
-			model.ItemTypeLink:    linkRepo,
-			model.ItemTypeProblem: problemRepo,
-			model.ItemTypeNote:    noteRepo,
+			model.ItemTypeSnippet:    snippetRepo,
+			model.ItemTypeLink:       linkRepo,
+			model.ItemTypeProblem:    problemRepo,
+			model.ItemTypeNote:       noteRepo,
+			model.ItemTypeCredential: credentialRepo,
 		},
 	}
 }

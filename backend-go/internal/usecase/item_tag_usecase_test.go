@@ -103,6 +103,7 @@ func SetupItemTagUseCaseTest() (
 	mockTagRepo := new(MockTagRepository)
 	mockProjectRepo := new(MockProjectRepository)
 	mockSnippetRepo := new(MockSnippetRepository)
+	mockCredRepo := new(MockCredentialRepository)
 	mockLinkRepo := new(MockLinkRepository)
 	mockProblemRepo := new(MockProblemRepository)
 	mockNoteRepo := new(MockNoteRepository)
@@ -112,6 +113,7 @@ func SetupItemTagUseCaseTest() (
 		mockTagRepo,
 		mockProjectRepo,
 		mockSnippetRepo,
+		mockCredRepo,
 		mockLinkRepo,
 		mockProblemRepo,
 		mockNoteRepo,
