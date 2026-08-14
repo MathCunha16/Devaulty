@@ -5,8 +5,12 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"devaulty-backend/internal/domain/port"
-	"devaulty-backend/internal/usecase"
+	"errors"
 	"fmt"
+)
+
+var (
+	ErrDecryptionFailed = errors.New("decryption failed")
 )
 
 const (
@@ -64,7 +68,7 @@ func (A *AESGCMCryptoAdapter) Decrypt(cipherText, iv, authTag, secretKey, aad []
 
 	plainData, err = gcm.Open(nil, iv, sealed, aad)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", usecase.ErrInvalidMasterPassword, err)
+		return nil, fmt.Errorf("%w: %v", ErrDecryptionFailed, err)
 	}
 
 	return plainData, nil

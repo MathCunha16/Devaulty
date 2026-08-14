@@ -249,9 +249,6 @@ func (uc *CredentialUseCase) Update(ctx context.Context, cmd dto.UpdateCredentia
 	if cmd.Title != nil {
 		credential.Title = *cmd.Title
 	}
-	if cmd.SecretType != nil {
-		credential.SecretType = *cmd.SecretType
-	}
 	if cmd.Notes != nil {
 		credential.Notes = cmd.Notes
 	}
@@ -259,17 +256,71 @@ func (uc *CredentialUseCase) Update(ctx context.Context, cmd dto.UpdateCredentia
 		credential.RelatedUrl = cmd.RelatedURL
 	}
 	aad := uc.computeAad(cmd.ProjectID, cmd.ID)
-	if cmd.APIKey != nil || cmd.Username != nil || cmd.Password != nil || cmd.RawTextContent != nil {
-		payloadBytes, err := buildSecretPayloadBytes(credential.SecretType, cmd.Username, cmd.Password, cmd.APIKey, cmd.RawTextContent)
+
+	secretTypeChanged := cmd.SecretType != nil && *cmd.SecretType != credential.SecretType
+	secretFieldsProvided := cmd.APIKey != nil || cmd.Username != nil || cmd.Password != nil || cmd.RawTextContent != nil
+
+	if secretTypeChanged || secretFieldsProvided {
+		targetSecretType := credential.SecretType
+		if cmd.SecretType != nil {
+			targetSecretType = *cmd.SecretType
+		}
+
+		var mergedMap map[string]string
+		if secretTypeChanged {
+			mergedMap = make(map[string]string)
+		} else {
+			decryptedBytes, err := uc.crypto.Decrypt(credential.PayloadEncrypted, credential.EncryptionIv, credential.EncryptionAuthTag, secretKey, aad)
+			if err != nil {
+				return nil, fmt.Errorf("error decrypting existing credential for update: %w", err)
+			}
+			_ = json.Unmarshal(decryptedBytes, &mergedMap)
+			clear(decryptedBytes)
+			if mergedMap == nil {
+				mergedMap = make(map[string]string)
+			}
+		}
+
+		switch targetSecretType {
+		case model.CredentialSecretTypeLogin:
+			if len(cmd.Username) > 0 {
+				mergedMap["username"] = string(cmd.Username)
+			}
+			if len(cmd.Password) > 0 {
+				mergedMap["password"] = string(cmd.Password)
+			}
+			if len(bytes.TrimSpace([]byte(mergedMap["password"]))) == 0 {
+				return nil, fmt.Errorf("%w: password is required for LOGIN secret type", ErrInvalidSecretPayload)
+			}
+		case model.CredentialSecretTypeApiKey:
+			if len(cmd.APIKey) > 0 {
+				mergedMap["apiKey"] = string(cmd.APIKey)
+			}
+			if len(bytes.TrimSpace([]byte(mergedMap["apiKey"]))) == 0 {
+				return nil, fmt.Errorf("%w: apikey is required for APIKEY secret type", ErrInvalidSecretPayload)
+			}
+		case model.CredentialSecretTypeRawText:
+			if len(cmd.RawTextContent) > 0 {
+				mergedMap["rawText"] = string(cmd.RawTextContent)
+			}
+			if len(bytes.TrimSpace([]byte(mergedMap["rawText"]))) == 0 {
+				return nil, fmt.Errorf("%w: raw text is required for RAWTEXT secret type", ErrInvalidSecretPayload)
+			}
+		default:
+			return nil, ErrInvalidSecretPayload
+		}
+
+		payloadBytes, err := json.Marshal(mergedMap)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error marshalling updated credential payload: %w", err)
 		}
 		defer clear(payloadBytes)
 
 		cipherText, iv, authTag, err := uc.crypto.Encrypt(payloadBytes, secretKey, aad)
 		if err != nil {
-			return nil, fmt.Errorf("error encrypting credential: %w", err)
+			return nil, fmt.Errorf("error encrypting updated credential: %w", err)
 		}
+		credential.SecretType = targetSecretType
 		credential.PayloadEncrypted = cipherText
 		credential.EncryptionIv = iv
 		credential.EncryptionAuthTag = authTag

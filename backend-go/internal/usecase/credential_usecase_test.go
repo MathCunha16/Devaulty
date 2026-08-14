@@ -1,48 +1,26 @@
 package usecase_test
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
-	"testing"
-	"time"
-
 	"devaulty-backend/internal/domain/model"
 	"devaulty-backend/internal/dto"
 	"devaulty-backend/internal/usecase"
+	"encoding/json"
+	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-// --- MOCK DEFINITIONS ---
-
-type MockCrypto struct {
-	mock.Mock
-}
-
-func (m *MockCrypto) Encrypt(plainData, secretKey, aad []byte) ([]byte, []byte, []byte, error) {
-	args := m.Called(plainData, secretKey, aad)
-	if args.Get(0) == nil {
-		return nil, nil, nil, args.Error(3)
-	}
-	return args.Get(0).([]byte), args.Get(1).([]byte), args.Get(2).([]byte), args.Error(3)
-}
-
-func (m *MockCrypto) Decrypt(cipherText, iv, authTag, secretKey, aad []byte) ([]byte, error) {
-	args := m.Called(cipherText, iv, authTag, secretKey, aad)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]byte), args.Error(1)
-}
-
 type MockCredentialRepository struct {
 	mock.Mock
 }
 
-func (m *MockCredentialRepository) Save(ctx context.Context, cred *model.Credential) (*model.Credential, error) {
-	args := m.Called(ctx, cred)
+func (m *MockCredentialRepository) Save(ctx context.Context, credential *model.Credential) (*model.Credential, error) {
+	args := m.Called(ctx, credential)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -67,7 +45,7 @@ func (m *MockCredentialRepository) DeleteByIDAndProjectID(ctx context.Context, p
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *MockCredentialRepository) ExistsByIDAndProjectID(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (bool, error) {
+func (m *MockCredentialRepository) ExistsByIDAndProjectID(ctx context.Context, id, projectID uuid.UUID) (bool, error) {
 	args := m.Called(ctx, id, projectID)
 	return args.Bool(0), args.Error(1)
 }
@@ -80,7 +58,25 @@ func (m *MockCredentialRepository) FindExistingIDsByProjectID(ctx context.Contex
 	return args.Get(0).([]uuid.UUID), args.Error(1)
 }
 
-// --- UNIT TESTS ---
+type MockCrypto struct {
+	mock.Mock
+}
+
+func (m *MockCrypto) Encrypt(plainData, secretKey, aad []byte) (cipherText, iv, authTag []byte, err error) {
+	args := m.Called(plainData, secretKey, aad)
+	if args.Get(0) == nil {
+		return nil, nil, nil, args.Error(3)
+	}
+	return args.Get(0).([]byte), args.Get(1).([]byte), args.Get(2).([]byte), args.Error(3)
+}
+
+func (m *MockCrypto) Decrypt(cipherText, iv, authTag, secretKey, aad []byte) (plainData []byte, err error) {
+	args := m.Called(cipherText, iv, authTag, secretKey, aad)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]byte), args.Error(1)
+}
 
 func setupCredentialUseCaseTest() (
 	*usecase.CredentialUseCase,
@@ -107,10 +103,10 @@ func setupCredentialUseCaseTest() (
 func TestCredentialUseCase_Create(t *testing.T) {
 	ctx := context.Background()
 	projectID := uuid.New()
-	masterKey := []byte("12345678901234567890123456789012")
 
 	t.Run("Create LOGIN Credential Success", func(t *testing.T) {
 		uc, credRepo, projRepo, _, crypto, session, appSettingRepo := setupCredentialUseCaseTest()
+		subtestMasterKey := []byte("12345678901234567890123456789012")
 
 		cmd := dto.CreateCredentialCommand{
 			ProjectID:  projectID,
@@ -129,9 +125,9 @@ func TestCredentialUseCase_Create(t *testing.T) {
 
 		projRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 		appSettingRepo.On("ExistsByKey", ctx, usecase.MasterPasswordHashKey).Return(true, nil)
-		session.On("GetKey").Return(masterKey)
+		session.On("GetKey").Return(subtestMasterKey)
 
-		crypto.On("Encrypt", mock.Anything, masterKey, mock.Anything).Return(cipherText, iv, authTag, nil)
+		crypto.On("Encrypt", mock.Anything, subtestMasterKey, mock.Anything).Return(cipherText, iv, authTag, nil)
 		credRepo.On("Save", ctx, mock.Anything).Return(&model.Credential{
 			ID:                uuid.New(),
 			ProjectID:         projectID,
@@ -142,7 +138,7 @@ func TestCredentialUseCase_Create(t *testing.T) {
 			EncryptionAuthTag: authTag,
 			BaseEntity:        model.BaseEntity{CreatedAt: time.Now()},
 		}, nil)
-		crypto.On("Decrypt", cipherText, iv, authTag, masterKey, mock.Anything).Return(decryptedPayloadBytes, nil)
+		crypto.On("Decrypt", cipherText, iv, authTag, subtestMasterKey, mock.Anything).Return(decryptedPayloadBytes, nil)
 
 		view, err := uc.Create(ctx, cmd)
 
@@ -153,6 +149,9 @@ func TestCredentialUseCase_Create(t *testing.T) {
 		assert.Equal(t, "admin", view.DecryptedPayload["username"])
 		assert.Equal(t, "secretPassword123", view.DecryptedPayload["password"])
 
+		// Assert subtest key was zeroed in RAM after operation
+		assert.True(t, bytes.Equal(subtestMasterKey, make([]byte, 32)))
+
 		projRepo.AssertExpectations(t)
 		crypto.AssertExpectations(t)
 		credRepo.AssertExpectations(t)
@@ -160,6 +159,7 @@ func TestCredentialUseCase_Create(t *testing.T) {
 
 	t.Run("Create API_KEY Credential Success", func(t *testing.T) {
 		uc, credRepo, projRepo, _, crypto, session, appSettingRepo := setupCredentialUseCaseTest()
+		subtestMasterKey := []byte("12345678901234567890123456789012")
 
 		cmd := dto.CreateCredentialCommand{
 			ProjectID:  projectID,
@@ -177,9 +177,9 @@ func TestCredentialUseCase_Create(t *testing.T) {
 
 		projRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 		appSettingRepo.On("ExistsByKey", ctx, usecase.MasterPasswordHashKey).Return(true, nil)
-		session.On("GetKey").Return(masterKey)
+		session.On("GetKey").Return(subtestMasterKey)
 
-		crypto.On("Encrypt", mock.Anything, masterKey, mock.Anything).Return(cipherText, iv, authTag, nil)
+		crypto.On("Encrypt", mock.Anything, subtestMasterKey, mock.Anything).Return(cipherText, iv, authTag, nil)
 		credRepo.On("Save", ctx, mock.Anything).Return(&model.Credential{
 			ID:                uuid.New(),
 			ProjectID:         projectID,
@@ -190,13 +190,16 @@ func TestCredentialUseCase_Create(t *testing.T) {
 			EncryptionAuthTag: authTag,
 			BaseEntity:        model.BaseEntity{CreatedAt: time.Now()},
 		}, nil)
-		crypto.On("Decrypt", cipherText, iv, authTag, masterKey, mock.Anything).Return(decryptedPayloadBytes, nil)
+		crypto.On("Decrypt", cipherText, iv, authTag, subtestMasterKey, mock.Anything).Return(decryptedPayloadBytes, nil)
 
 		view, err := uc.Create(ctx, cmd)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, view)
 		assert.Equal(t, "sk_test_123456789", view.DecryptedPayload["apiKey"])
+
+		// Assert subtest key was zeroed in RAM after operation
+		assert.True(t, bytes.Equal(subtestMasterKey, make([]byte, 32)))
 	})
 
 	t.Run("Create Failure - Project Not Found", func(t *testing.T) {
@@ -237,6 +240,8 @@ func TestCredentialUseCase_Create(t *testing.T) {
 
 	t.Run("Create Failure - Missing Password for LOGIN", func(t *testing.T) {
 		uc, _, projRepo, _, _, session, appSettingRepo := setupCredentialUseCaseTest()
+		subtestMasterKey := []byte("12345678901234567890123456789012")
+
 		cmd := dto.CreateCredentialCommand{
 			ProjectID:  projectID,
 			Title:      "Missing Password",
@@ -247,11 +252,13 @@ func TestCredentialUseCase_Create(t *testing.T) {
 
 		projRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 		appSettingRepo.On("ExistsByKey", ctx, usecase.MasterPasswordHashKey).Return(true, nil)
-		session.On("GetKey").Return(masterKey)
+		session.On("GetKey").Return(subtestMasterKey)
 
 		view, err := uc.Create(ctx, cmd)
 		assert.Error(t, err)
 		assert.Nil(t, view)
+
+		assert.True(t, bytes.Equal(subtestMasterKey, make([]byte, 32)))
 	})
 }
 
@@ -259,10 +266,10 @@ func TestCredentialUseCase_GetById(t *testing.T) {
 	ctx := context.Background()
 	projectID := uuid.New()
 	credentialID := uuid.New()
-	masterKey := []byte("12345678901234567890123456789012")
 
 	t.Run("GetById Success", func(t *testing.T) {
 		uc, credRepo, projRepo, tagRepo, crypto, session, appSettingRepo := setupCredentialUseCaseTest()
+		subtestMasterKey := []byte("12345678901234567890123456789012")
 
 		cipherText := []byte("encryptedCipherBytes")
 		iv := []byte("12BytesIvData")
@@ -286,11 +293,11 @@ func TestCredentialUseCase_GetById(t *testing.T) {
 		tags := []model.Tag{{ID: uuid.New(), Name: "prod", Color: &tagColor}}
 
 		appSettingRepo.On("ExistsByKey", ctx, usecase.MasterPasswordHashKey).Return(true, nil)
-		session.On("GetKey").Return(masterKey)
+		session.On("GetKey").Return(subtestMasterKey)
 		projRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 		credRepo.On("FindByIDAndProjectID", ctx, projectID, credentialID).Return(credModel, nil)
 		tagRepo.On("FindTagsForItem", ctx, model.ItemTypeCredential, projectID, credentialID).Return(tags, nil)
-		crypto.On("Decrypt", cipherText, iv, authTag, masterKey, mock.Anything).Return(decryptedPayloadBytes, nil)
+		crypto.On("Decrypt", cipherText, iv, authTag, subtestMasterKey, mock.Anything).Return(decryptedPayloadBytes, nil)
 
 		view, err := uc.GetById(ctx, projectID, credentialID)
 
@@ -301,13 +308,16 @@ func TestCredentialUseCase_GetById(t *testing.T) {
 		assert.Len(t, view.Tags, 1)
 		assert.Equal(t, "prod", view.Tags[0].Name)
 		assert.Equal(t, "user1", view.DecryptedPayload["username"])
+
+		assert.True(t, bytes.Equal(subtestMasterKey, make([]byte, 32)))
 	})
 
 	t.Run("GetById Failure - Credential Not Found", func(t *testing.T) {
 		uc, credRepo, projRepo, _, _, session, appSettingRepo := setupCredentialUseCaseTest()
+		subtestMasterKey := []byte("12345678901234567890123456789012")
 
 		appSettingRepo.On("ExistsByKey", ctx, usecase.MasterPasswordHashKey).Return(true, nil)
-		session.On("GetKey").Return(masterKey)
+		session.On("GetKey").Return(subtestMasterKey)
 		projRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 		credRepo.On("FindByIDAndProjectID", ctx, projectID, credentialID).Return(nil, nil)
 
@@ -315,16 +325,18 @@ func TestCredentialUseCase_GetById(t *testing.T) {
 
 		assert.ErrorIs(t, err, usecase.ErrCredentialNotFound)
 		assert.Nil(t, view)
+
+		assert.True(t, bytes.Equal(subtestMasterKey, make([]byte, 32)))
 	})
 }
 
 func TestCredentialUseCase_GetAllByProjectID(t *testing.T) {
 	ctx := context.Background()
 	projectID := uuid.New()
-	masterKey := []byte("12345678901234567890123456789012")
 
 	t.Run("GetAllByProjectID Success", func(t *testing.T) {
 		uc, credRepo, projRepo, tagRepo, _, session, appSettingRepo := setupCredentialUseCaseTest()
+		subtestMasterKey := []byte("12345678901234567890123456789012")
 
 		cred1 := model.Credential{ID: uuid.New(), ProjectID: projectID, Title: "Cred 1", SecretType: model.CredentialSecretTypeLogin}
 		cred2 := model.Credential{ID: uuid.New(), ProjectID: projectID, Title: "Cred 2", SecretType: model.CredentialSecretTypeApiKey}
@@ -332,7 +344,7 @@ func TestCredentialUseCase_GetAllByProjectID(t *testing.T) {
 		pageModel := model.NewPage([]model.Credential{cred1, cred2}, 1, 10, 2)
 
 		appSettingRepo.On("ExistsByKey", ctx, usecase.MasterPasswordHashKey).Return(true, nil)
-		session.On("GetKey").Return(masterKey)
+		session.On("GetKey").Return(subtestMasterKey)
 		projRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 		credRepo.On("FindAllByProjectID", ctx, projectID, 1, 10).Return(pageModel, nil)
 		tagRepo.On("FindTagsForItems", ctx, model.ItemTypeCredential, projectID, []uuid.UUID{cred1.ID, cred2.ID}).
@@ -345,6 +357,8 @@ func TestCredentialUseCase_GetAllByProjectID(t *testing.T) {
 		assert.Len(t, pageResult.Content, 2)
 		assert.Equal(t, "Cred 1", pageResult.Content[0].Title)
 		assert.Equal(t, "Cred 2", pageResult.Content[1].Title)
+
+		assert.True(t, bytes.Equal(subtestMasterKey, make([]byte, 32)))
 	})
 }
 
@@ -352,10 +366,10 @@ func TestCredentialUseCase_Update(t *testing.T) {
 	ctx := context.Background()
 	projectID := uuid.New()
 	credentialID := uuid.New()
-	masterKey := []byte("12345678901234567890123456789012")
 
 	t.Run("Update Title Only Success", func(t *testing.T) {
 		uc, credRepo, projRepo, tagRepo, crypto, session, appSettingRepo := setupCredentialUseCaseTest()
+		subtestMasterKey := []byte("12345678901234567890123456789012")
 
 		newTitle := "Updated AWS Title"
 		cmd := dto.UpdateCredentialCommand{
@@ -382,18 +396,20 @@ func TestCredentialUseCase_Update(t *testing.T) {
 		decryptedPayloadBytes, _ := json.Marshal(payloadMap)
 
 		appSettingRepo.On("ExistsByKey", ctx, usecase.MasterPasswordHashKey).Return(true, nil)
-		session.On("GetKey").Return(masterKey)
+		session.On("GetKey").Return(subtestMasterKey)
 		projRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 		credRepo.On("FindByIDAndProjectID", ctx, projectID, credentialID).Return(existingCred, nil)
 		credRepo.On("Save", ctx, mock.Anything).Return(existingCred, nil)
 		tagRepo.On("FindTagsForItem", ctx, model.ItemTypeCredential, projectID, credentialID).Return([]model.Tag{}, nil)
-		crypto.On("Decrypt", cipherText, iv, authTag, masterKey, mock.Anything).Return(decryptedPayloadBytes, nil)
+		crypto.On("Decrypt", cipherText, iv, authTag, subtestMasterKey, mock.Anything).Return(decryptedPayloadBytes, nil)
 
 		view, err := uc.Update(ctx, cmd)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, view)
 		assert.Equal(t, "Updated AWS Title", view.Title)
+
+		assert.True(t, bytes.Equal(subtestMasterKey, make([]byte, 32)))
 	})
 }
 
@@ -401,13 +417,13 @@ func TestCredentialUseCase_Delete(t *testing.T) {
 	ctx := context.Background()
 	projectID := uuid.New()
 	credentialID := uuid.New()
-	masterKey := []byte("12345678901234567890123456789012")
 
 	t.Run("Delete Success", func(t *testing.T) {
 		uc, credRepo, projRepo, tagRepo, _, session, appSettingRepo := setupCredentialUseCaseTest()
+		subtestMasterKey := []byte("12345678901234567890123456789012")
 
 		appSettingRepo.On("ExistsByKey", ctx, usecase.MasterPasswordHashKey).Return(true, nil)
-		session.On("GetKey").Return(masterKey)
+		session.On("GetKey").Return(subtestMasterKey)
 		projRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 		credRepo.On("DeleteByIDAndProjectID", ctx, projectID, credentialID).Return(true, nil)
 		tagRepo.On("RemoveAllTagsFromItem", ctx, model.ItemTypeCredential, credentialID).Return(nil)
@@ -417,18 +433,23 @@ func TestCredentialUseCase_Delete(t *testing.T) {
 		assert.NoError(t, err)
 		credRepo.AssertExpectations(t)
 		tagRepo.AssertExpectations(t)
+
+		assert.True(t, bytes.Equal(subtestMasterKey, make([]byte, 32)))
 	})
 
 	t.Run("Delete Failure - Credential Not Found", func(t *testing.T) {
 		uc, credRepo, projRepo, _, _, session, appSettingRepo := setupCredentialUseCaseTest()
+		subtestMasterKey := []byte("12345678901234567890123456789012")
 
 		appSettingRepo.On("ExistsByKey", ctx, usecase.MasterPasswordHashKey).Return(true, nil)
-		session.On("GetKey").Return(masterKey)
+		session.On("GetKey").Return(subtestMasterKey)
 		projRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 		credRepo.On("DeleteByIDAndProjectID", ctx, projectID, credentialID).Return(false, nil)
 
 		err := uc.Delete(ctx, projectID, credentialID)
 
 		assert.ErrorIs(t, err, usecase.ErrCredentialNotFound)
+
+		assert.True(t, bytes.Equal(subtestMasterKey, make([]byte, 32)))
 	})
 }

@@ -150,7 +150,7 @@ func TestCredentialHandler_GetAll(t *testing.T) {
 
 	projectID := setupUnlockedVaultWithProject(t, app)
 
-	// Create 2 credentials
+	// Create 1 credential
 	body1 := []byte(`{"title":"Cred 1","secretType":"API_KEY","apiKey":"key1"}`)
 	url := fmt.Sprintf("/api/v1/projects/%s/credentials", projectID)
 	resp1 := app.DoRequest(t, http.MethodPost, url, body1, true)

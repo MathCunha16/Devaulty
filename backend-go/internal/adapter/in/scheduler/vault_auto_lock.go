@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-const (
+var (
 	SessionPurgeInterval = time.Minute * 1
 )
 
@@ -21,6 +21,7 @@ func (s *VaultAutoLock) PurgeExpiredSession() {
 	ticker := time.NewTicker(SessionPurgeInterval)
 	defer ticker.Stop()
 	for range ticker.C {
+		// HasKey automatically checks expiration and purges expired key bytes from memory
 		_ = s.masterKeySession.HasKey()
 	}
 }

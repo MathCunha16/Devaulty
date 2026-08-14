@@ -2015,7 +2015,7 @@ paths:
         '204':
           description: Credential deleted successfully (No Content)
         '400':
-          description: Invalid UUID format or delete error
+          description: Invalid project_id or credential_id UUID format
           content:
             application/json:
               schema:
