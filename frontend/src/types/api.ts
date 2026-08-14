@@ -142,9 +142,10 @@ export interface PagedModelSnippetViewResponse {
 }
 
 export interface ApiErrorResponse {
-  status: number;
-  message: string;
-  timestamp: string;
+  error?: string;
+  message?: string;
+  status?: number;
+  timestamp?: string;
   errors?: Array<{
     field: string;
     message: string;
@@ -296,6 +297,10 @@ export interface PagedModelLinkViewResponse {
 // Security Models
 export interface MasterPasswordRequest {
   masterPassword: string;
+}
+
+export interface MasterPasswordSetupRequiredView {
+  isRequired: boolean;
 }
 
 export interface SessionStatus {

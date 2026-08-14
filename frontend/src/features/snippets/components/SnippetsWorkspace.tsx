@@ -68,7 +68,8 @@ export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
     const matchesSearch =
       s.title.toLowerCase().includes(snippetSearchQuery.toLowerCase()) ||
       (s.description && s.description.toLowerCase().includes(snippetSearchQuery.toLowerCase())) ||
-      (s.content && s.content.toLowerCase().includes(snippetSearchQuery.toLowerCase()));
+      (s.content && s.content.toLowerCase().includes(snippetSearchQuery.toLowerCase())) ||
+      (s.tags && s.tags.some((t) => t.name.toLowerCase().includes(snippetSearchQuery.toLowerCase())));
     const matchesType = snippetTypeFilter === "ALL" || s.snippetType === snippetTypeFilter;
     return matchesSearch && matchesType;
   });
@@ -189,6 +190,24 @@ export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
                   <span className={styles.badgeType}>{s.snippetType}</span>
                   <span className={styles.badgeLang}>{s.language}</span>
                 </div>
+                {s.tags && s.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {s.tags.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className={styles.badge}
+                        style={{
+                          backgroundColor: `${tag.color || "#8b5cf6"}15`,
+                          color: tag.color || "#8b5cf6",
+                          border: `1px solid ${tag.color || "#8b5cf6"}30`,
+                          fontSize: "10px",
+                        }}
+                      >
+                        {tag.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </button>
             ))
           )}

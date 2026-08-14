@@ -29,7 +29,7 @@ export const releasesApi = {
     };
     const internalToken = getInternalToken();
     if (internalToken) {
-      headers["X-Devaulty-Internal-Token"] = internalToken;
+      headers["DEVAULTY_INTERNAL_TOKEN"] = internalToken;
     }
 
     fetch(url, {
@@ -42,7 +42,8 @@ export const releasesApi = {
           let errorMsg = `HTTP Error ${response.status}`;
           try {
             const errData = await response.json();
-            if (errData?.message) errorMsg = errData.message;
+            if (errData?.error) errorMsg = errData.error;
+            else if (errData?.message) errorMsg = errData.message;
           } catch {
             // ignore json parse error
           }
