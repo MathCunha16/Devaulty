@@ -226,9 +226,10 @@ jobs:
           path: release-assets
           merge-multiple: true
 
-      - name: Display Collected Release Assets
+      - name: Flatten and Display Collected Release Assets
         run: |
-          echo "=== Executables Collected for Release ==="
+          echo "=== Flattening and Collecting Release Assets ==="
+          find release-assets/ -type f -exec mv {} release-assets/ \;
           ls -la release-assets/
 
       - name: Publish GitHub Release (softprops/action-gh-release)
