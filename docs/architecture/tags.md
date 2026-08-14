@@ -1,6 +1,6 @@
 # Tag System Architecture (Go Backend)
 
-This document explains how tags work across Devaulty's Go backend (`backend-go`), why they're built the way they are, and what to do when adding tag support to a new entity.
+This document explains how tags work across Devaulty's Go backend (`backend`), why they're built the way they are, and what to do when adding tag support to a new entity.
 
 ## The problem tags solve
 

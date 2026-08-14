@@ -1,6 +1,6 @@
 # Sensitive Memory Ownership & Hygiene Rule (Go Backend)
 
-This document defines how `[]byte` slices holding sensitive cryptographic material (master passwords, derived AES keys, decrypted credential payloads) must be handled across Devaulty's Go backend (`backend-go`).
+This document defines how `[]byte` slices holding sensitive cryptographic material (master passwords, derived AES keys, decrypted credential payloads) must be handled across Devaulty's Go backend (`backend`).
 
 ## The Rule
 
@@ -26,7 +26,7 @@ Leaving sensitive passwords or cryptographic keys in memory RAM indefinitely cre
 
 In Go, `clear(slice)` (available in Go 1.21+) overwrites all byte elements with zero values (`0x00`) immediately, significantly reducing the retention window of sensitive data in RAM (though it zeroes the provided slice specifically rather than immutable strings or intermediate CPU/system buffers).
 
-## Code Patterns in `backend-go`
+## Code Patterns in `backend`
 
 ### 1. HTTP Handlers (`SecurityHandler`)
 

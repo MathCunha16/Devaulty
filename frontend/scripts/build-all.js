@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const backendGoDir = path.resolve(__dirname, "../../backend-go");
+const backendDir = path.resolve(__dirname, "../../backend");
 const frontendDir = path.resolve(__dirname, "..");
 const resourcesDir = path.resolve(__dirname, "../src-tauri/resources");
 
@@ -43,7 +43,7 @@ function buildAll() {
 
   // -ldflags="-s -w" strips debug symbols and DWARF info for a smaller binary
   const goBuildCmd = `go build -ldflags="-s -w" -o "${targetBinaryPath}" ./cmd/api/`;
-  runCommand(goBuildCmd, backendGoDir);
+  runCommand(goBuildCmd, backendDir);
 
   // Set executable permissions on Unix systems
   if (!isWindows) {

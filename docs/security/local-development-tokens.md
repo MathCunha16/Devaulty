@@ -1,6 +1,6 @@
 # Local Development & Process Security Tokens (Go Backend)
 
-This document explains how the internal process security token (`DEVAULTY_INTERNAL_TOKEN`) operates in the Go backend (`backend-go`), why it exists, and how to develop and test endpoints locally using Scalar API Docs and cURL.
+This document explains how the internal process security token (`DEVAULTY_INTERNAL_TOKEN`) operates in the Go backend (`backend`), why it exists, and how to develop and test endpoints locally using Scalar API Docs and cURL.
 
 ## The Problem Addressed
 
