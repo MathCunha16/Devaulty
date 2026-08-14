@@ -139,7 +139,6 @@ func main() {
 	// Tauri reads stdout via a private pipe and parses this exact format
 	// to extract the dynamic port and security token.
 	fmt.Printf("[DEVAULTY_SESSION] PORT=%d TOKEN=%s\n", port, devaultyInternalToken)
-	os.Stdout.Sync()
 
 	log.Printf("Starting server on port %d...", port)
 	if err := r.RunListener(listener); err != nil {

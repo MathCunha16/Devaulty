@@ -27,7 +27,7 @@ function syncVersion() {
 
   console.log(`Source version (package.json): "${version}"`);
 
-  // 2. Update Cargo.toml
+  // 2. Update Cargo.toml (supports full SemVer including pre-release tags like 0.1.6-alpha.1)
   if (fs.existsSync(cargoTomlPath)) {
     let cargoContent = fs.readFileSync(cargoTomlPath, "utf-8");
     cargoContent = cargoContent.replace(/^version = ".*?"/m, `version = "${version}"`);
@@ -36,11 +36,15 @@ function syncVersion() {
   }
 
   // 3. Update tauri.conf.json
+  // Windows MSI (WiX Toolset) & macOS bundle require a strict numeric Major.Minor.Patch version.
+  // We extract the numeric prefix (e.g. "0.1.6-alpha.1" -> "0.1.6") for tauri.conf.json.
+  const numericVersion = version.split("-")[0];
+
   if (fs.existsSync(tauriConfPath)) {
     const tauriConf = JSON.parse(fs.readFileSync(tauriConfPath, "utf-8"));
-    tauriConf.version = version;
+    tauriConf.version = numericVersion;
     fs.writeFileSync(tauriConfPath, JSON.stringify(tauriConf, null, 2) + "\n");
-    console.log(`Updated src-tauri/tauri.conf.json -> ${version}`);
+    console.log(`Updated src-tauri/tauri.conf.json -> ${numericVersion} (normalized from ${version})`);
   }
 
   console.log("\nAll frontend & Tauri version fields are synchronized!");

@@ -27,6 +27,18 @@ function buildAll() {
 
   if (!fs.existsSync(resourcesDir)) {
     fs.mkdirSync(resourcesDir, { recursive: true });
+  } else {
+    // Clean any residual backend binaries from previous builds to prevent cross-platform file pollution
+    const existingFiles = fs.readdirSync(resourcesDir);
+    for (const file of existingFiles) {
+      if (file.startsWith("devaulty-backend")) {
+        try {
+          fs.unlinkSync(path.join(resourcesDir, file));
+        } catch {
+          // Ignore deletion errors
+        }
+      }
+    }
   }
 
   // -ldflags="-s -w" strips debug symbols and DWARF info for a smaller binary

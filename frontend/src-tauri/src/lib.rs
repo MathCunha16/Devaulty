@@ -148,13 +148,18 @@ fn ensure_executable(_path: &std::path::Path) -> std::io::Result<()> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  // Ensure the user config directory exists for database storage
+  // Ensure the user config/data directory exists for database storage
   let devaulty_data_dir = dirs::config_dir()
-    .map(|config| config.join("devaulty"))
-    .unwrap_or_else(|| std::path::PathBuf::from("data"));
+    .or_else(dirs::data_local_dir)
+    .or_else(dirs::home_dir)
+    .map(|path| path.join("devaulty"))
+    .unwrap_or_else(|| std::env::temp_dir().join("devaulty"));
 
   if !devaulty_data_dir.exists() {
-    let _ = std::fs::create_dir_all(&devaulty_data_dir);
+    if let Err(e) = std::fs::create_dir_all(&devaulty_data_dir) {
+      log::error!("Failed to create devaulty data directory {:?}: {}", devaulty_data_dir, e);
+      eprintln!("Failed to create devaulty data directory {:?}: {}", devaulty_data_dir, e);
+    }
   }
 
   let session_state = Arc::new(SessionState::default());
@@ -175,9 +180,6 @@ pub fn run() {
       let resource_dir = app.path().resource_dir().ok();
       if let Some(ref res_path) = resource_dir {
         if let Some(binary_path) = find_backend_binary(res_path) {
-          // Mark as bundled production mode
-          *state_clone.is_bundled_mode.lock().unwrap() = true;
-
           // Ensure executable permission on Unix platforms
           if let Err(e) = ensure_executable(&binary_path) {
             log::error!("Failed to set executable permission on backend binary: {}", e);
@@ -202,6 +204,9 @@ pub fn run() {
             .spawn()
           {
             Ok(mut child) => {
+              // Mark as bundled production mode only after successful process spawn
+              *state_clone.is_bundled_mode.lock().unwrap() = true;
+
               if let Some(stdout) = child.stdout.take() {
                 let state_inner = Arc::clone(&state_clone);
                 std::thread::spawn(move || {
@@ -229,6 +234,7 @@ pub fn run() {
               *state_clone.child_process.lock().unwrap() = Some(child);
             }
             Err(e) => {
+              *state_clone.is_bundled_mode.lock().unwrap() = false;
               log::error!("Failed to spawn Go backend process: {}", e);
             }
           }
