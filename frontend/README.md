@@ -123,22 +123,30 @@ The `scripts/` directory contains cross-platform Node.js automation scripts:
 
 ---
 
-## 🚀 Running Locally
+## 🚀 Running Locally & Development Workflows
 
-### Development Mode (Web + Tauri)
+### 1. Browser Development Mode (Standalone Web UI)
+Run the React application directly in any web browser for fast UI design, CSS styling, and standard browser DevTools:
 
 ```bash
-# Install dependencies
-npm install
-
-# Run Vite dev server + Tauri window
+# Start Vite development server (runs at http://localhost:5173)
 npm run dev
 ```
+*Note: Run the Go backend concurrently (`APP_ENV=dev go run ./cmd/api/` in the `backend/` directory) to enable local API requests.*
 
-### Full Production Build Prep
+### 2. Desktop Tauri Development Mode (Native Window + HMR)
+Run the application inside a native desktop window with Hot Module Replacement (HMR) and live Rust IPC integration:
 
 ```bash
-npm run build:all
+# Launch native Tauri dev window connected to Vite dev server
+npm run tauri dev
 ```
 
-_Compiles the Go backend, synchronizes versions, and builds Vite frontend web assets into `dist/`._
+### 3. Production Build Preparation
+```bash
+# Compile Go backend binary, sync versions, and bundle Vite web assets
+npm run build:all
+
+# Package into native installer (e.g. Linux .deb)
+npm run build:deb # or: npx tauri build
+```
