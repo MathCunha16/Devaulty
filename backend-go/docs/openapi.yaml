@@ -830,7 +830,8 @@ components:
         - LINK
         - PROBLEM
         - NOTE
-      example: "SNIPPET"
+        - CREDENTIAL
+      example: "CREDENTIAL"
 
     TagSummary:
       type: object
@@ -913,6 +914,209 @@ components:
           nullable: true
           pattern: "^#([A-Fa-f0-9]{3,4}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"
           example: "#00FF00"
+
+    CredentialSecretType:
+      type: string
+      enum:
+        - LOGIN
+        - API_KEY
+        - RAW_TEXT
+      example: "LOGIN"
+
+    CreateCredentialCommand:
+      type: object
+      required:
+        - title
+        - secretType
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "My AWS Login"
+        secretType:
+          $ref: '#/components/schemas/CredentialSecretType'
+        username:
+          type: string
+          nullable: true
+          example: "admin@aws.com"
+        password:
+          type: string
+          nullable: true
+          example: "SuperSecretPassword123!"
+        apiKey:
+          type: string
+          nullable: true
+          example: "sk_test_123456789"
+        rawTextContent:
+          type: string
+          nullable: true
+          example: "pem_certificate_content"
+        notes:
+          type: string
+          nullable: true
+          example: "Main AWS root account"
+        relatedUrl:
+          type: string
+          nullable: true
+          example: "https://aws.amazon.com"
+
+    UpdateCredentialCommand:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          nullable: true
+          example: "Updated AWS Title"
+        secretType:
+          $ref: '#/components/schemas/CredentialSecretType'
+        username:
+          type: string
+          nullable: true
+          example: "updated_admin"
+        password:
+          type: string
+          nullable: true
+          example: "NewPassword123!"
+        apiKey:
+          type: string
+          nullable: true
+          example: "new_sk_test_999"
+        rawTextContent:
+          type: string
+          nullable: true
+          example: "new_raw_content"
+        notes:
+          type: string
+          nullable: true
+          example: "Updated notes"
+        relatedUrl:
+          type: string
+          nullable: true
+          example: "https://new-url.com"
+
+    CredentialSummaryView:
+      type: object
+      required:
+        - id
+        - projectId
+        - title
+        - secretType
+        - tags
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "81e5768c-2598-4e37-a08d-013e7f4ca48d"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        title:
+          type: string
+          example: "My AWS Login"
+        secretType:
+          $ref: '#/components/schemas/CredentialSecretType'
+        relatedUrl:
+          type: string
+          nullable: true
+          example: "https://aws.amazon.com"
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-13T19:30:25.081066457-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-13T20:15:00.123456789-03:00"
+
+    CredentialView:
+      type: object
+      required:
+        - id
+        - projectId
+        - title
+        - secretType
+        - decryptedPayload
+        - tags
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "81e5768c-2598-4e37-a08d-013e7f4ca48d"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        title:
+          type: string
+          example: "My AWS Login"
+        secretType:
+          $ref: '#/components/schemas/CredentialSecretType'
+        decryptedPayload:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            username: "admin@aws.com"
+            password: "SuperSecretPassword123!"
+        notes:
+          type: string
+          nullable: true
+          example: "Main AWS root account"
+        relatedUrl:
+          type: string
+          nullable: true
+          example: "https://aws.amazon.com"
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-13T19:30:25.081066457-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-13T20:15:00.123456789-03:00"
+
+    CredentialSummaryPage:
+      type: object
+      required:
+        - content
+        - size
+        - number
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/CredentialSummaryView'
+        size:
+          type: integer
+          example: 10
+        number:
+          type: integer
+          example: 0
+        totalElements:
+          type: integer
+          format: int64
+          example: 1
+        totalPages:
+          type: integer
+          example: 1
 
 security:
   - ApiKeyAuth: []
@@ -1509,6 +1713,327 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Project or Snippet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/credentials:
+    post:
+      summary: Create a new credential in a project
+      description: |
+        Creates and encrypts a new credential for the specified project.
+        The secret payload is encrypted at-rest using AES-256-GCM authenticated with AAD binding (project_id + credential_id).
+        Requires the vault to be unlocked.
+      tags:
+        - Credentials
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCredentialCommand'
+      responses:
+        '201':
+          description: Credential created and encrypted successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Relative URL path to the newly created credential
+              example: "/api/v1/projects/70d68fba-be62-46bb-8e6c-e4c4b6912e91/credentials/81e5768c-2598-4e37-a08d-013e7f4ca48d"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialView'
+        '400':
+          description: Invalid JSON payload, validation constraint failure, or missing required secret fields per secretType
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Vault is locked, please unlock it first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Master password not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get paginated list of credential summaries for a project
+      description: |
+        Fetches a paginated list of credential summaries for the specified project ordered by creation date descending.
+        For security, summaries do NOT contain decrypted secret payloads.
+      tags:
+        - Credentials
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Zero-based page index
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Page size limit
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated list of credential summaries retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialSummaryPage'
+        '400':
+          description: Invalid query parameters or UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Vault is locked, please unlock it first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Master password not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/credentials/{credential_id}:
+    get:
+      summary: Get credential by ID (with decrypted payload)
+      description: |
+        Retrieves a single credential entity by its UUID and parent project UUID, including its decrypted secret payload.
+        Requires the vault to be unlocked.
+      tags:
+        - Credentials
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: credential_id
+          in: path
+          description: Credential UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Credential details and decrypted payload retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialView'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Vault is locked, please unlock it first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Master password not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Credential not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Update credential (Partial Update)
+      description: |
+        Performs a partial update on a credential entity.
+        If title or metadata fields are passed without secret payload fields, metadata is updated and existing encrypted payload is preserved.
+        If new secret payload fields are passed, the secret payload is re-encrypted with AES-256-GCM.
+      tags:
+        - Credentials
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: credential_id
+          in: path
+          description: Credential UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCredentialCommand'
+      responses:
+        '200':
+          description: Credential updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialView'
+        '400':
+          description: Invalid JSON format or validation constraints failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Vault is locked, please unlock it first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Master password not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Credential not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete credential by ID
+      description: |
+        Permanently deletes a credential by its UUID within a project.
+        Automatically removes associated item tags.
+      tags:
+        - Credentials
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: credential_id
+          in: path
+          description: Credential UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Credential deleted successfully (No Content)
+        '400':
+          description: Invalid UUID format or delete error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Vault is locked, please unlock it first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Master password not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Credential not found
           content:
             application/json:
               schema:

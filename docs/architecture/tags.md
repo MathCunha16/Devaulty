@@ -61,7 +61,7 @@ DELETE /api/v1/projects/:project_id/items/:item_type/:item_id/tags/:tag_id
 
 - `PUT` associates a tag to an item (`204 No Content`). It is idempotent.
 - `DELETE` disassociates a tag from an item (`204 No Content`).
-- Query path param `:item_type` is parsed in uppercase (`model.ItemType(strings.ToUpper(c.Param("item_type")))`) to match registered domain constants (`SNIPPET`, `LINK`, `PROBLEM`).
+- Query path param `:item_type` is parsed in uppercase (`model.ItemType(strings.ToUpper(c.Param("item_type")))`) to match registered domain constants (`SNIPPET`, `LINK`, `PROBLEM`, `NOTE`, `CREDENTIAL`).
 
 ### 5. Tag Management: `TagHandler` endpoints
 

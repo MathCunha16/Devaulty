@@ -78,9 +78,28 @@ func (m *MasterKeySessionHolderAdapter) clearLocked() {
 }
 ```
 
+### 4. Secret Payload DTOs (`dto.SecretBytes`)
+
+In `internal/dto/credential_dto.go`:
+
+```go
+type SecretBytes []byte
+
+func (sb *SecretBytes) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	*sb = SecretBytes(s)
+	return nil
+}
+```
+
+`SecretBytes` allows JSON unmarshaling of plain strings directly into byte slices, enabling immediate zeroing with `defer clear(cmd.Password)`, `defer clear(cmd.APIKey)`, etc. in `CredentialUseCase`.
+
 ## Checklist for Sensitive Data Handling
 
-- [ ] Does this function receive or construct a sensitive `[]byte` slice (password, salt, raw key)?
+- [ ] Does this function receive or construct a sensitive `[]byte` / `SecretBytes` slice (password, salt, raw key, secret payload)?
 - [ ] Is `defer clear(slice)` called immediately after slice creation/reception?
 - [ ] If storing key bytes in a long-lived struct, does `Clear()` / `SetKey()` overwrite existing bytes with `clear(m.key)` before nil-assigning?
-- [ ] Are input DTO string references cleared (`req.MasterPassword = ""`) immediately after converting to `[]byte`?
+- [ ] Are input DTO string references cleared or unmarshaled directly to `SecretBytes` for zeroing in memory?
