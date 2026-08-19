@@ -67,15 +67,16 @@ const NavigationSidebar: React.FC<{
   const projects = projectsData?.content || [];
   const activeProjects = projects.filter((p) => !p.archived);
 
-  const handleManualCheck = async () => {
+  const currentAppVersion = versionData?.currentVersion || versionData?.actualVersion;
 
+  const handleManualCheck = async () => {
     try {
       const res = await checkUpdatesMutation.mutateAsync();
       if (res.updateAvailable) {
         onOpenUpdateModal(res);
       } else {
         toast.success(
-          `Devaulty is up to date (${formatVersionTag(res.currentVersion || versionData?.actualVersion)})`
+          `Devaulty is up to date (${formatVersionTag(res.currentVersion || currentAppVersion)})`
         );
       }
     } catch {
@@ -98,7 +99,7 @@ const NavigationSidebar: React.FC<{
             <Link to="/" className={styles.appLogo} title="Devaulty Home">
               <HackerLogo height={46} />
             </Link>
-            {versionData?.actualVersion && (
+            {currentAppVersion && (
               <button
                 type="button"
                 onClick={handleManualCheck}
@@ -106,7 +107,7 @@ const NavigationSidebar: React.FC<{
                 className="text-[10px] font-mono text-muted-foreground/70 hover:text-foreground transition-colors border border-border/40 px-2 py-0.5 rounded-full bg-secondary/20 cursor-pointer flex items-center gap-1"
                 title="Click to check for updates"
               >
-                <span>{formatVersionTag(versionData.actualVersion)}</span>
+                <span>{formatVersionTag(currentAppVersion)}</span>
 
                 {checkUpdatesMutation.isPending && (
                   <Icons.Loader2 size={10} className="animate-spin text-primary" />
@@ -115,6 +116,7 @@ const NavigationSidebar: React.FC<{
             )}
           </div>
         </div>
+
 
         <div className={styles.sidebarContent}>
           <div className={styles.navGroup}>

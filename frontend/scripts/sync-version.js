@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename);
 const packageJsonPath = path.resolve(__dirname, "../package.json");
 const cargoTomlPath = path.resolve(__dirname, "../src-tauri/Cargo.toml");
 const tauriConfPath = path.resolve(__dirname, "../src-tauri/tauri.conf.json");
+const backendVersionGoPath = path.resolve(__dirname, "../../backend/internal/domain/model/version.go");
 
 function syncVersion() {
   if (!fs.existsSync(packageJsonPath)) {
@@ -47,7 +48,17 @@ function syncVersion() {
     console.log(`Updated src-tauri/tauri.conf.json -> ${numericVersion} (normalized from ${version})`);
   }
 
-  console.log("\nAll frontend & Tauri version fields are synchronized!");
+  // 4. Update backend version.go (Go backend compiled version)
+  if (fs.existsSync(backendVersionGoPath)) {
+    const formattedGoVersion = version.startsWith("v") ? version : `v${version}`;
+    let goContent = fs.readFileSync(backendVersionGoPath, "utf-8");
+    goContent = goContent.replace(/var AppVersion = ".*?"/m, `var AppVersion = "${formattedGoVersion}"`);
+    fs.writeFileSync(backendVersionGoPath, goContent);
+    console.log(`Updated backend/internal/domain/model/version.go -> ${formattedGoVersion}`);
+  }
+
+  console.log("\nAll frontend, backend & Tauri version fields are synchronized!");
 }
 
 syncVersion();
+

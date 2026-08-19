@@ -54,9 +54,20 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [progress, setProgress] = useState<UpdateDownloadProgressResponse | null>(null);
   const [streamError, setStreamError] = useState<string | null>(null);
+  const [restartCountdown, setRestartCountdown] = useState<number | null>(null);
 
   const cleanupRef = useRef<(() => void) | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (restartCountdown === null || restartCountdown <= 0) return;
+
+    const timer = setTimeout(() => {
+      setRestartCountdown((prev) => (prev !== null && prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [restartCountdown]);
 
   useEffect(() => {
     return () => {
@@ -65,6 +76,8 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
       }
     };
   }, []);
+
+
 
   // Focus trap: save previously focused element, move focus to modal on open,
   // restore on close/unmount, and keep Tab navigation inside the modal.
@@ -132,6 +145,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
   const handleStartUpdate = () => {
     setIsDownloading(true);
     setStreamError(null);
+    setRestartCountdown(null);
     setProgress({
       status: "DOWNLOADING",
       percentage: 0,
@@ -146,7 +160,9 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
     cleanupRef.current = releasesApi.streamDownloadAndInstall(
       (data) => {
         setProgress(data);
-        if (data.status === "FAILED") {
+        if (data.status === "COMPLETED") {
+          setRestartCountdown(2);
+        } else if (data.status === "FAILED") {
           setIsDownloading(false);
           setStreamError(data.errorMessage || "Update download failed.");
         }
@@ -157,6 +173,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
       }
     );
   };
+
 
   const isInstallingOrCompleted =
     progress?.status === "INSTALLING" || progress?.status === "COMPLETED";
@@ -245,9 +262,14 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
             <div className={styles.progressSection}>
               <div className={styles.progressHeader}>
                 <div className={styles.progressStatus}>
-                  {isInstallingOrCompleted ? (
+                  {progress?.status === "COMPLETED" ? (
                     <>
-                      <Loader2 size={16} className="animate-spin text-emerald-400" />
+                      <Sparkles size={16} className="text-emerald-400 animate-pulse" />
+                      <span>UPDATE COMPLETE!</span>
+                    </>
+                  ) : progress?.status === "INSTALLING" ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin text-amber-400" />
                       <span>INSTALLING UPDATE...</span>
                     </>
                   ) : (
@@ -275,8 +297,12 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
                   {formatBytes(progress?.totalBytes || updateInfo.downloadSizeInBytes)}
                 </span>
                 <span>
-                  {isInstallingOrCompleted
-                    ? "Executing Native Installer..."
+                  {progress?.status === "COMPLETED"
+                    ? restartCountdown !== null && restartCountdown > 0
+                      ? `Restarting in ${restartCountdown}s...`
+                      : "Restarting application..."
+                    : progress?.status === "INSTALLING"
+                    ? "Applying update..."
                     : `${progress?.percentage || 0}% Completed`}
                 </span>
               </div>
@@ -284,13 +310,27 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
           )}
 
           {/* Restart Notification Notice */}
-          {isInstallingOrCompleted && (
+          {progress?.status === "INSTALLING" && (
             <div className={styles.restartAlert}>
-              <CheckCircle2 size={20} className="flex-shrink-0" />
+              <Loader2 size={20} className="flex-shrink-0 animate-spin text-amber-400" />
               <div>
-                <strong>Update successfully downloaded!</strong>
+                <strong>Installing update...</strong>
                 <div className="text-xs opacity-90 font-normal mt-0.5">
-                  Devaulty is now applying the update and will restart automatically in a few seconds.
+                  Devaulty is applying the new version.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {progress?.status === "COMPLETED" && (
+            <div className={styles.restartAlert}>
+              <CheckCircle2 size={20} className="flex-shrink-0 text-emerald-400" />
+              <div>
+                <strong>Update successfully installed!</strong>
+                <div className="text-xs opacity-90 font-normal mt-0.5">
+                  {restartCountdown !== null && restartCountdown > 0
+                    ? `Devaulty will restart automatically in ${restartCountdown} second${restartCountdown > 1 ? "s" : ""}...`
+                    : "Devaulty is restarting now..."}
                 </div>
               </div>
             </div>
@@ -329,7 +369,13 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
           ) : isInstallingOrCompleted ? (
             <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground py-1">
               <Loader2 size={14} className="animate-spin text-emerald-400" />
-              <span>Preparing restart...</span>
+              <span>
+                {progress?.status === "COMPLETED"
+                  ? restartCountdown !== null && restartCountdown > 0
+                    ? `Restarting in ${restartCountdown}s...`
+                    : "Restarting application..."
+                  : "Installing update..."}
+              </span>
             </div>
           ) : (
             <button
@@ -344,6 +390,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
               Cancel Download
             </button>
           )}
+
         </div>
       </div>
     </div>

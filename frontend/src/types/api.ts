@@ -366,8 +366,10 @@ export interface PagedModelCredentialSummaryResponse {
 
 // Release / Auto-Updater Models
 export interface CurrentVersionResponse {
-  actualVersion: string;
+  currentVersion: string;
+  actualVersion?: string;
 }
+
 
 export interface AppUpdateInfoResponse {
   updateAvailable: boolean;
