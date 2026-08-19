@@ -112,7 +112,7 @@ func (uc *ReleaseUseCase) DownloadAndInstall(ctx context.Context, progressCb fun
 		_ = os.Remove(tempPath)
 		progressCb(dto.UpdateDownloadProgressView{
 			Status:       dto.StatusFailed,
-			ErrorMessage: fmt.Sprintf("download Error: %v", err),
+			ErrorMessage: fmt.Sprintf("error downloading asset: %v", err),
 		})
 		return err
 	}
@@ -128,7 +128,7 @@ func (uc *ReleaseUseCase) DownloadAndInstall(ctx context.Context, progressCb fun
 	if err := uc.updaterPort.InstallUpdate(ctx, tempPath); err != nil {
 		progressCb(dto.UpdateDownloadProgressView{
 			Status:       dto.StatusFailed,
-			ErrorMessage: fmt.Sprintf("error trying to apply the update: %v", err),
+			ErrorMessage: fmt.Sprintf("error applying update: %v", err),
 		})
 		return err
 	}

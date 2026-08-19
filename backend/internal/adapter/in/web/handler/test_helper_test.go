@@ -8,8 +8,10 @@ import (
 
 	"devaulty-backend/internal/adapter/in/web"
 	"devaulty-backend/internal/adapter/in/web/handler"
+	"devaulty-backend/internal/adapter/out/external/release"
 	"devaulty-backend/internal/adapter/out/persistence"
 	"devaulty-backend/internal/adapter/out/security"
+	"devaulty-backend/internal/adapter/out/updater"
 	"devaulty-backend/internal/usecase"
 
 	"github.com/stretchr/testify/require"
@@ -64,6 +66,11 @@ func SetupTestApp(t *testing.T) *TestApp {
 	itemTagUseCase := usecase.NewItemTagUseCase(itemTagRepo, tagRepo, projectRepo, snippetRepo, credentialRepo, linkRepo, problemRepo, noteRepo)
 	itemTagHandler := handler.NewItemTagHandler(itemTagUseCase, tagUseCase, projectUseCase)
 
+	githubReleaseClient := release.NewGitHubReleaseClient()
+	nativeUpdater := updater.NewNativeUpdater()
+	releaseUseCase := usecase.NewReleaseUseCase(githubReleaseClient, nativeUpdater)
+	releaseHandler := handler.NewReleaseHandler(releaseUseCase)
+
 	handlers := &web.Handlers{
 		Project:    projectHandler,
 		Snippet:    snippetHandler,
@@ -74,6 +81,7 @@ func SetupTestApp(t *testing.T) *TestApp {
 		Tag:        tagHandler,
 		ItemTag:    itemTagHandler,
 		Security:   securityHandler,
+		Release:    releaseHandler,
 	}
 
 	token := "test-internal-token-12345"

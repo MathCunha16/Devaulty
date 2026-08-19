@@ -13,8 +13,10 @@ import (
 	"path/filepath"
 	"runtime/debug"
 
+	"devaulty-backend/internal/adapter/out/external/release"
 	"devaulty-backend/internal/adapter/out/persistence"
 	"devaulty-backend/internal/adapter/out/security"
+	"devaulty-backend/internal/adapter/out/updater"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -107,6 +109,12 @@ func main() {
 	itemTagUseCase := usecase.NewItemTagUseCase(itemTagRepo, tagRepo, projectRepo, snippetRepo, credentialRepo, linkRepo, problemRepo, noteRepo)
 	itemTagHandler := handler.NewItemTagHandler(itemTagUseCase, tagUseCase, projectUseCase)
 
+	githubReleaseClient := release.NewGitHubReleaseClient()
+	nativeUpdater := updater.NewNativeUpdater()
+	_ = nativeUpdater.CleanupResidualFiles()
+	releaseUseCase := usecase.NewReleaseUseCase(githubReleaseClient, nativeUpdater)
+	releaseHandler := handler.NewReleaseHandler(releaseUseCase)
+
 	handlers := &web.Handlers{
 		Project:    projectHandler,
 		Snippet:    snippetHandler,
@@ -117,6 +125,7 @@ func main() {
 		Tag:        tagHandler,
 		ItemTag:    itemTagHandler,
 		Security:   securityHandler,
+		Release:    releaseHandler,
 	}
 	r := web.SetupRouter(handlers, devaultyInternalToken)
 
