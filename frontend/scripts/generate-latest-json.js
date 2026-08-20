@@ -29,7 +29,11 @@ export function generateLatestJson(assetsDir, tag, repo = "MathCunha16/Devaulty"
         targetFileName.includes("linux") ||
         targetFileName.endsWith(".AppImage.tar.gz")
       ) {
-        manifest.platforms["linux-x86_64"] = {
+        const arch =
+          targetFileName.includes("aarch64") || targetFileName.includes("arm64")
+            ? "linux-aarch64"
+            : "linux-x86_64";
+        manifest.platforms[arch] = {
           signature,
           url: `${baseUrl}/${targetFileName}`,
         };
@@ -38,23 +42,45 @@ export function generateLatestJson(assetsDir, tag, repo = "MathCunha16/Devaulty"
         targetFileName.endsWith(".nsis.zip") ||
         targetFileName.includes("setup.exe")
       ) {
-        manifest.platforms["windows-x86_64"] = {
+        const arch =
+          targetFileName.includes("aarch64") || targetFileName.includes("arm64")
+            ? "windows-aarch64"
+            : "windows-x86_64";
+        manifest.platforms[arch] = {
           signature,
           url: `${baseUrl}/${targetFileName}`,
         };
       } else if (
         targetFileName.includes("darwin") ||
         targetFileName.includes("aarch64") ||
-        targetFileName.includes("app.tar.gz")
+        targetFileName.includes("app.tar.gz") ||
+        targetFileName.endsWith(".dmg")
       ) {
-        manifest.platforms["darwin-aarch64"] = {
-          signature,
-          url: `${baseUrl}/${targetFileName}`,
-        };
-        manifest.platforms["darwin-x86_64"] = {
-          signature,
-          url: `${baseUrl}/${targetFileName}`,
-        };
+        if (targetFileName.includes("universal")) {
+          manifest.platforms["darwin-aarch64"] = {
+            signature,
+            url: `${baseUrl}/${targetFileName}`,
+          };
+          manifest.platforms["darwin-x86_64"] = {
+            signature,
+            url: `${baseUrl}/${targetFileName}`,
+          };
+        } else if (
+          targetFileName.includes("x86_64") ||
+          targetFileName.includes("intel") ||
+          targetFileName.includes("x64")
+        ) {
+          manifest.platforms["darwin-x86_64"] = {
+            signature,
+            url: `${baseUrl}/${targetFileName}`,
+          };
+        } else {
+          // Default macOS build on GitHub Actions macos-latest runner (Apple Silicon ARM64)
+          manifest.platforms["darwin-aarch64"] = {
+            signature,
+            url: `${baseUrl}/${targetFileName}`,
+          };
+        }
       }
     }
   }

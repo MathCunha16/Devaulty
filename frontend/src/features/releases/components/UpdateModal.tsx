@@ -149,7 +149,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
 
   if (!isOpen || !updateInfo) return null;
 
-  const handleStartUpdate = async () => {
+  const handleStartUpdate = () => {
     setIsDownloading(true);
     setStreamError(null);
     setRestartCountdown(null);
@@ -164,7 +164,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
       cleanupRef.current();
     }
 
-    const cancelFn = await releasesApi.downloadAndInstall(
+    cleanupRef.current = releasesApi.downloadAndInstall(
       (data) => {
         setProgress(data);
         if (data.status === "COMPLETED") {
@@ -179,8 +179,6 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
         setStreamError(errorMsg);
       }
     );
-
-    cleanupRef.current = cancelFn;
   };
 
 

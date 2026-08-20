@@ -258,8 +258,10 @@ jobs:
           ls -la release-assets/
 
       - name: Generate latest.json Manifest for Tauri Updater
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
-          node frontend/scripts/generate-latest-json.js release-assets "${{ inputs.tag || github.ref_name }}"
+          node frontend/scripts/generate-latest-json.js release-assets "$RELEASE_TAG"
 
       - name: Publish GitHub Release (softprops/action-gh-release)
         uses: softprops/action-gh-release@v2

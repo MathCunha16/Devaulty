@@ -60,84 +60,88 @@ export const releasesApi = {
     }
   },
 
-  downloadAndInstall: async (
+  downloadAndInstall: (
     onProgress: (data: UpdateDownloadProgressResponse) => void,
     onError: (errorMessage: string) => void
-  ): Promise<() => void> => {
+  ): (() => void) => {
     let isCancelled = false;
 
-    try {
-      let update = cachedUpdate;
-      if (!update) {
-        update = await check();
-        cachedUpdate = update;
-      }
+    (async () => {
+      try {
+        let update = cachedUpdate;
+        if (!update) {
+          update = await check();
+          cachedUpdate = update;
+        }
 
-      if (!update) {
-        onError("No update available to download.");
-        return () => {};
-      }
-
-      let downloadedBytes = 0;
-      let totalBytes = 0;
-
-      await update.downloadAndInstall((event) => {
         if (isCancelled) return;
 
-        switch (event.event) {
-          case "Started": {
-            totalBytes = event.data.contentLength || 0;
-            onProgress({
-              status: "DOWNLOADING",
-              percentage: 0,
-              downloadedBytes: 0,
-              totalBytes,
-            });
-            break;
-          }
-
-          case "Progress": {
-            downloadedBytes += event.data.chunkLength;
-            const percentage =
-              totalBytes > 0
-                ? Math.min(100, Math.round((downloadedBytes / totalBytes) * 100))
-                : 0;
-            onProgress({
-              status: "DOWNLOADING",
-              percentage,
-              downloadedBytes,
-              totalBytes,
-            });
-            break;
-          }
-
-          case "Finished": {
-            onProgress({
-              status: "INSTALLING",
-              percentage: 100,
-              downloadedBytes: totalBytes || downloadedBytes,
-              totalBytes: totalBytes || downloadedBytes,
-            });
-            break;
-          }
+        if (!update) {
+          onError("No update available to download.");
+          return;
         }
-      });
 
-      if (!isCancelled) {
-        onProgress({
-          status: "COMPLETED",
-          percentage: 100,
-          downloadedBytes: totalBytes || downloadedBytes,
-          totalBytes: totalBytes || downloadedBytes,
+        let downloadedBytes = 0;
+        let totalBytes = 0;
+
+        await update.downloadAndInstall((event) => {
+          if (isCancelled) return;
+
+          switch (event.event) {
+            case "Started": {
+              totalBytes = event.data.contentLength || 0;
+              onProgress({
+                status: "DOWNLOADING",
+                percentage: 0,
+                downloadedBytes: 0,
+                totalBytes,
+              });
+              break;
+            }
+
+            case "Progress": {
+              downloadedBytes += event.data.chunkLength;
+              const percentage =
+                totalBytes > 0
+                  ? Math.min(100, Math.round((downloadedBytes / totalBytes) * 100))
+                  : 0;
+              onProgress({
+                status: "DOWNLOADING",
+                percentage,
+                downloadedBytes,
+                totalBytes,
+              });
+              break;
+            }
+
+            case "Finished": {
+              onProgress({
+                status: "INSTALLING",
+                percentage: 100,
+                downloadedBytes: totalBytes || downloadedBytes,
+                totalBytes: totalBytes || downloadedBytes,
+              });
+              break;
+            }
+          }
         });
+
+        if (!isCancelled) {
+          onProgress({
+            status: "COMPLETED",
+            percentage: 100,
+            downloadedBytes: totalBytes || downloadedBytes,
+            totalBytes: totalBytes || downloadedBytes,
+          });
+        }
+      } catch (err: unknown) {
+        if (!isCancelled) {
+          const errorMsg =
+            err instanceof Error ? err.message : "Failed to download and install update.";
+          onError(errorMsg);
+        }
       }
-    } catch (err: unknown) {
-      if (!isCancelled) {
-        const errorMsg =
-          err instanceof Error ? err.message : "Failed to download and install update.";
-        onError(errorMsg);
-      }
-    }
+    })();
 
     return () => {
       isCancelled = true;
