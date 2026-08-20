@@ -20,7 +20,6 @@ type Handlers struct {
 	Tag        *handler.TagHandler
 	ItemTag    *handler.ItemTagHandler
 	Security   *handler.SecurityHandler
-	Release    *handler.ReleaseHandler
 }
 
 func SetupRouter(h *Handlers, apiToken string) *gin.Engine {
@@ -51,7 +50,6 @@ func SetupRouter(h *Handlers, apiToken string) *gin.Engine {
 			mapTagRoutes(protected, h.Tag)
 			mapItemTagRoutes(protected, h.ItemTag)
 			mapSecurityRoutes(protected, h.Security)
-			mapReleaseRoutes(protected, h.Release)
 		}
 	}
 	return r
@@ -154,15 +152,6 @@ func mapSecurityRoutes(rg *gin.RouterGroup, h *handler.SecurityHandler) {
 		security.GET("/vault/status", h.GetSessionStatus)
 		security.POST("/vault/unlock", h.UnlockVault)
 		security.POST("/vault/lock", h.LockVault)
-	}
-}
-
-func mapReleaseRoutes(rg *gin.RouterGroup, h *handler.ReleaseHandler) {
-	release := rg.Group("/releases")
-	{
-		release.GET("/current-app-version", h.GetCurrentVersion)
-		release.GET("/check", h.CheckUpdates)
-		release.POST("/download-and-install", h.DownloadAndInstall)
 	}
 }
 

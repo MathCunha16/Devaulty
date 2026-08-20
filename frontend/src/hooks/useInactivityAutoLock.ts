@@ -9,7 +9,8 @@ export const useInactivityAutoLock = (enabled: boolean, onLockTriggered?: () => 
   const lockMutation = useLockVaultMutation();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastResetRef = useRef<number>(0);
-  const lastActivityRef = useRef<number>(Date.now());
+  const lastActivityRef = useRef<number>(0);
+  const resetTimerRef = useRef<() => void>(() => {});
 
   const onLockTriggeredRef = useRef(onLockTriggered);
   useEffect(() => {
@@ -25,14 +26,14 @@ export const useInactivityAutoLock = (enabled: boolean, onLockTriggered?: () => 
     }
     if (!enabled) return;
 
-    const elapsed = Date.now() - lastActivityRef.current;
+    const elapsed = Date.now() - (lastActivityRef.current || Date.now());
     const delay = Math.max(INACTIVITY_TIMEOUT_MS - elapsed, 0);
 
     timerRef.current = setTimeout(async () => {
       // Re-check exact elapsed time from actual last user activity
-      const actualElapsed = Date.now() - lastActivityRef.current;
+      const actualElapsed = Date.now() - (lastActivityRef.current || Date.now());
       if (actualElapsed < INACTIVITY_TIMEOUT_MS) {
-        resetTimer();
+        resetTimerRef.current();
         return;
       }
 
@@ -47,6 +48,10 @@ export const useInactivityAutoLock = (enabled: boolean, onLockTriggered?: () => 
       }
     }, delay);
   }, [enabled, mutateAsync]);
+
+  useEffect(() => {
+    resetTimerRef.current = resetTimer;
+  }, [resetTimer]);
 
   useEffect(() => {
     if (!enabled) {

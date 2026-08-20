@@ -60,7 +60,14 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (restartCountdown === null || restartCountdown <= 0) return;
+    if (restartCountdown === null) return;
+
+    if (restartCountdown <= 0) {
+      releasesApi.relaunchApp().catch((err) => {
+        console.error("Failed to restart application:", err);
+      });
+      return;
+    }
 
     const timer = setTimeout(() => {
       setRestartCountdown((prev) => (prev !== null && prev > 0 ? prev - 1 : 0));
@@ -142,7 +149,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
 
   if (!isOpen || !updateInfo) return null;
 
-  const handleStartUpdate = () => {
+  const handleStartUpdate = async () => {
     setIsDownloading(true);
     setStreamError(null);
     setRestartCountdown(null);
@@ -157,7 +164,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
       cleanupRef.current();
     }
 
-    cleanupRef.current = releasesApi.streamDownloadAndInstall(
+    const cancelFn = await releasesApi.downloadAndInstall(
       (data) => {
         setProgress(data);
         if (data.status === "COMPLETED") {
@@ -172,6 +179,8 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
         setStreamError(errorMsg);
       }
     );
+
+    cleanupRef.current = cancelFn;
   };
 
 
