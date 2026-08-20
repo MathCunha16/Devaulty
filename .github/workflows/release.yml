@@ -156,15 +156,13 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           node scripts/build-all.js
-          npx tauri build --bundles nsis,msi
+          npx tauri build --bundles nsis
 
       - name: Upload Windows Installer Artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: |
-            frontend/src-tauri/target/release/bundle/msi/*.msi
-            frontend/src-tauri/target/release/bundle/nsis/*
+          path: frontend/src-tauri/target/release/bundle/nsis/*
           if-no-files-found: error
 
   # ===========================================
@@ -270,7 +268,6 @@ jobs:
           files: |
             release-assets/*.deb
             release-assets/*.rpm
-            release-assets/*.msi
             release-assets/*.dmg
             release-assets/*.AppImage
             release-assets/*.exe
