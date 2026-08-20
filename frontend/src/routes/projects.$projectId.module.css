@@ -82,6 +82,11 @@
   border-color: var(--color-primary);
 }
 
+.searchInput option {
+  background-color: var(--color-card);
+  color: var(--color-foreground);
+}
+
 .searchIcon {
   position: absolute;
   left: 0.625rem;

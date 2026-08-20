@@ -38,6 +38,7 @@
 
 @layer base {
   :root {
+    color-scheme: light;
     --background: 240 6% 96%;
     --foreground: 240 10% 3.9%;
     --card: 240 5% 98%;
@@ -61,6 +62,7 @@
   }
 
   .dark {
+    color-scheme: dark;
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
     --card: 240 10% 5.9%;
@@ -93,6 +95,15 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+  select {
+    color-scheme: inherit;
+    background-color: var(--color-card);
+    color: var(--color-foreground);
+  }
+  option {
+    background-color: var(--color-card);
+    color: var(--color-foreground);
   }
 }
 

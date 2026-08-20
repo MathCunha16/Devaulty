@@ -114,6 +114,11 @@
   box-shadow: 0 0 0 1px var(--color-primary);
 }
 
+.input option {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+}
+
 .textarea {
   background-color: var(--color-background);
   border: 1px solid var(--color-border);
