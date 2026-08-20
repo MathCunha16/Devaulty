@@ -18,15 +18,6 @@ export function generateLatestJson(assetsDir, tag, repo = "MathCunha16/Devaulty"
     platforms: {},
   };
 
-  const setPlatform = (platform, entry) => {
-    if (manifest.platforms[platform]) {
-      throw new Error(
-        `Conflict: platform "${platform}" was already assigned in manifest.`
-      );
-    }
-    manifest.platforms[platform] = entry;
-  };
-
   for (const file of files) {
     if (file.endsWith(".sig")) {
       const targetFileName = file.slice(0, -4); // remove .sig
@@ -36,18 +27,26 @@ export function generateLatestJson(assetsDir, tag, repo = "MathCunha16/Devaulty"
       // Linux Updater Artifacts (AppImage)
       if (
         targetFileName.endsWith(".AppImage.tar.gz") ||
-        (targetFileName.includes("AppImage") && !targetFileName.endsWith(".deb") && !targetFileName.endsWith(".rpm"))
+        targetFileName.endsWith(".AppImage")
       ) {
         const arch =
           targetFileName.includes("aarch64") || targetFileName.includes("arm64")
             ? "linux-aarch64"
             : "linux-x86_64";
-        setPlatform(arch, {
-          signature,
-          url: `${baseUrl}/${targetFileName}`,
-        });
+
+        if (targetFileName.endsWith(".AppImage.tar.gz")) {
+          manifest.platforms[arch] = {
+            signature,
+            url: `${baseUrl}/${targetFileName}`,
+          };
+        } else if (!manifest.platforms[arch]) {
+          manifest.platforms[arch] = {
+            signature,
+            url: `${baseUrl}/${targetFileName}`,
+          };
+        }
       }
-      // Windows Updater Artifacts (NSIS exe / zip)
+      // Windows Updater Artifacts (prefer .nsis.zip for updater, fallback to -setup.exe)
       else if (
         targetFileName.endsWith(".nsis.zip") ||
         targetFileName.endsWith("-setup.exe") ||
@@ -58,37 +57,45 @@ export function generateLatestJson(assetsDir, tag, repo = "MathCunha16/Devaulty"
           targetFileName.includes("aarch64") || targetFileName.includes("arm64")
             ? "windows-aarch64"
             : "windows-x86_64";
-        setPlatform(arch, {
-          signature,
-          url: `${baseUrl}/${targetFileName}`,
-        });
+
+        if (targetFileName.endsWith(".nsis.zip")) {
+          manifest.platforms[arch] = {
+            signature,
+            url: `${baseUrl}/${targetFileName}`,
+          };
+        } else if (!manifest.platforms[arch]) {
+          manifest.platforms[arch] = {
+            signature,
+            url: `${baseUrl}/${targetFileName}`,
+          };
+        }
       }
       // macOS Updater Artifacts (strictly .app.tar.gz, excluding .dmg)
       else if (targetFileName.endsWith(".app.tar.gz")) {
         if (targetFileName.includes("universal")) {
-          setPlatform("darwin-aarch64", {
+          manifest.platforms["darwin-aarch64"] = {
             signature,
             url: `${baseUrl}/${targetFileName}`,
-          });
-          setPlatform("darwin-x86_64", {
+          };
+          manifest.platforms["darwin-x86_64"] = {
             signature,
             url: `${baseUrl}/${targetFileName}`,
-          });
+          };
         } else if (
           targetFileName.includes("x86_64") ||
           targetFileName.includes("intel") ||
           targetFileName.includes("x64")
         ) {
-          setPlatform("darwin-x86_64", {
+          manifest.platforms["darwin-x86_64"] = {
             signature,
             url: `${baseUrl}/${targetFileName}`,
-          });
+          };
         } else {
           // Default macOS build on GitHub Actions macos-latest runner (Apple Silicon ARM64)
-          setPlatform("darwin-aarch64", {
+          manifest.platforms["darwin-aarch64"] = {
             signature,
             url: `${baseUrl}/${targetFileName}`,
-          });
+          };
         }
       }
     }

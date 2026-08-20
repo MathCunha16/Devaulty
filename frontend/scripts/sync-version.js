@@ -36,16 +36,12 @@ function syncVersion() {
     console.log(`Updated src-tauri/Cargo.toml -> ${version}`);
   }
 
-  // 3. Update tauri.conf.json
-  // Windows MSI (WiX Toolset) & macOS bundle require a strict numeric Major.Minor.Patch version.
-  // We extract the numeric prefix (e.g. "0.1.6-alpha.1" -> "0.1.6") for tauri.conf.json.
-  const numericVersion = version.split("-")[0];
-
+  // 3. Update tauri.conf.json (full SemVer matching package.json)
   if (fs.existsSync(tauriConfPath)) {
     const tauriConf = JSON.parse(fs.readFileSync(tauriConfPath, "utf-8"));
-    tauriConf.version = numericVersion;
+    tauriConf.version = version;
     fs.writeFileSync(tauriConfPath, JSON.stringify(tauriConf, null, 2) + "\n");
-    console.log(`Updated src-tauri/tauri.conf.json -> ${numericVersion} (normalized from ${version})`);
+    console.log(`Updated src-tauri/tauri.conf.json -> ${version}`);
   }
 
   // 4. Update backend version.go (Go backend compiled version)
