@@ -56,10 +56,10 @@ jobs:
           echo "Tag version matches package.json version: $TAG_VERSION"
 
   # ===========================================
-  # STAGE 1: Linux Packaging (.deb, .rpm)
+  # STAGE 1: Linux Packaging (.deb, .rpm, .AppImage)
   # ===========================================
   build-linux:
-    name: Package Linux Installers (.deb, .rpm)
+    name: Package Linux Installers (.deb, .rpm, .AppImage)
     needs: verify
     runs-on: ubuntu-latest
 
@@ -97,9 +97,12 @@ jobs:
 
       - name: Build Linux Installers via Tauri
         working-directory: ./frontend
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           node scripts/build-all.js
-          npx tauri build --bundles deb,rpm
+          npx tauri build --bundles appimage,deb,rpm
 
       - name: Upload Linux Installer Artifacts
         uses: actions/upload-artifact@v4
@@ -108,13 +111,14 @@ jobs:
           path: |
             frontend/src-tauri/target/release/bundle/deb/*.deb
             frontend/src-tauri/target/release/bundle/rpm/*.rpm
+            frontend/src-tauri/target/release/bundle/appimage/*
           if-no-files-found: error
 
   # ===========================================
-  # STAGE 2: Windows Packaging (.msi)
+  # STAGE 2: Windows Packaging (.msi, .nsis)
   # ===========================================
   build-windows:
-    name: Package Windows Installer (.msi)
+    name: Package Windows Installer (.msi, .nsis)
     needs: verify
     runs-on: windows-latest
 
@@ -147,22 +151,27 @@ jobs:
 
       - name: Build Windows Installer via Tauri
         working-directory: ./frontend
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           node scripts/build-all.js
-          npx tauri build --bundles msi
+          npx tauri build --bundles nsis,msi
 
       - name: Upload Windows Installer Artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: frontend/src-tauri/target/release/bundle/msi/*.msi
+          path: |
+            frontend/src-tauri/target/release/bundle/msi/*.msi
+            frontend/src-tauri/target/release/bundle/nsis/*
           if-no-files-found: error
 
   # ===========================================
-  # STAGE 3: macOS Packaging (.dmg)
+  # STAGE 3: macOS Packaging (.dmg, .app)
   # ===========================================
   build-macos:
-    name: Package macOS Installer (.dmg)
+    name: Package macOS Installer (.dmg, .app)
     needs: verify
     runs-on: macos-latest
 
@@ -195,15 +204,20 @@ jobs:
 
       - name: Build macOS Installer via Tauri
         working-directory: ./frontend
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           node scripts/build-all.js
-          npx tauri build --bundles dmg
+          npx tauri build --bundles dmg,app
 
       - name: Upload macOS Installer Artifact
         uses: actions/upload-artifact@v4
         with:
           name: macos-installer
-          path: frontend/src-tauri/target/release/bundle/dmg/*.dmg
+          path: |
+            frontend/src-tauri/target/release/bundle/dmg/*.dmg
+            frontend/src-tauri/target/release/bundle/macos/*
           if-no-files-found: error
 
   # ===========================================
@@ -220,6 +234,17 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+          persist-credentials: false
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
       - name: Download All Build Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -232,6 +257,12 @@ jobs:
           find release-assets/ -type f -exec mv {} release-assets/ \;
           ls -la release-assets/
 
+      - name: Generate latest.json Manifest for Tauri Updater
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          node frontend/scripts/generate-latest-json.js release-assets "$RELEASE_TAG"
+
       - name: Publish GitHub Release (softprops/action-gh-release)
         uses: softprops/action-gh-release@v2
         with:
@@ -241,6 +272,11 @@ jobs:
             release-assets/*.rpm
             release-assets/*.msi
             release-assets/*.dmg
+            release-assets/*.AppImage
+            release-assets/*.tar.gz
+            release-assets/*.zip
+            release-assets/*.sig
+            release-assets/latest.json
           generate_release_notes: true
           draft: false
           prerelease: false

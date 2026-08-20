@@ -1,95 +1,157 @@
-import { apiClient, getInternalToken, getApiBaseUrl } from "../../../api/client";
+import { getVersion } from "@tauri-apps/api/app";
+import { check, Update } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
+import pkg from "../../../../package.json";
 import type {
   CurrentVersionResponse,
   AppUpdateInfoResponse,
   UpdateDownloadProgressResponse,
 } from "../../../types/api";
 
+let cachedUpdate: Update | null = null;
+
 export const releasesApi = {
   getCurrentVersion: async (): Promise<CurrentVersionResponse> => {
-    const response = await apiClient.get<CurrentVersionResponse>("/releases/current-app-version");
-    return response.data;
+    try {
+      const version = await getVersion();
+      const current = version || pkg.version;
+      return {
+        currentVersion: current,
+        actualVersion: current,
+      };
+    } catch {
+      return {
+        currentVersion: pkg.version,
+        actualVersion: pkg.version,
+      };
+    }
   },
 
   checkUpdates: async (): Promise<AppUpdateInfoResponse> => {
-    const response = await apiClient.get<AppUpdateInfoResponse>("/releases/check");
-    return response.data;
+    try {
+      const currentVersion = (await releasesApi.getCurrentVersion()).currentVersion;
+      const update = await check();
+      cachedUpdate = update;
+
+      if (update && update.available) {
+        return {
+          updateAvailable: true,
+          currentVersion: update.currentVersion || currentVersion,
+          latestVersion: update.version,
+          releaseTitle: `Release v${update.version}`,
+          releaseNotes: update.body || "",
+          publishedAt: update.date,
+        };
+      }
+
+      return {
+        updateAvailable: false,
+        currentVersion,
+        latestVersion: currentVersion,
+      };
+    } catch (err: unknown) {
+      console.error("Error checking for updates via Tauri plugin:", err);
+      const currentVersion = (await releasesApi.getCurrentVersion()).currentVersion;
+      return {
+        updateAvailable: false,
+        currentVersion,
+        latestVersion: currentVersion,
+      };
+    }
   },
 
-  streamDownloadAndInstall: (
+  downloadAndInstall: (
     onProgress: (data: UpdateDownloadProgressResponse) => void,
     onError: (errorMessage: string) => void
   ): (() => void) => {
-    const controller = new AbortController();
-    const baseUrl = getApiBaseUrl();
-    const url = `${baseUrl}/releases/download-and-install`;
+    let isCancelled = false;
 
-    const headers: Record<string, string> = {
-      Accept: "text/event-stream",
-    };
-    const internalToken = getInternalToken();
-    if (internalToken) {
-      headers["DEVAULTY_INTERNAL_TOKEN"] = internalToken;
-    }
+    (async () => {
+      try {
+        let update = cachedUpdate;
+        if (!update) {
+          update = await check();
+          cachedUpdate = update;
+        }
 
-    fetch(url, {
-      method: "POST",
-      headers,
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          let errorMsg = `HTTP Error ${response.status}`;
-          try {
-            const errData = await response.json();
-            if (errData?.error) errorMsg = errData.error;
-            else if (errData?.message) errorMsg = errData.message;
-          } catch {
-            // ignore json parse error
-          }
-          onError(errorMsg);
+        if (isCancelled) return;
+
+        if (!update) {
+          onError("No update available to download.");
           return;
         }
 
-        if (!response.body) {
-          onError("No stream body received from server");
-          return;
-        }
+        let downloadedBytes = 0;
+        let totalBytes = 0;
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
+        await update.downloadAndInstall((event) => {
+          if (isCancelled) return;
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+          switch (event.event) {
+            case "Started": {
+              totalBytes = event.data.contentLength || 0;
+              onProgress({
+                status: "DOWNLOADING",
+                percentage: 0,
+                downloadedBytes: 0,
+                totalBytes,
+              });
+              break;
+            }
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
+            case "Progress": {
+              downloadedBytes += event.data.chunkLength;
+              const percentage =
+                totalBytes > 0
+                  ? Math.min(100, Math.round((downloadedBytes / totalBytes) * 100))
+                  : 0;
+              onProgress({
+                status: "DOWNLOADING",
+                percentage,
+                downloadedBytes,
+                totalBytes,
+              });
+              break;
+            }
 
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed.startsWith("data:")) {
-              const jsonStr = trimmed.slice(5).trim();
-              if (jsonStr) {
-                try {
-                  const data: UpdateDownloadProgressResponse = JSON.parse(jsonStr);
-                  onProgress(data);
-                } catch {
-                  // ignore JSON parse error for malformed lines
-                }
-              }
+            case "Finished": {
+              onProgress({
+                status: "INSTALLING",
+                percentage: 100,
+                downloadedBytes: totalBytes || downloadedBytes,
+                totalBytes: totalBytes || downloadedBytes,
+              });
+              break;
             }
           }
-        }
-      })
-      .catch((err) => {
-        if (err.name !== "AbortError") {
-          onError(err.message || "Failed to download update stream");
-        }
-      });
+        });
 
-    return () => controller.abort();
+        if (!isCancelled) {
+          onProgress({
+            status: "COMPLETED",
+            percentage: 100,
+            downloadedBytes: totalBytes || downloadedBytes,
+            totalBytes: totalBytes || downloadedBytes,
+          });
+        }
+      } catch (err: unknown) {
+        if (!isCancelled) {
+          const errorMsg =
+            err instanceof Error ? err.message : "Failed to download and install update.";
+          onError(errorMsg);
+        }
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+      if (cachedUpdate) {
+        cachedUpdate.close().catch(() => {});
+      }
+    };
+  },
+
+  relaunchApp: async (): Promise<void> => {
+    await relaunch();
   },
 };

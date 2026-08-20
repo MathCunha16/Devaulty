@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Devaulty",
-  "version": "0.1.7",
+  "version": "0.1.9",
   "identifier": "com.devaulty.app",
   "build": {
     "frontendDist": "../dist",
@@ -39,10 +39,12 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": [
       "deb",
       "appimage",
       "rpm",
+      "nsis",
       "msi",
       "dmg"
     ],
@@ -56,5 +58,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg5ODg5QUNDRkI1QjNCOUIKUldTYk8xdjd6SnFJaWR4YmlGNStiZXVpRFFtMWVmZi9lUkZBL2ViOGZYNHd4ZWcxK2Ewai9ITTcK",
+      "endpoints": [
+        "https://github.com/MathCunha16/Devaulty/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

@@ -166,6 +166,8 @@ pub fn run() {
   let state_clone = Arc::clone(&session_state);
 
   tauri::Builder::default()
+    .plugin(tauri_plugin_updater::Builder::new().build())
+    .plugin(tauri_plugin_process::init())
     .manage(session_state)
     .invoke_handler(tauri::generate_handler![close_splash, get_backend_info])
     .setup(move |app| {
