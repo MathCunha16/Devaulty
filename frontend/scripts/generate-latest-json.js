@@ -47,9 +47,11 @@ export function generateLatestJson(assetsDir, tag, repo = "MathCunha16/Devaulty"
           url: `${baseUrl}/${targetFileName}`,
         });
       }
-      // Windows Updater Artifacts (NSIS zip)
+      // Windows Updater Artifacts (NSIS exe / zip)
       else if (
         targetFileName.endsWith(".nsis.zip") ||
+        targetFileName.endsWith("-setup.exe") ||
+        (targetFileName.endsWith(".exe") && !targetFileName.endsWith(".msi")) ||
         (targetFileName.includes("nsis") && !targetFileName.endsWith(".msi"))
       ) {
         const arch =

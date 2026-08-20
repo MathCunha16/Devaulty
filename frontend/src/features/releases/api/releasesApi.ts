@@ -1,4 +1,3 @@
-import { getVersion } from "@tauri-apps/api/app";
 import { check, Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import pkg from "../../../../package.json";
@@ -12,19 +11,11 @@ let cachedUpdate: Update | null = null;
 
 export const releasesApi = {
   getCurrentVersion: async (): Promise<CurrentVersionResponse> => {
-    try {
-      const version = await getVersion();
-      const current = version || pkg.version;
-      return {
-        currentVersion: current,
-        actualVersion: current,
-      };
-    } catch {
-      return {
-        currentVersion: pkg.version,
-        actualVersion: pkg.version,
-      };
-    }
+    const version = pkg.version;
+    return {
+      currentVersion: version,
+      actualVersion: version,
+    };
   },
 
   checkUpdates: async (): Promise<AppUpdateInfoResponse> => {
