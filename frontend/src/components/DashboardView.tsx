@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 
@@ -12,13 +12,34 @@ import {
 import { ProjectForm } from "~features/projects/components/ProjectForm";
 import { ConfirmModal } from "./ConfirmModal";
 import { getIconComponent } from "../utils/icons";
+import { useTheme } from "../hooks/useTheme";
+import FloatingLines from "./FloatingLines";
 import styles from "../routes/index.module.css";
+
+// ── Theme-aware FloatingLines configuration ──────────────────
+// Stable references — MUST be outside the component to avoid re-creating the WebGL
+// context on every React render (e.g. sidebar toggle, search typing, etc.)
+const DARK_GRADIENT = ["#10b981", "#34d399", "#059669", "#064e3b"];
+const LIGHT_GRADIENT = ["#047857", "#059669", "#10b981", "#065f46"];
+const ENABLED_WAVES: Array<'middle' | 'bottom'> = ['middle', 'bottom'];
+const LINE_COUNT = [8, 12];
+const LINE_DISTANCE = [6, 4];
 
 type TabFilter = "ACTIVE" | "ARCHIVED" | "ALL";
 
 export const DashboardView: React.FC = () => {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const { data: projectsData, isLoading } = useProjectsQuery();
+
+  // Memoize FloatingLines config to avoid re-creating the WebGL context on every render
+  const floatingLinesConfig = useMemo(
+    () => ({
+      linesGradient: theme === "dark" ? DARK_GRADIENT : LIGHT_GRADIENT,
+      mixBlendMode: (theme === "dark" ? "screen" : "normal") as React.CSSProperties["mixBlendMode"],
+    }),
+    [theme],
+  );
 
   const archiveMutation = useArchiveProjectMutation();
   const unarchiveMutation = useUnarchiveProjectMutation();
@@ -95,7 +116,26 @@ export const DashboardView: React.FC = () => {
   };
 
   return (
-    <div className={styles.container}>
+    <div className={styles.dashboardRoot}>
+      {/* WebGL animated background */}
+      <div className={styles.bgLayer}>
+        <FloatingLines
+          theme={theme}
+          linesGradient={floatingLinesConfig.linesGradient}
+          enabledWaves={ENABLED_WAVES}
+          lineCount={LINE_COUNT}
+          lineDistance={LINE_DISTANCE}
+          animationSpeed={0.6}
+          interactive={false}
+          parallax={false}
+          mixBlendMode={floatingLinesConfig.mixBlendMode}
+        />
+      </div>
+
+      {/* Readability overlay */}
+      <div className={styles.bgOverlay} />
+
+      <div className={styles.container}>
       {/* Header section */}
       <div className={styles.header}>
         <div className={styles.headerTitleGroup}>
@@ -433,6 +473,7 @@ export const DashboardView: React.FC = () => {
         warningText="This cannot be undone. All snippets, credentials, problems, notes, and links in this project will be permanently deleted."
         isLoading={confirmModal.isLoading}
       />
+    </div>
     </div>
   );
 };

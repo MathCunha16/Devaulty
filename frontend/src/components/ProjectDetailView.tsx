@@ -54,7 +54,7 @@ export const ProjectDetailView: React.FC = () => {
   const projectIcon = getIconComponent(project?.icon);
 
   return (
-    <div className="flex flex-col gap-4 h-full">
+    <div className="flex flex-col gap-4 h-full p-6">
       {/* Project Header */}
       <div className={styles.projectHeader}>
         <div className={styles.projectTitleSection}>

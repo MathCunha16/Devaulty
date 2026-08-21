@@ -39,26 +39,26 @@
 @layer base {
   :root {
     color-scheme: light;
-    --background: 240 6% 96%;
-    --foreground: 240 10% 3.9%;
-    --card: 240 5% 98%;
-    --card-foreground: 240 10% 3.9%;
+    --background: 210 20% 98%; /* Crisp airy #f8fafc */
+    --foreground: 222 47% 11%; /* Deep slate #0f172a */
+    --card: 0 0% 100%; /* Pure white #ffffff */
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 195 100% 40%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 158 84% 36%; /* Emerald-600 #059669 */
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 5% 90%;
-    --secondary-foreground: 240 6% 10%;
-    --muted: 240 4.8% 90%;
-    --muted-foreground: 240 4% 40%;
-    --accent: 240 5% 90%;
-    --accent-foreground: 240 6% 10%;
+    --secondary: 210 40% 96.1%; /* #f1f5f9 */
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215 16% 47%; /* #64748b */
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222 47% 11%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 6% 85%;
-    --input: 240 6% 85%;
-    --ring: 195 100% 40%;
-    --radius: 0.25rem;
+    --border: 214 32% 91%; /* Crisp light slate border #e2e8f0 */
+    --input: 214 32% 91%;
+    --ring: 158 84% 36%;
+    --radius: 0.375rem;
   }
 
   .dark {
@@ -69,7 +69,7 @@
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 195 100% 50%; /* Electric Cyber-Blue */
+    --primary: 158 75% 48%; /* Emerald-500 (#10b981) */
     --primary-foreground: 240 10% 3.9%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
@@ -81,7 +81,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 195 100% 50%;
+    --ring: 158 75% 48%;
     --radius: 0.25rem;
   }
 }
