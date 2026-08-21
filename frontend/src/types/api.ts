@@ -370,6 +370,19 @@ export interface CurrentVersionResponse {
   actualVersion?: string;
 }
 
+export interface AppEnvironment {
+  os: "linux" | "windows" | "macos" | string;
+  arch: "x86_64" | "aarch64" | string;
+  package_type: "appimage" | "deb" | "rpm" | "exe" | "dmg" | "unknown" | string;
+  supports_in_place_update: boolean;
+}
+
+export interface ReleaseAssetFormat {
+  label: string;
+  packageType: string;
+  filename: string;
+  url: string;
+}
 
 export interface AppUpdateInfoResponse {
   updateAvailable: boolean;
@@ -378,8 +391,12 @@ export interface AppUpdateInfoResponse {
   releaseTitle?: string;
   releaseNotes?: string;
   downloadUrl?: string;
+  downloadFilename?: string;
   downloadSizeInBytes?: number;
   publishedAt?: string;
+  packageType?: string;
+  supportsInPlaceUpdate?: boolean;
+  availableFormats?: ReleaseAssetFormat[];
 }
 
 export type UpdateDownloadStatus = "DOWNLOADING" | "COMPLETED" | "FAILED" | "INSTALLING";
@@ -390,5 +407,6 @@ export interface UpdateDownloadProgressResponse {
   downloadedBytes: number;
   totalBytes: number;
   errorMessage?: string;
+  savedFilePath?: string;
 }
 

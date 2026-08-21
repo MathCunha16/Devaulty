@@ -146,6 +146,182 @@ fn ensure_executable(_path: &std::path::Path) -> std::io::Result<()> {
   Ok(())
 }
 
+#[derive(serde::Serialize, Clone)]
+pub struct AppEnvironment {
+  pub os: String,
+  pub arch: String,
+  pub package_type: String,
+  pub supports_in_place_update: bool,
+}
+
+#[tauri::command]
+fn get_app_environment() -> AppEnvironment {
+  let os = std::env::consts::OS.to_string();
+  let arch = std::env::consts::ARCH.to_string();
+
+  let mut package_type = "unknown".to_string();
+  let mut supports_in_place_update = true;
+
+  if os == "linux" {
+    if std::env::var_os("APPIMAGE").is_some() {
+      package_type = "appimage".to_string();
+      supports_in_place_update = true;
+    } else {
+      supports_in_place_update = false;
+      if std::path::Path::new("/etc/debian_version").exists()
+        || std::path::Path::new("/var/lib/dpkg").exists()
+      {
+        package_type = "deb".to_string();
+      } else if std::path::Path::new("/etc/redhat-release").exists()
+        || std::path::Path::new("/etc/fedora-release").exists()
+      {
+        package_type = "rpm".to_string();
+      } else {
+        package_type = "deb".to_string();
+      }
+    }
+  } else if os == "windows" {
+    package_type = "exe".to_string();
+    supports_in_place_update = true;
+  } else if os == "macos" {
+    package_type = "dmg".to_string();
+    supports_in_place_update = true;
+  }
+
+  AppEnvironment {
+    os,
+    arch,
+    package_type,
+    supports_in_place_update,
+  }
+}
+
+#[derive(serde::Serialize, Clone)]
+pub struct DownloadProgressPayload {
+  pub percentage: u32,
+  pub downloaded_bytes: u64,
+  pub total_bytes: u64,
+}
+
+#[tauri::command]
+async fn download_release_file(
+  app: tauri::AppHandle,
+  url: String,
+  filename: String,
+) -> Result<String, String> {
+  use futures_util::StreamExt;
+  use tauri::Emitter;
+  use tokio::io::AsyncWriteExt;
+
+  let downloads_dir = dirs::download_dir()
+    .or_else(dirs::home_dir)
+    .unwrap_or_else(std::env::temp_dir);
+
+  let target_path = downloads_dir.join(&filename);
+
+  let client = reqwest::Client::builder()
+    .user_agent("Devaulty-Updater")
+    .build()
+    .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+
+  let response = client
+    .get(&url)
+    .send()
+    .await
+    .map_err(|e| format!("Failed to connect to download URL: {}", e))?;
+
+  if !response.status().is_success() {
+    return Err(format!(
+      "Download failed with HTTP status: {}",
+      response.status()
+    ));
+  }
+
+  let total_size = response.content_length().unwrap_or(0);
+  let mut downloaded: u64 = 0;
+
+  let mut file = tokio::fs::File::create(&target_path)
+    .await
+    .map_err(|e| format!("Failed to create destination file {:?}: {}", target_path, e))?;
+
+  let mut stream = response.bytes_stream();
+
+  while let Some(chunk) = stream.next().await {
+    let chunk = chunk.map_err(|e| format!("Error downloading chunk: {}", e))?;
+    file
+      .write_all(&chunk)
+      .await
+      .map_err(|e| format!("Error writing chunk to file: {}", e))?;
+
+    downloaded += chunk.len() as u64;
+    let percentage = if total_size > 0 {
+      ((downloaded as f64 / total_size as f64) * 100.0).min(100.0) as u32
+    } else {
+      0
+    };
+
+    let _ = app.emit(
+      "download-file-progress",
+      DownloadProgressPayload {
+        percentage,
+        downloaded_bytes: downloaded,
+        total_bytes: total_size,
+      },
+    );
+  }
+
+  file
+    .flush()
+    .await
+    .map_err(|e| format!("Failed to flush file: {}", e))?;
+
+  #[cfg(unix)]
+  if filename.ends_with(".AppImage") {
+    use std::os::unix::fs::PermissionsExt;
+    if let Ok(metadata) = std::fs::metadata(&target_path) {
+      let mut perms = metadata.permissions();
+      perms.set_mode(0o755);
+      let _ = std::fs::set_permissions(&target_path, perms);
+    }
+  }
+
+  Ok(target_path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn open_file_path(path: String) -> Result<(), String> {
+  let target = std::path::Path::new(&path);
+  if !target.exists() {
+    return Err(format!("Path does not exist: {}", path));
+  }
+
+  #[cfg(target_os = "linux")]
+  {
+    Command::new("xdg-open")
+      .arg(&path)
+      .spawn()
+      .map_err(|e| format!("Failed to open file: {}", e))?;
+  }
+
+  #[cfg(target_os = "windows")]
+  {
+    Command::new("explorer")
+      .arg(&path)
+      .spawn()
+      .map_err(|e| format!("Failed to open file: {}", e))?;
+  }
+
+  #[cfg(target_os = "macos")]
+  {
+    Command::new("open")
+      .arg(&path)
+      .spawn()
+      .map_err(|e| format!("Failed to open file: {}", e))?;
+  }
+
+  Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   // Ensure the user config/data directory exists for database storage
@@ -169,7 +345,13 @@ pub fn run() {
     .plugin(tauri_plugin_updater::Builder::new().build())
     .plugin(tauri_plugin_process::init())
     .manage(session_state)
-    .invoke_handler(tauri::generate_handler![close_splash, get_backend_info])
+    .invoke_handler(tauri::generate_handler![
+      close_splash,
+      get_backend_info,
+      get_app_environment,
+      download_release_file,
+      open_file_path
+    ])
     .setup(move |app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(

@@ -1,22 +1,23 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   DownloadCloud,
+  CheckCircle2,
+  AlertCircle,
+  X,
   Sparkles,
   ArrowRight,
-  X,
-  AlertCircle,
-  CheckCircle2,
   Loader2,
-  RefreshCw,
+  FolderOpen,
+  Info,
 } from "lucide-react";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
 import type {
   AppUpdateInfoResponse,
   UpdateDownloadProgressResponse,
-} from "~types/api";
-import { marked } from "marked";
-import DOMPurify from "dompurify";
+  ReleaseAssetFormat,
+} from "../../../types/api";
 import { releasesApi } from "../api/releasesApi";
-import { formatVersionTag } from "../../../utils/versionUtils";
 import styles from "./UpdateModal.module.css";
 
 interface UpdateModalProps {
@@ -25,118 +26,67 @@ interface UpdateModalProps {
   updateInfo: AppUpdateInfoResponse | null;
 }
 
-const formatBytes = (bytes?: number): string => {
-  if (!bytes || bytes <= 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-};
+interface UpdateModalContentProps {
+  onClose: () => void;
+  updateInfo: AppUpdateInfoResponse;
+}
 
-const renderReleaseNotes = (notes?: string): string => {
-  if (!notes) return "";
-  const cleaned = notes.replace(/<!--[\s\S]*?-->/g, "").trim();
-  if (!cleaned) return "";
-  try {
-    const rawHtml = marked.parse(cleaned, { breaks: true, gfm: true }) as string;
-    return DOMPurify.sanitize(rawHtml);
-  } catch {
-    return DOMPurify.sanitize(cleaned);
-  }
-};
-
-
-export const UpdateModal: React.FC<UpdateModalProps> = ({
-  isOpen,
+const UpdateModalContent: React.FC<UpdateModalContentProps> = ({
   onClose,
   updateInfo,
 }) => {
+  const defaultFormat =
+    updateInfo.availableFormats?.find(
+      (f) => f.packageType === updateInfo.packageType
+    ) ||
+    updateInfo.availableFormats?.[0] ||
+    null;
+
+  const isStandaloneMode = updateInfo.supportsInPlaceUpdate === false;
+
   const [isDownloading, setIsDownloading] = useState(false);
   const [progress, setProgress] = useState<UpdateDownloadProgressResponse | null>(null);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [restartCountdown, setRestartCountdown] = useState<number | null>(null);
+  const [selectedFormat, setSelectedFormat] = useState<ReleaseAssetFormat | null>(defaultFormat);
+  const [savedFilePath, setSavedFilePath] = useState<string | null>(null);
 
   const cleanupRef = useRef<(() => void) | null>(null);
-  const modalRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement | null>(null);
 
+  // Handle countdown and auto-relaunch
   useEffect(() => {
-    if (restartCountdown === null) return;
-
-    if (restartCountdown <= 0) {
+    let timer: ReturnType<typeof setTimeout>;
+    if (restartCountdown !== null && restartCountdown > 0) {
+      timer = setTimeout(() => {
+        setRestartCountdown((prev) => (prev !== null ? prev - 1 : null));
+      }, 1000);
+    } else if (restartCountdown === 0) {
       releasesApi.relaunchApp().catch((err) => {
-        console.error("Failed to restart application:", err);
+        console.error("Failed to relaunch application:", err);
       });
-      return;
     }
-
-    const timer = setTimeout(() => {
-      setRestartCountdown((prev) => (prev !== null && prev > 0 ? prev - 1 : 0));
-    }, 1000);
-
     return () => clearTimeout(timer);
   }, [restartCountdown]);
 
+  // Clean up background update stream on unmount
   useEffect(() => {
     return () => {
       if (cleanupRef.current) {
         cleanupRef.current();
+        cleanupRef.current = null;
       }
     };
   }, []);
 
-
-
-  // Focus trap: save previously focused element, move focus to modal on open,
-  // restore on close/unmount, and keep Tab navigation inside the modal.
+  // Keyboard accessibility and focus management
   useEffect(() => {
-    if (!isOpen) return;
-
     const previouslyFocused = document.activeElement as HTMLElement | null;
-
-    // Move focus to the modal container on open
     modalRef.current?.focus();
-
-    const getFocusableElements = (): HTMLElement[] => {
-      if (!modalRef.current) return [];
-      return Array.from(
-        modalRef.current.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        )
-      ).filter((el) => !el.closest("[aria-hidden='true']"));
-    };
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !isDownloading && progress?.status !== "INSTALLING") {
         onClose();
-        return;
-      }
-
-      if (e.key === "Tab") {
-        const focusable = getFocusableElements();
-        if (focusable.length === 0) {
-          e.preventDefault();
-          return;
-        }
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-
-        if (e.shiftKey) {
-          // Treat the modal container itself as the lower boundary so that
-          // Shift+Tab from the very first focusable position (or from the
-          // modal container that receives initial focus) wraps to the last.
-          if (
-            document.activeElement === first ||
-            document.activeElement === modalRef.current
-          ) {
-            e.preventDefault();
-            last.focus();
-          }
-        } else {
-          if (document.activeElement === last) {
-            e.preventDefault();
-            first.focus();
-          }
-        }
       }
     };
 
@@ -145,11 +95,10 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
       document.removeEventListener("keydown", handleKeyDown);
       previouslyFocused?.focus();
     };
-  }, [isOpen, isDownloading, progress?.status, onClose]);
+  }, [isDownloading, progress?.status, onClose]);
 
-  if (!isOpen || !updateInfo) return null;
-
-  const handleStartUpdate = () => {
+  // Handler for In-Place Auto-Update (AppImage / Windows / macOS)
+  const handleStartInPlaceUpdate = () => {
     setIsDownloading(true);
     setStreamError(null);
     setRestartCountdown(null);
@@ -171,19 +120,91 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
           setRestartCountdown(2);
         } else if (data.status === "FAILED") {
           setIsDownloading(false);
+          setProgress(null);
           setStreamError(data.errorMessage || "Update download failed.");
         }
       },
       (errorMsg) => {
         setIsDownloading(false);
+        setProgress(null);
         setStreamError(errorMsg);
       }
     );
   };
 
+  // Handler for Standalone Installer Download (.deb, .rpm, .exe, .dmg)
+  const handleStartStandaloneDownload = () => {
+    if (!selectedFormat) return;
+
+    setIsDownloading(true);
+    setStreamError(null);
+    setSavedFilePath(null);
+    setProgress({
+      status: "DOWNLOADING",
+      percentage: 0,
+      downloadedBytes: 0,
+      totalBytes: 0,
+    });
+
+    if (cleanupRef.current) {
+      cleanupRef.current();
+    }
+
+    cleanupRef.current = releasesApi.downloadStandaloneInstaller(
+      selectedFormat.url,
+      selectedFormat.filename,
+      (data) => {
+        setProgress(data);
+        if (data.status === "COMPLETED") {
+          setIsDownloading(false);
+          if (data.savedFilePath) {
+            setSavedFilePath(data.savedFilePath);
+          }
+        } else if (data.status === "FAILED") {
+          setIsDownloading(false);
+          setProgress(null);
+          setStreamError(data.errorMessage || "Installer download failed.");
+        }
+      },
+      (errorMsg) => {
+        setIsDownloading(false);
+        setProgress(null);
+        setStreamError(errorMsg);
+      }
+    );
+  };
+
+  const handleOpenFile = () => {
+    if (savedFilePath) {
+      releasesApi.openDownloadedFile(savedFilePath).catch((err) => {
+        console.error("Failed to open file path:", err);
+      });
+    }
+  };
+
+  const formatBytes = (bytes?: number) => {
+    if (!bytes || isNaN(bytes) || bytes <= 0) return "0 MB";
+    const mb = bytes / (1024 * 1024);
+    return `${mb.toFixed(1)} MB`;
+  };
+
+  const formatVersionTag = (v: string) => {
+    if (!v) return "";
+    return v.startsWith("v") ? v : `v${v}`;
+  };
+
+  const renderReleaseNotes = (notes: string) => {
+    try {
+      const rawHtml = marked.parse(notes, { async: false }) as string;
+      return DOMPurify.sanitize(rawHtml);
+    } catch {
+      return notes;
+    }
+  };
 
   const isInstallingOrCompleted =
-    progress?.status === "INSTALLING" || progress?.status === "COMPLETED";
+    progress?.status === "INSTALLING" ||
+    (progress?.status === "COMPLETED" && !savedFilePath);
 
   return (
     <div
@@ -214,7 +235,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
                 SOFTWARE UPDATE AVAILABLE
               </h2>
               <p className={styles.subtitle}>
-                A new version of Devaulty is ready to download and install.
+                A new version of Devaulty is ready to download.
               </p>
             </div>
           </div>
@@ -242,8 +263,51 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
             </span>
           </div>
 
+          {/* Linux system package banner */}
+          {isStandaloneMode && !savedFilePath && (
+            <div className={styles.infoBanner}>
+              <Info size={18} className="flex-shrink-0 text-indigo-400 mt-0.5" />
+              <div>
+                <strong>System Package Detected (.deb / .rpm)</strong>
+                <div className="text-xs opacity-90 font-normal mt-0.5">
+                  Direct in-place replacement requires system administrator privileges.
+                  Click below to download the updated package to your Downloads folder.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Format selector */}
+          {updateInfo.availableFormats &&
+            updateInfo.availableFormats.length > 0 &&
+            !isDownloading &&
+            !savedFilePath && (
+              <div className={styles.formatSelectRow}>
+                <label className={styles.formatSelectLabel} htmlFor="package-format-select">
+                  Installer Package Format
+                </label>
+                <select
+                  id="package-format-select"
+                  className={styles.formatSelect}
+                  value={selectedFormat?.packageType || ""}
+                  onChange={(e) => {
+                    const matched = updateInfo.availableFormats?.find(
+                      (f) => f.packageType === e.target.value
+                    );
+                    if (matched) setSelectedFormat(matched);
+                  }}
+                >
+                  {updateInfo.availableFormats.map((f) => (
+                    <option key={f.packageType} value={f.packageType}>
+                      {f.label} ({f.filename})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
           {/* Release Notes */}
-          {updateInfo.releaseNotes && !isDownloading && !isInstallingOrCompleted && (
+          {updateInfo.releaseNotes && !isDownloading && !savedFilePath && (
             <div className={styles.releaseNotesBox}>
               <span className={styles.releaseNotesLabel}>
                 {updateInfo.releaseTitle ? updateInfo.releaseTitle : "RELEASE NOTES"}
@@ -255,12 +319,18 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
             </div>
           )}
 
-
           {/* Stream Error Box */}
           {streamError && (
             <div className={styles.errorBox}>
               <AlertCircle size={18} className="flex-shrink-0" />
-              <span>{streamError}</span>
+              <div className="flex flex-col gap-1 text-xs">
+                <span>{streamError}</span>
+                {!isStandaloneMode && (
+                  <span className="opacity-80">
+                    You can switch to downloading the standalone package (.deb / .AppImage) below.
+                  </span>
+                )}
+              </div>
             </div>
           )}
 
@@ -272,7 +342,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
                   {progress?.status === "COMPLETED" ? (
                     <>
                       <Sparkles size={16} className="text-emerald-400 animate-pulse" />
-                      <span>UPDATE COMPLETE!</span>
+                      <span>DOWNLOAD COMPLETE!</span>
                     </>
                   ) : progress?.status === "INSTALLING" ? (
                     <>
@@ -282,7 +352,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
                   ) : (
                     <>
                       <DownloadCloud size={16} className="animate-pulse text-indigo-400" />
-                      <span>DOWNLOADING INSTALLER...</span>
+                      <span>DOWNLOADING {selectedFormat?.filename || "UPDATE"}...</span>
                     </>
                   )}
                 </div>
@@ -300,14 +370,12 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
 
               <div className={styles.progressSubInfo}>
                 <span>
-                  {formatBytes(progress?.downloadedBytes)} /{" "}
-                  {formatBytes(progress?.totalBytes || updateInfo.downloadSizeInBytes)}
+                  {formatBytes(progress?.downloadedBytes)}
+                  {progress?.totalBytes ? ` / ${formatBytes(progress.totalBytes)}` : ""}
                 </span>
                 <span>
                   {progress?.status === "COMPLETED"
-                    ? restartCountdown !== null && restartCountdown > 0
-                      ? `Restarting in ${restartCountdown}s...`
-                      : "Restarting application..."
+                    ? "Completed"
                     : progress?.status === "INSTALLING"
                     ? "Applying update..."
                     : `${progress?.percentage || 0}% Completed`}
@@ -316,7 +384,20 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
             </div>
           )}
 
-          {/* Restart Notification Notice */}
+          {/* Saved to Downloads Success Banner */}
+          {savedFilePath && (
+            <div className={styles.restartAlert}>
+              <CheckCircle2 size={20} className="flex-shrink-0 text-emerald-400" />
+              <div>
+                <strong>Installer downloaded successfully!</strong>
+                <div className="text-xs opacity-90 font-normal mt-0.5 break-all">
+                  Saved to: {savedFilePath}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* In-place In Progress Notice */}
           {progress?.status === "INSTALLING" && (
             <div className={styles.restartAlert}>
               <Loader2 size={20} className="flex-shrink-0 animate-spin text-amber-400" />
@@ -329,7 +410,8 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
             </div>
           )}
 
-          {progress?.status === "COMPLETED" && (
+          {/* In-place Restart Notification Notice */}
+          {progress?.status === "COMPLETED" && !savedFilePath && (
             <div className={styles.restartAlert}>
               <CheckCircle2 size={20} className="flex-shrink-0 text-emerald-400" />
               <div>
@@ -353,25 +435,37 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
                 className={styles.btnSecondary}
                 onClick={onClose}
               >
-                Remind Me Later
+                {savedFilePath ? "Close" : "Remind Me Later"}
               </button>
-              <button
-                type="button"
-                className={styles.btnPrimary}
-                onClick={handleStartUpdate}
-              >
-                {streamError ? (
-                  <>
-                    <RefreshCw size={16} />
-                    Retry Download & Install
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={16} />
-                    Download & Install Update
-                  </>
-                )}
-              </button>
+
+              {savedFilePath ? (
+                <button
+                  type="button"
+                  className={styles.btnSuccess}
+                  onClick={handleOpenFile}
+                >
+                  <FolderOpen size={16} />
+                  Open in File Manager
+                </button>
+              ) : isStandaloneMode || streamError ? (
+                <button
+                  type="button"
+                  className={styles.btnPrimary}
+                  onClick={handleStartStandaloneDownload}
+                >
+                  <DownloadCloud size={16} />
+                  Download {selectedFormat?.label.split("(")[1]?.replace(")", "") || "Package"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.btnPrimary}
+                  onClick={handleStartInPlaceUpdate}
+                >
+                  <Sparkles size={16} />
+                  Download & Install Update
+                </button>
+              )}
             </>
           ) : isInstallingOrCompleted ? (
             <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground py-1">
@@ -397,9 +491,24 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
               Cancel Download
             </button>
           )}
-
         </div>
       </div>
     </div>
+  );
+};
+
+export const UpdateModal: React.FC<UpdateModalProps> = ({
+  isOpen,
+  onClose,
+  updateInfo,
+}) => {
+  if (!isOpen || !updateInfo) return null;
+
+  return (
+    <UpdateModalContent
+      key={updateInfo.latestVersion}
+      onClose={onClose}
+      updateInfo={updateInfo}
+    />
   );
 };
