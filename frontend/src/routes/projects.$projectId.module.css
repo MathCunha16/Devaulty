@@ -1,6 +1,10 @@
 .pageLayout {
   display: flex;
-  height: calc(100vh - 120px);
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
   gap: 1.5rem;
   overflow: hidden;
 }
