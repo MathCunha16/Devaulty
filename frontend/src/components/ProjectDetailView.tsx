@@ -1,31 +1,29 @@
 import React, { useState, useEffect } from "react";
-import { Link, useMatch } from "@tanstack/react-router";
+import { Link, useMatch, getRouteApi } from "@tanstack/react-router";
 import * as Icons from "lucide-react";
 import { useSidebar } from "../hooks/useSidebar";
 import { useProjectQuery } from "~features/projects/hooks/useProjects";
 import { useProblemsQuery } from "~features/problems/hooks/useProblems";
 import { TagsManagerModal } from "./TagsManagerModal";
+import { GooeyNav, type GooeyNavItem } from "./GooeyNav";
+import { ProjectOverview } from "~features/projects/components/ProjectOverview";
 import { SnippetsWorkspace } from "~features/snippets/components/SnippetsWorkspace";
 import { ProblemsWorkspace } from "~features/problems/components/ProblemsWorkspace";
 import { CredentialsWorkspace } from "~features/credentials/components/CredentialsWorkspace";
 import { NotesWorkspace } from "~features/notes/components/NotesWorkspace";
 import { LinksWorkspace } from "~features/links/components/LinksWorkspace";
 import styles from "../routes/projects.$projectId.module.css";
-import { getIconComponent } from "../utils/icons";
-
-import { getRouteApi } from "@tanstack/react-router";
 import type { ProjectTabType } from "../routes/projects.$projectId";
 
 const routeApi = getRouteApi("/projects/$projectId");
 
 export const ProjectDetailView: React.FC = () => {
   const { projectId } = useParamsHelper();
-  const { close: closeSidebar } = useSidebar();
+  const { isOpen, close: closeSidebar } = useSidebar();
   const search = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
 
-
-  // Auto-close sidebar when entering a project
+  // Auto-close sidebar when entering a project to maximize workspace space
   useEffect(() => {
     closeSidebar();
   }, [projectId, closeSidebar]);
@@ -41,7 +39,7 @@ export const ProjectDetailView: React.FC = () => {
   ).length;
 
   // Workspace sub-navigation state derived directly from URL search params
-  const activeTab = search.tab || "snippets";
+  const activeTab: ProjectTabType = search.tab || "overview";
 
   const [isTagsManagerOpen, setIsTagsManagerOpen] = useState(false);
 
@@ -49,101 +47,77 @@ export const ProjectDetailView: React.FC = () => {
     navigate({ search: { tab }, replace: true });
   };
 
-
-
-  const projectIcon = getIconComponent(project?.icon);
+  const navItems: GooeyNavItem[] = [
+    { id: "overview", label: "Overview", icon: Icons.LayoutGrid },
+    { id: "snippets", label: "Snippets", icon: Icons.Code2 },
+    {
+      id: "problems",
+      label: "Problems",
+      icon: Icons.AlertCircle,
+      badgeCount: openProblemsCount,
+    },
+    { id: "credentials", label: "Credentials", icon: Icons.KeyRound },
+    { id: "notes", label: "Notes", icon: Icons.FileText },
+    { id: "links", label: "Links", icon: Icons.Link2 },
+  ];
 
   return (
-    <div className="flex flex-col gap-4 h-full p-6">
-      {/* Project Header */}
-      <div className={styles.projectHeader}>
-        <div className={styles.projectTitleSection}>
-          <div className={styles.projectIcon}>
-            {React.createElement(projectIcon, {
-              size: 22,
-              style: { color: project?.color || "var(--color-primary)" },
-            })}
-          </div>
-          <div>
-            <h1 className={styles.projectName}>{project?.name}</h1>
-            <p className={styles.projectDesc}>{project?.description || "No description provided."}</p>
-          </div>
-        </div>
+    <div
+      className={`flex flex-col gap-2.5 h-full p-4 overflow-hidden transition-all duration-300 ${
+        isOpen ? "pt-3" : "pt-20"
+      }`}
+    >
+      {/* Centered Unified Navigation Dock */}
+      <div className="flex items-center justify-center shrink-0 w-full mb-1">
+        <div className="flex items-center gap-1.5 p-1 rounded-full bg-card/60 border border-border/80 backdrop-blur-md shadow-md">
+          {/* Back to Dashboard */}
+          <Link
+            to="/"
+            className="flex items-center gap-1.5 py-1 px-3 rounded-full text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all font-medium"
+            title="Back to Dashboard"
+          >
+            <Icons.ArrowLeft size={13} />
+            <span>Dashboard</span>
+          </Link>
 
-        <div className="flex items-center gap-2">
+          <div className="w-[1px] h-4 bg-border/80 mx-0.5" />
+
+          {/* Horizontal GooeyNav */}
+          <GooeyNav
+            items={navItems}
+            activeId={activeTab}
+            onChange={(id) => handleTabChange(id as ProjectTabType)}
+            projectColor={project?.color}
+          />
+
+          <div className="w-[1px] h-4 bg-border/80 mx-0.5" />
+
+          {/* Manage Tags */}
           <button
             type="button"
             onClick={() => setIsTagsManagerOpen(true)}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border px-2.5 py-1.5 rounded bg-card transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 py-1 px-3 rounded-full text-xs text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-all font-medium cursor-pointer border-0 bg-transparent"
+            title="Manage Project Tags"
           >
-            <Icons.Tags size={12} />
-            <span>Manage Tags</span>
+            <Icons.Tags size={13} />
+            <span>Tags</span>
           </button>
-
-          <Link
-            to="/"
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-border px-2.5 py-1.5 rounded bg-card transition-colors"
-          >
-            <Icons.ArrowLeft size={12} />
-            <span>Back to Dashboard</span>
-          </Link>
         </div>
       </div>
 
       {/* Main Workspace Layout */}
       <div className={styles.pageLayout}>
-        {/* Sidebar Workspace Tabs Selector */}
-        <div className={styles.workspaceSidebar}>
-          <button
-            className={`${styles.workspaceTab} ${activeTab === "snippets" ? styles.workspaceTabActive : ""}`}
-            onClick={() => handleTabChange("snippets")}
-            title="Code Snippets"
-          >
-            <Icons.Code size={18} />
-            <span className={styles.workspaceTabLabel}>Snippets</span>
-          </button>
+        {activeTab === "overview" && (
+          <div className="flex-1 overflow-y-auto pr-1">
+            <ProjectOverview
+              projectId={projectId}
+              project={project}
+              onNavigateTab={handleTabChange}
+              onOpenTagsManager={() => setIsTagsManagerOpen(true)}
+            />
+          </div>
+        )}
 
-          <button
-            className={`${styles.workspaceTab} ${activeTab === "problems" ? styles.workspaceTabActive : ""}`}
-            onClick={() => handleTabChange("problems")}
-            title="Problems & Diagnostics"
-          >
-            <Icons.AlertCircle size={18} />
-            <span className={styles.workspaceTabLabel}>Problems</span>
-            {openProblemsCount > 0 && (
-              <span className={styles.badgeCount}>{openProblemsCount}</span>
-            )}
-          </button>
-
-          <button
-            className={`${styles.workspaceTab} ${activeTab === "credentials" ? styles.workspaceTabActive : ""}`}
-            onClick={() => handleTabChange("credentials")}
-            title="Secure Credentials Vault"
-          >
-            <Icons.KeyRound size={18} />
-            <span className={styles.workspaceTabLabel}>Credentials</span>
-          </button>
-
-          <button
-            className={`${styles.workspaceTab} ${activeTab === "notes" ? styles.workspaceTabActive : ""}`}
-            onClick={() => handleTabChange("notes")}
-            title="System Notes"
-          >
-            <Icons.FileText size={18} />
-            <span className={styles.workspaceTabLabel}>Notes</span>
-          </button>
-
-          <button
-            className={`${styles.workspaceTab} ${activeTab === "links" ? styles.workspaceTabActive : ""}`}
-            onClick={() => handleTabChange("links")}
-            title="Web Links"
-          >
-            <Icons.Link2 size={18} />
-            <span className={styles.workspaceTabLabel}>Links</span>
-          </button>
-        </div>
-
-        {/* Feature Workspace Component Execution */}
         {activeTab === "snippets" && (
           <SnippetsWorkspace
             projectId={projectId}
@@ -166,7 +140,6 @@ export const ProjectDetailView: React.FC = () => {
             onOpenManageTagsModal={() => setIsTagsManagerOpen(true)}
           />
         )}
-
 
         {activeTab === "notes" && (
           <NotesWorkspace
