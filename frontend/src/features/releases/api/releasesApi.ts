@@ -51,41 +51,56 @@ export const releasesApi = {
 
       if (update && update.available) {
         const latestVersion = update.version;
+        const isArm = env.arch === "aarch64" || env.arch === "arm64";
+
+        const debArch = isArm ? "arm64" : "amd64";
+        const rpmArch = isArm ? "aarch64" : "x86_64";
+        const appImageArch = isArm ? "aarch64" : "amd64";
+        const winArch = isArm ? "arm64" : "x64";
+        const macArch = isArm ? "aarch64" : "x64";
+
         const availableFormats: ReleaseAssetFormat[] = [
           {
-            label: "Debian / Ubuntu Package (.deb)",
+            label: `Debian / Ubuntu Package (.deb - ${debArch})`,
             packageType: "deb",
-            filename: `Devaulty_${latestVersion}_amd64.deb`,
-            url: `https://github.com/MathCunha16/Devaulty/releases/download/v${latestVersion}/Devaulty_${latestVersion}_amd64.deb`,
+            filename: `Devaulty_${latestVersion}_${debArch}.deb`,
+            url: `https://github.com/MathCunha16/Devaulty/releases/download/v${latestVersion}/Devaulty_${latestVersion}_${debArch}.deb`,
           },
           {
-            label: "RedHat / Fedora Package (.rpm)",
+            label: `RedHat / Fedora Package (.rpm - ${rpmArch})`,
             packageType: "rpm",
-            filename: `Devaulty-${latestVersion}-1.x86_64.rpm`,
-            url: `https://github.com/MathCunha16/Devaulty/releases/download/v${latestVersion}/Devaulty-${latestVersion}-1.x86_64.rpm`,
+            filename: `Devaulty-${latestVersion}-1.${rpmArch}.rpm`,
+            url: `https://github.com/MathCunha16/Devaulty/releases/download/v${latestVersion}/Devaulty-${latestVersion}-1.${rpmArch}.rpm`,
           },
           {
-            label: "Standalone Linux AppImage (.AppImage)",
+            label: `Standalone Linux AppImage (.AppImage - ${appImageArch})`,
             packageType: "appimage",
-            filename: `Devaulty_${latestVersion}_amd64.AppImage`,
-            url: `https://github.com/MathCunha16/Devaulty/releases/download/v${latestVersion}/Devaulty_${latestVersion}_amd64.AppImage`,
+            filename: `Devaulty_${latestVersion}_${appImageArch}.AppImage`,
+            url: `https://github.com/MathCunha16/Devaulty/releases/download/v${latestVersion}/Devaulty_${latestVersion}_${appImageArch}.AppImage`,
           },
           {
-            label: "Windows Setup Installer (.exe)",
+            label: `Windows Setup Installer (.exe - ${winArch})`,
             packageType: "exe",
-            filename: `Devaulty_${latestVersion}_x64-setup.exe`,
-            url: `https://github.com/MathCunha16/Devaulty/releases/download/v${latestVersion}/Devaulty_${latestVersion}_x64-setup.exe`,
+            filename: `Devaulty_${latestVersion}_${winArch}-setup.exe`,
+            url: `https://github.com/MathCunha16/Devaulty/releases/download/v${latestVersion}/Devaulty_${latestVersion}_${winArch}-setup.exe`,
           },
           {
-            label: "macOS Disk Image (.dmg)",
+            label: `macOS Disk Image (.dmg - ${macArch})`,
             packageType: "dmg",
-            filename: `Devaulty_${latestVersion}_aarch64.dmg`,
-            url: `https://github.com/MathCunha16/Devaulty/releases/download/v${latestVersion}/Devaulty_${latestVersion}_aarch64.dmg`,
+            filename: `Devaulty_${latestVersion}_${macArch}.dmg`,
+            url: `https://github.com/MathCunha16/Devaulty/releases/download/v${latestVersion}/Devaulty_${latestVersion}_${macArch}.dmg`,
           },
         ];
 
         const matchedFormat =
           availableFormats.find((f) => f.packageType === env.package_type) ||
+          (env.os === "linux"
+            ? availableFormats.find((f) => f.packageType === "deb" || f.packageType === "appimage")
+            : env.os === "windows"
+            ? availableFormats.find((f) => f.packageType === "exe")
+            : env.os === "macos"
+            ? availableFormats.find((f) => f.packageType === "dmg")
+            : null) ||
           availableFormats[0];
 
         return {
@@ -291,6 +306,7 @@ export const releasesApi = {
       if (unlistenProgress) {
         unlistenProgress();
       }
+      invoke("cancel_download_release_file").catch(() => {});
     };
   },
 

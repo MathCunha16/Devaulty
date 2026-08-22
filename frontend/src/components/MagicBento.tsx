@@ -124,6 +124,11 @@ const ParticleCard: React.FC<{
     particlesInitialized.current = true;
   }, [particleCount, glowColor]);
 
+  useEffect(() => {
+    particlesInitialized.current = false;
+    memoizedParticles.current = [];
+  }, [particleCount, glowColor]);
+
   const clearAllParticles = useCallback(() => {
     timeoutsRef.current.forEach(clearTimeout);
     timeoutsRef.current = [];
@@ -384,17 +389,22 @@ const GlobalSpotlight: React.FC<{
     document.body.appendChild(spotlight);
     spotlightRef.current = spotlight;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!spotlightRef.current || !gridRef.current) return;
+    let rafId: number | null = null;
+    let latestMouse: { clientX: number; clientY: number } | null = null;
 
+    const processMouseMove = () => {
+      rafId = null;
+      if (!latestMouse || !spotlightRef.current || !gridRef.current) return;
+
+      const { clientX, clientY } = latestMouse;
       const section = gridRef.current.closest(".bento-section");
       const rect = section?.getBoundingClientRect();
       const mouseInside =
         rect &&
-        e.clientX >= rect.left &&
-        e.clientX <= rect.right &&
-        e.clientY >= rect.top &&
-        e.clientY <= rect.bottom;
+        clientX >= rect.left &&
+        clientX <= rect.right &&
+        clientY >= rect.top &&
+        clientY <= rect.bottom;
 
       const cards = gridRef.current.querySelectorAll(".bento-card");
 
@@ -419,7 +429,7 @@ const GlobalSpotlight: React.FC<{
         const centerX = cardRect.left + cardRect.width / 2;
         const centerY = cardRect.top + cardRect.height / 2;
         const distance =
-          Math.hypot(e.clientX - centerX, e.clientY - centerY) -
+          Math.hypot(clientX - centerX, clientY - centerY) -
           Math.max(cardRect.width, cardRect.height) / 2;
         const effectiveDistance = Math.max(0, distance);
 
@@ -435,16 +445,16 @@ const GlobalSpotlight: React.FC<{
 
         updateCardGlowProperties(
           cardElement,
-          e.clientX,
-          e.clientY,
+          clientX,
+          clientY,
           glowIntensity,
           spotlightRadius
         );
       });
 
       gsap.to(spotlightRef.current, {
-        left: e.clientX,
-        top: e.clientY,
+        left: clientX,
+        top: clientY,
         duration: 0.08,
         ease: "power2.out",
       });
@@ -463,7 +473,18 @@ const GlobalSpotlight: React.FC<{
       });
     };
 
+    const handleMouseMove = (e: MouseEvent) => {
+      latestMouse = { clientX: e.clientX, clientY: e.clientY };
+      if (rafId === null) {
+        rafId = requestAnimationFrame(processMouseMove);
+      }
+    };
+
     const handleMouseLeave = () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
       gridRef.current?.querySelectorAll(".bento-card").forEach((card) => {
         (card as HTMLElement).style.setProperty("--glow-intensity", "0");
       });
@@ -480,6 +501,7 @@ const GlobalSpotlight: React.FC<{
     document.addEventListener("mouseleave", handleMouseLeave);
 
     return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseleave", handleMouseLeave);
       if (spotlightRef.current) {

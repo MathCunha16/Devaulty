@@ -369,7 +369,8 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
                 <button
                   type="button"
                   onClick={(e) => handleItemClick(e, item)}
-                  className={`flex items-center gap-1.5 py-1 px-2.5 rounded-full text-xs cursor-pointer border-0 bg-transparent transition-all duration-200 outline-none ${
+                  aria-current={isActive ? "page" : undefined}
+                  className={`flex items-center gap-1.5 py-1 px-2.5 rounded-full text-xs cursor-pointer border-0 bg-transparent transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
                     isActive
                       ? "text-foreground font-semibold scale-[1.02]"
                       : "text-muted-foreground hover:text-foreground hover:bg-card/30"

@@ -12,6 +12,7 @@ pub struct SessionState {
   pub token: Mutex<Option<String>>,
   pub child_process: Mutex<Option<Child>>,
   pub is_bundled_mode: Mutex<bool>,
+  pub active_download_cancel: Mutex<Option<Arc<std::sync::atomic::AtomicBool>>>,
 }
 
 // Response sent to React when it calls `invoke("get_backend_info")`
@@ -206,6 +207,7 @@ pub struct DownloadProgressPayload {
 #[tauri::command]
 async fn download_release_file(
   app: tauri::AppHandle,
+  state: tauri::State<'_, Arc<SessionState>>,
   url: String,
   filename: String,
 ) -> Result<String, String> {
@@ -213,11 +215,42 @@ async fn download_release_file(
   use tauri::Emitter;
   use tokio::io::AsyncWriteExt;
 
+  // Validate filename to prevent path traversal
+  let raw_path = std::path::Path::new(&filename);
+  let safe_name = raw_path
+    .file_name()
+    .and_then(|n| n.to_str())
+    .ok_or_else(|| "Invalid filename".to_string())?;
+
+  if safe_name.is_empty() || safe_name == "." || safe_name == ".." {
+    return Err("Invalid filename".to_string());
+  }
+
+  // Validate URL scheme and host
+  let parsed_url = reqwest::Url::parse(&url).map_err(|e| format!("Invalid URL: {}", e))?;
+  if parsed_url.scheme() != "https" {
+    return Err("Only HTTPS URLs are permitted".to_string());
+  }
+  let host = parsed_url.host_str().unwrap_or("");
+  let is_allowed_host = host == "github.com"
+    || host == "objects.githubusercontent.com"
+    || host.ends_with(".github.com")
+    || host.ends_with(".githubusercontent.com");
+
+  if !is_allowed_host {
+    return Err(format!("Unauthorized download host: {}", host));
+  }
+
   let downloads_dir = dirs::download_dir()
     .or_else(dirs::home_dir)
     .unwrap_or_else(std::env::temp_dir);
 
-  let target_path = downloads_dir.join(&filename);
+  let target_path = downloads_dir.join(safe_name);
+
+  let cancel_flag = Arc::new(std::sync::atomic::AtomicBool::new(false));
+  {
+    *state.active_download_cancel.lock().unwrap() = Some(Arc::clone(&cancel_flag));
+  }
 
   let client = reqwest::Client::builder()
     .user_agent("Devaulty-Updater")
@@ -225,7 +258,7 @@ async fn download_release_file(
     .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
   let response = client
-    .get(&url)
+    .get(parsed_url)
     .send()
     .await
     .map_err(|e| format!("Failed to connect to download URL: {}", e))?;
@@ -247,6 +280,12 @@ async fn download_release_file(
   let mut stream = response.bytes_stream();
 
   while let Some(chunk) = stream.next().await {
+    if cancel_flag.load(std::sync::atomic::Ordering::Relaxed) {
+      drop(file);
+      let _ = tokio::fs::remove_file(&target_path).await;
+      return Err("Download cancelled by user".to_string());
+    }
+
     let chunk = chunk.map_err(|e| format!("Error downloading chunk: {}", e))?;
     file
       .write_all(&chunk)
@@ -275,8 +314,12 @@ async fn download_release_file(
     .await
     .map_err(|e| format!("Failed to flush file: {}", e))?;
 
+  {
+    *state.active_download_cancel.lock().unwrap() = None;
+  }
+
   #[cfg(unix)]
-  if filename.ends_with(".AppImage") {
+  if safe_name.ends_with(".AppImage") {
     use std::os::unix::fs::PermissionsExt;
     if let Ok(metadata) = std::fs::metadata(&target_path) {
       let mut perms = metadata.permissions();
@@ -289,34 +332,62 @@ async fn download_release_file(
 }
 
 #[tauri::command]
+fn cancel_download_release_file(state: tauri::State<'_, Arc<SessionState>>) {
+  if let Some(ref flag) = *state.active_download_cancel.lock().unwrap() {
+    flag.store(true, std::sync::atomic::Ordering::Relaxed);
+  }
+}
+
+#[tauri::command]
 fn open_file_path(path: String) -> Result<(), String> {
   let target = std::path::Path::new(&path);
   if !target.exists() {
     return Err(format!("Path does not exist: {}", path));
   }
 
+  let canonical_target = target
+    .canonicalize()
+    .map_err(|e| format!("Failed to resolve path: {}", e))?;
+
+  let downloads_dir = dirs::download_dir()
+    .or_else(dirs::home_dir)
+    .unwrap_or_else(std::env::temp_dir);
+
+  let canonical_downloads = downloads_dir
+    .canonicalize()
+    .map_err(|e| format!("Failed to resolve downloads directory: {}", e))?;
+
+  if !canonical_target.starts_with(&canonical_downloads) {
+    return Err("Access denied: Path is outside the downloads directory".to_string());
+  }
+
   #[cfg(target_os = "linux")]
   {
+    let folder_to_open = canonical_target
+      .parent()
+      .unwrap_or(&canonical_downloads);
+
     Command::new("xdg-open")
-      .arg(&path)
+      .arg(folder_to_open)
       .spawn()
-      .map_err(|e| format!("Failed to open file: {}", e))?;
+      .map_err(|e| format!("Failed to open file manager: {}", e))?;
   }
 
   #[cfg(target_os = "windows")]
   {
     Command::new("explorer")
-      .arg(&path)
+      .arg(format!("/select,{}", canonical_target.to_string_lossy()))
       .spawn()
-      .map_err(|e| format!("Failed to open file: {}", e))?;
+      .map_err(|e| format!("Failed to open file manager: {}", e))?;
   }
 
   #[cfg(target_os = "macos")]
   {
     Command::new("open")
-      .arg(&path)
+      .arg("-R")
+      .arg(&canonical_target)
       .spawn()
-      .map_err(|e| format!("Failed to open file: {}", e))?;
+      .map_err(|e| format!("Failed to open file manager: {}", e))?;
   }
 
   Ok(())
@@ -350,6 +421,7 @@ pub fn run() {
       get_backend_info,
       get_app_environment,
       download_release_file,
+      cancel_download_release_file,
       open_file_path
     ])
     .setup(move |app| {

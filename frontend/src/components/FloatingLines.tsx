@@ -76,6 +76,18 @@ vec3 background_color(vec2 uv) {
   return col * 0.5;
 }
 
+vec3 getGradientStop(int idx) {
+  if (idx == 0) return lineGradient[0];
+  if (idx == 1) return lineGradient[1];
+  if (idx == 2) return lineGradient[2];
+  if (idx == 3) return lineGradient[3];
+  if (idx == 4) return lineGradient[4];
+  if (idx == 5) return lineGradient[5];
+  if (idx == 6) return lineGradient[6];
+  if (idx == 7) return lineGradient[7];
+  return lineGradient[0];
+}
+
 vec3 getLineColor(float t, vec3 baseColor) {
   if (lineGradientCount <= 0) {
     return baseColor;
@@ -89,8 +101,8 @@ vec3 getLineColor(float t, vec3 baseColor) {
     int idx = int(floor(scaled));
     float f = fract(scaled);
     int idx2 = min(idx + 1, lineGradientCount - 1);
-    vec3 c1 = lineGradient[idx];
-    vec3 c2 = lineGradient[idx2];
+    vec3 c1 = getGradientStop(idx);
+    vec3 c2 = getGradientStop(idx2);
     gradientColor = mix(c1, c2, f);
   }
   return gradientColor;
@@ -497,6 +509,22 @@ export default function FloatingLines({
     uniforms.middleLineDistance.value = resolveLineDistance('middle');
     uniforms.bottomLineDistance.value = resolveLineDistance('bottom');
 
+    uniforms.interactive.value = interactive;
+    uniforms.parallax.value = parallax;
+    uniforms.bendRadius.value = bendRadius;
+    uniforms.bendStrength.value = bendStrength;
+    uniforms.parallaxStrength.value = parallaxStrength;
+
+    if (topWavePosition && uniforms.topWavePosition.value instanceof Vector3) {
+      uniforms.topWavePosition.value.set(topWavePosition.x, topWavePosition.y, topWavePosition.rotate);
+    }
+    if (middleWavePosition && uniforms.middleWavePosition.value instanceof Vector3) {
+      uniforms.middleWavePosition.value.set(middleWavePosition.x, middleWavePosition.y, middleWavePosition.rotate);
+    }
+    if (bottomWavePosition && uniforms.bottomWavePosition.value instanceof Vector3) {
+      uniforms.bottomWavePosition.value.set(bottomWavePosition.x, bottomWavePosition.y, bottomWavePosition.rotate);
+    }
+
     if (linesGradient && linesGradient.length > 0) {
       const stops = linesGradient.slice(0, MAX_GRADIENT_STOPS);
       uniforms.lineGradientCount.value = stops.length;
@@ -516,6 +544,14 @@ export default function FloatingLines({
     lineCount,
     lineDistance,
     animationSpeed,
+    interactive,
+    parallax,
+    bendRadius,
+    bendStrength,
+    parallaxStrength,
+    topWavePosition,
+    middleWavePosition,
+    bottomWavePosition,
   ]);
 
   return (
