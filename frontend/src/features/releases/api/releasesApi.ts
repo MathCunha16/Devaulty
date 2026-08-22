@@ -243,6 +243,11 @@ export const releasesApi = {
     let isCancelled = false;
     let unlistenProgress: (() => void) | null = null;
 
+    const downloadId =
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `dl_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
     (async () => {
       try {
         unlistenProgress = await listen<DownloadProgressPayload>(
@@ -268,6 +273,7 @@ export const releasesApi = {
         });
 
         const savedPath = await invoke<string>("download_release_file", {
+          downloadId,
           url,
           filename,
         });
@@ -306,7 +312,7 @@ export const releasesApi = {
       if (unlistenProgress) {
         unlistenProgress();
       }
-      invoke("cancel_download_release_file").catch(() => {});
+      invoke("cancel_download_release_file", { downloadId }).catch(() => {});
     };
   },
 

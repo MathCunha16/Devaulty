@@ -12,7 +12,7 @@ pub struct SessionState {
   pub token: Mutex<Option<String>>,
   pub child_process: Mutex<Option<Child>>,
   pub is_bundled_mode: Mutex<bool>,
-  pub active_download_cancel: Mutex<Option<Arc<std::sync::atomic::AtomicBool>>>,
+  pub active_download_cancel: Mutex<Option<(String, Arc<std::sync::atomic::AtomicBool>)>>,
 }
 
 // Response sent to React when it calls `invoke("get_backend_info")`
@@ -204,10 +204,27 @@ pub struct DownloadProgressPayload {
   pub total_bytes: u64,
 }
 
+struct DownloadCleanupGuard<'a> {
+  state: &'a Arc<SessionState>,
+  download_id: &'a str,
+}
+
+impl<'a> Drop for DownloadCleanupGuard<'a> {
+  fn drop(&mut self) {
+    let mut lock = self.state.active_download_cancel.lock().unwrap();
+    if let Some((ref id, _)) = *lock {
+      if id == self.download_id {
+        *lock = None;
+      }
+    }
+  }
+}
+
 #[tauri::command]
 async fn download_release_file(
   app: tauri::AppHandle,
   state: tauri::State<'_, Arc<SessionState>>,
+  download_id: String,
   url: String,
   filename: String,
 ) -> Result<String, String> {
@@ -249,11 +266,20 @@ async fn download_release_file(
 
   let cancel_flag = Arc::new(std::sync::atomic::AtomicBool::new(false));
   {
-    *state.active_download_cancel.lock().unwrap() = Some(Arc::clone(&cancel_flag));
+    *state.active_download_cancel.lock().unwrap() =
+      Some((download_id.clone(), Arc::clone(&cancel_flag)));
   }
+
+  // RAII Guard ensures state.active_download_cancel is cleared on all exit paths
+  let _guard = DownloadCleanupGuard {
+    state: &state,
+    download_id: &download_id,
+  };
 
   let client = reqwest::Client::builder()
     .user_agent("Devaulty-Updater")
+    .connect_timeout(Duration::from_secs(15))
+    .read_timeout(Duration::from_secs(60))
     .build()
     .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
@@ -314,10 +340,6 @@ async fn download_release_file(
     .await
     .map_err(|e| format!("Failed to flush file: {}", e))?;
 
-  {
-    *state.active_download_cancel.lock().unwrap() = None;
-  }
-
   #[cfg(unix)]
   if safe_name.ends_with(".AppImage") {
     use std::os::unix::fs::PermissionsExt;
@@ -332,9 +354,12 @@ async fn download_release_file(
 }
 
 #[tauri::command]
-fn cancel_download_release_file(state: tauri::State<'_, Arc<SessionState>>) {
-  if let Some(ref flag) = *state.active_download_cancel.lock().unwrap() {
-    flag.store(true, std::sync::atomic::Ordering::Relaxed);
+fn cancel_download_release_file(state: tauri::State<'_, Arc<SessionState>>, download_id: String) {
+  let lock = state.active_download_cancel.lock().unwrap();
+  if let Some((ref id, ref flag)) = *lock {
+    if id == &download_id {
+      flag.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
   }
 }
 

@@ -464,6 +464,40 @@ export default function FloatingLines({
     };
     document.addEventListener('visibilitychange', handleVisibility);
 
+    const handlePointerMove = (event: PointerEvent) => {
+      if (!container || !active) return;
+      const rect = container.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
+        const canvasWidth = renderer.domElement.width;
+        const canvasHeight = renderer.domElement.height;
+        const canvasX = (x / rect.width) * canvasWidth;
+        const canvasY = (1.0 - y / rect.height) * canvasHeight;
+
+        initialUniforms.iMouse.value.set(canvasX, canvasY);
+        initialUniforms.bendInfluence.value = 1.0;
+
+        if (initialUniforms.parallax.value) {
+          const nx = (x / rect.width) * 2 - 1;
+          const ny = (y / rect.height) * 2 - 1;
+          const pStrength = Number(initialUniforms.parallaxStrength.value) || 0.2;
+          initialUniforms.parallaxOffset.value.set(nx * pStrength, -ny * pStrength);
+        }
+      }
+    };
+
+    const handlePointerLeave = () => {
+      if (!active) return;
+      initialUniforms.bendInfluence.value = 0.0;
+      initialUniforms.iMouse.value.set(-1000, -1000);
+      initialUniforms.parallaxOffset.value.set(0, 0);
+    };
+
+    container.addEventListener('pointermove', handlePointerMove);
+    container.addEventListener('pointerleave', handlePointerLeave);
+
     const renderLoop = () => {
       if (!active) return;
       initialUniforms.iTime.value = clock.getElapsedTime();
@@ -476,6 +510,8 @@ export default function FloatingLines({
       active = false;
       cancelAnimationFrame(raf);
       document.removeEventListener('visibilitychange', handleVisibility);
+      container.removeEventListener('pointermove', handlePointerMove);
+      container.removeEventListener('pointerleave', handlePointerLeave);
       if (ro) ro.disconnect();
 
       uniformsRef.current = null;
