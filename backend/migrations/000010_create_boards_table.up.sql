@@ -2,6 +2,7 @@ CREATE TABLE boards(
     id TEXT NOT NULL PRIMARY KEY,
     project_id TEXT NOT NULL,
     name TEXT NOT NULL,
+    description TEXT,
     is_default BOOLEAN NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL,
     updated_at DATETIME,
