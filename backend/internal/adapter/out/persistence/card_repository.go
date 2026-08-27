@@ -105,7 +105,7 @@ func (r *CardRepositoryAdapter) MoveCard(ctx context.Context, cardID, sourceColu
 			}
 		}
 
-		_, err = tx.ExecContext(ctx, `UPDATE cards SET position = ? WHERE id = ?`, newPosition, cardID)
+		_, err = tx.ExecContext(ctx, `UPDATE cards SET position = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, newPosition, cardID)
 		if err != nil {
 			return fmt.Errorf("error updating card position: %w", err)
 		}
@@ -130,7 +130,7 @@ func (r *CardRepositoryAdapter) MoveCard(ctx context.Context, cardID, sourceColu
 
 		// Move the card
 		_, err = tx.ExecContext(ctx, `	UPDATE cards 
-												SET column_id = ?, position = ? 
+												SET column_id = ?, position = ?, updated_at = CURRENT_TIMESTAMP 
 												WHERE id = ?`,
 			targetColumnID, newPosition, cardID)
 		if err != nil {
