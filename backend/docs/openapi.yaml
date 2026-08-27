@@ -831,7 +831,9 @@ components:
         - PROBLEM
         - NOTE
         - CREDENTIAL
-      example: "CREDENTIAL"
+        - BOARD
+        - CARD
+      example: "BOARD"
 
     TagSummary:
       type: object
@@ -1117,6 +1119,444 @@ components:
         totalPages:
           type: integer
           example: 1
+
+    BoardView:
+      type: object
+      required:
+        - id
+        - projectId
+        - name
+        - isDefault
+        - tags
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "06f891ae-368b-4bd6-b1e6-d957f1496f9a"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        name:
+          type: string
+          example: "Sprint 14 Kanban"
+        description:
+          type: string
+          nullable: true
+          example: "Main sprint task tracking board"
+        isDefault:
+          type: boolean
+          example: true
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-27T04:53:27.376123-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-27T05:10:00.000000-03:00"
+
+    CreateBoardCommand:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Sprint 14 Kanban"
+        description:
+          type: string
+          minLength: 1
+          nullable: true
+          example: "Main sprint task tracking board"
+        isDefault:
+          type: boolean
+          example: false
+
+    UpdateBoardCommand:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          nullable: true
+          example: "Updated Sprint Board"
+        description:
+          type: string
+          minLength: 1
+          maxLength: 255
+          nullable: true
+          example: "Updated board description"
+        isDefault:
+          type: boolean
+          nullable: true
+          example: true
+
+    BoardPage:
+      type: object
+      required:
+        - content
+        - size
+        - number
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/BoardView'
+        size:
+          type: integer
+          example: 10
+        number:
+          type: integer
+          example: 0
+        totalElements:
+          type: integer
+          format: int64
+          example: 1
+        totalPages:
+          type: integer
+          example: 1
+
+    BoardColumnView:
+      type: object
+      required:
+        - id
+        - projectId
+        - boardId
+        - name
+        - position
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "4cf1b3ff-001f-4bcd-a38f-120cb572556e"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        boardId:
+          type: string
+          format: uuid
+          example: "06f891ae-368b-4bd6-b1e6-d957f1496f9a"
+        name:
+          type: string
+          example: "In Progress"
+        position:
+          type: integer
+          minimum: 0
+          example: 1
+        wipLimit:
+          type: integer
+          nullable: true
+          example: 3
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-27T04:53:27.379602-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-27T05:44:56.193121-03:00"
+
+    CreateBoardColumnCommand:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "QA Testing"
+        wipLimit:
+          type: integer
+          nullable: true
+          example: 5
+
+    UpdateBoardColumnCommand:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 255
+          nullable: true
+          example: "Code Review"
+        wipLimit:
+          type: integer
+          nullable: true
+          example: 4
+
+    ReorderBoardColumnsCommand:
+      type: object
+      required:
+        - positions
+      properties:
+        positions:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+          example:
+            - "4cf1b3ff-001f-4bcd-a38f-120cb572556e"
+            - "2168f4e5-c833-4ab6-a3c8-080c84e5e833"
+            - "30e570ac-5900-4c0e-87f7-858e661b6d69"
+            - "5f1a3581-0ee4-4b07-bd35-f02e3669a7e8"
+
+    CardPriority:
+      type: string
+      enum:
+        - LOW
+        - MEDIUM
+        - HIGH
+        - EXTREMELY_HIGH
+      example: "HIGH"
+
+    CardItemView:
+      type: object
+      required:
+        - cardId
+        - itemId
+        - itemType
+        - createdAt
+      properties:
+        cardId:
+          type: string
+          format: uuid
+          example: "c67300b6-ade3-4b9c-9058-5eb1d1b925a4"
+        itemId:
+          type: string
+          format: uuid
+          example: "56a4afb6-be8b-4a04-8149-5a3c34ca8184"
+        itemType:
+          $ref: '#/components/schemas/ItemType'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-27T09:08:49.570142-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-27T09:20:04.633630-03:00"
+
+    CreateCardItemCommand:
+      type: object
+      required:
+        - itemType
+        - itemId
+      properties:
+        itemType:
+          $ref: '#/components/schemas/ItemType'
+        itemId:
+          type: string
+          format: uuid
+          example: "56a4afb6-be8b-4a04-8149-5a3c34ca8184"
+
+    CreateCardCommand:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: "Implement OAuth2 Flow"
+        description:
+          type: string
+          minLength: 1
+          nullable: true
+          example: "Create login UI and link with auth note specs."
+        priority:
+          $ref: '#/components/schemas/CardPriority'
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-09-01T23:59:59Z"
+        linkedItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateCardItemCommand'
+
+    UpdateCardCommand:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 255
+          nullable: true
+          example: "Implement OAuth2 & Refresh Token"
+        description:
+          type: string
+          minLength: 1
+          nullable: true
+          example: "Updated task description"
+        priority:
+          $ref: '#/components/schemas/CardPriority'
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-09-05T23:59:59Z"
+        linkedItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateCardItemCommand'
+
+    MoveCardCommand:
+      type: object
+      required:
+        - targetColumnId
+        - position
+      properties:
+        targetColumnId:
+          type: string
+          format: uuid
+          example: "2168f4e5-c833-4ab6-a3c8-080c84e5e833"
+        position:
+          type: integer
+          minimum: 0
+          example: 0
+
+    CardSummaryView:
+      type: object
+      required:
+        - id
+        - projectId
+        - boardId
+        - columnId
+        - title
+        - position
+        - tags
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "c67300b6-ade3-4b9c-9058-5eb1d1b925a4"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        boardId:
+          type: string
+          format: uuid
+          example: "06f891ae-368b-4bd6-b1e6-d957f1496f9a"
+        columnId:
+          type: string
+          format: uuid
+          example: "2168f4e5-c833-4ab6-a3c8-080c84e5e833"
+        title:
+          type: string
+          example: "Implement OAuth2 Flow"
+        description:
+          type: string
+          nullable: true
+          example: "Create login UI"
+        position:
+          type: integer
+          minimum: 0
+          example: 0
+        priority:
+          $ref: '#/components/schemas/CardPriority'
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-09-01T23:59:59Z"
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-27T09:08:49.570142-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-27T09:20:04.633630-03:00"
+
+    CardView:
+      type: object
+      required:
+        - id
+        - projectId
+        - boardId
+        - columnId
+        - title
+        - position
+        - tags
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "c67300b6-ade3-4b9c-9058-5eb1d1b925a4"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        boardId:
+          type: string
+          format: uuid
+          example: "06f891ae-368b-4bd6-b1e6-d957f1496f9a"
+        columnId:
+          type: string
+          format: uuid
+          example: "2168f4e5-c833-4ab6-a3c8-080c84e5e833"
+        title:
+          type: string
+          example: "Implement OAuth2 Flow"
+        description:
+          type: string
+          nullable: true
+          example: "Create login UI and link with auth note specs."
+        position:
+          type: integer
+          minimum: 0
+          example: 0
+        priority:
+          $ref: '#/components/schemas/CardPriority'
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-09-01T23:59:59Z"
+        linkedItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/CardItemView'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-08-27T09:08:49.570142-03:00"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-08-27T09:20:04.633630-03:00"
 
 security:
   - ApiKeyAuth: []
@@ -2930,6 +3370,1060 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Project or Note not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/boards:
+    post:
+      summary: Create a new board in a project
+      description: Creates a new board entity for the specified project. If this is the project's first board or marked default, it is set as default. Automatically generates default columns (Backlog, In Progress, Review, Done).
+      tags:
+        - Boards
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBoardCommand'
+      responses:
+        '201':
+          description: Board created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Relative URL path to the newly created board
+              example: "/api/v1/projects/70d68fba-be62-46bb-8e6c-e4c4b6912e91/boards/06f891ae-368b-4bd6-b1e6-d957f1496f9a"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoardView'
+        '400':
+          description: Invalid UUID format or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: List all boards for a project
+      description: Returns a paginated list of boards with attached tags for a project.
+      tags:
+        - Boards
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Page number (0-indexed)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Page size (number of items per page)
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated list of boards
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoardPage'
+        '400':
+          description: Invalid UUID format or invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/boards/default:
+    get:
+      summary: Get default board for a project
+      description: Returns the default board entity configured for the project.
+      tags:
+        - Boards
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Default board details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoardView'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or default board not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/boards/{board_id}:
+    get:
+      summary: Get board by ID
+      description: Fetches a single board by its UUID along with its tags.
+      tags:
+        - Boards
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: board_id
+          in: path
+          description: Board UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Board details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoardView'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or board not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Update a board
+      description: Updates board details (name, description, isDefault).
+      tags:
+        - Boards
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: board_id
+          in: path
+          description: Board UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBoardCommand'
+      responses:
+        '200':
+          description: Board updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoardView'
+        '400':
+          description: Invalid UUID format or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or board not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete a board
+      description: Deletes a board and cascades deletion to columns, cards, linked items, and tag associations.
+      tags:
+        - Boards
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: board_id
+          in: path
+          description: Board UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Board deleted successfully (No Content)
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or board not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/boards/{board_id}/columns:
+    post:
+      summary: Create a column in a board
+      description: Creates a new column at the end position of the specified board.
+      tags:
+        - Board Columns
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: board_id
+          in: path
+          description: Board UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBoardColumnCommand'
+      responses:
+        '201':
+          description: Column created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Relative URL path to the newly created column
+              example: "/api/v1/projects/70d68fba-be62-46bb-8e6c-e4c4b6912e91/boards/06f891ae-368b-4bd6-b1e6-d957f1496f9a/columns/4cf1b3ff-001f-4bcd-a38f-120cb572556e"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoardColumnView'
+        '400':
+          description: Invalid UUID format or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or board not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: List all columns of a board
+      description: Returns all columns associated with a board ordered by their position ascending.
+      tags:
+        - Board Columns
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: board_id
+          in: path
+          description: Board UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of board columns ordered by position
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BoardColumnView'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or board not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/boards/{board_id}/columns/reorder:
+    patch:
+      summary: Reorder columns in a board
+      description: Reorders the columns in a board based on the provided list of column UUIDs.
+      tags:
+        - Board Columns
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: board_id
+          in: path
+          description: Board UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderBoardColumnsCommand'
+      responses:
+        '200':
+          description: Reordered list of board columns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BoardColumnView'
+        '400':
+          description: Invalid UUID format or empty positions array
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or board not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/boards/{board_id}/columns/{board_column_id}:
+    get:
+      summary: Get column by ID
+      description: Fetches a single board column by its UUID.
+      tags:
+        - Board Columns
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: board_id
+          in: path
+          description: Board UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: board_column_id
+          in: path
+          description: Board Column UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Column details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoardColumnView'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project, board, or column not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Update a column
+      description: Updates column details such as name and WIP limit.
+      tags:
+        - Board Columns
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: board_id
+          in: path
+          description: Board UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: board_column_id
+          in: path
+          description: Board Column UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBoardColumnCommand'
+      responses:
+        '200':
+          description: Column updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoardColumnView'
+        '400':
+          description: Invalid UUID format or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project, board, or column not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete a column
+      description: Deletes a column from a board. Cascades deletion to all cards inside the column.
+      tags:
+        - Board Columns
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: board_id
+          in: path
+          description: Board UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: board_column_id
+          in: path
+          description: Board Column UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Column deleted successfully (No Content)
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project, board, or column not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/boards/{board_id}/columns/{board_column_id}/cards:
+    post:
+      summary: Create a card in a column
+      description: Creates a new card in the specified column. Automatically places it at the bottom position. Supports linking polymorphic items (notes, snippets, links, problems, credentials, boards, cards).
+      tags:
+        - Cards
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: board_id
+          in: path
+          description: Board UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: board_column_id
+          in: path
+          description: Board Column UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCardCommand'
+      responses:
+        '201':
+          description: Card created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Relative URL path to the newly created card
+              example: "/api/v1/projects/70d68fba-be62-46bb-8e6c-e4c4b6912e91/boards/06f891ae-368b-4bd6-b1e6-d957f1496f9a/cards/c67300b6-ade3-4b9c-9058-5eb1d1b925a4"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardView'
+        '400':
+          description: Invalid UUID format or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project, board, or column not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/boards/{board_id}/cards:
+    get:
+      summary: List all cards for a board
+      description: Returns a list of card summaries for the specified board with their tags.
+      tags:
+        - Cards
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: board_id
+          in: path
+          description: Board UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of card summaries for the board
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CardSummaryView'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or board not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/boards/{board_id}/cards/{card_id}:
+    get:
+      summary: Get card by ID
+      description: Fetches a full card view including linked items and tags.
+      tags:
+        - Cards
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: board_id
+          in: path
+          description: Board UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: card_id
+          in: path
+          description: Card UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Full card details including linked items and tags
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardView'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project, board, or card not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Update a card
+      description: Updates card attributes (title, description, priority, dueDate, linkedItems). Moving column/position is handled separately via the /move endpoint.
+      tags:
+        - Cards
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: board_id
+          in: path
+          description: Board UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: card_id
+          in: path
+          description: Card UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCardCommand'
+      responses:
+        '200':
+          description: Card updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardView'
+        '400':
+          description: Invalid UUID format or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project, board, or card not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete a card
+      description: Deletes a card, its item links, and its tag associations.
+      tags:
+        - Cards
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: board_id
+          in: path
+          description: Board UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: card_id
+          in: path
+          description: Card UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Card deleted successfully (No Content)
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project, board, or card not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/boards/{board_id}/cards/{card_id}/move:
+    patch:
+      summary: Move card to target column and position
+      description: Moves a card to a specified column and reorders cards accordingly in both source and target columns.
+      tags:
+        - Cards
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: board_id
+          in: path
+          description: Board UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: card_id
+          in: path
+          description: Card UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveCardCommand'
+      responses:
+        '200':
+          description: Card moved successfully
+        '400':
+          description: Invalid UUID format or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project, board, target column, or card not found
           content:
             application/json:
               schema:

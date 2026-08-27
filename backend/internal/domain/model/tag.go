@@ -10,6 +10,8 @@ const (
 	ItemTypeLink       ItemType = "LINK"
 	ItemTypeProblem    ItemType = "PROBLEM"
 	ItemTypeCredential ItemType = "CREDENTIAL"
+	ItemTypeBoard      ItemType = "BOARD"
+	ItemTypeCard       ItemType = "CARD"
 )
 
 type Tag struct {

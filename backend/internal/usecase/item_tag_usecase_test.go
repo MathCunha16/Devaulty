@@ -90,15 +90,21 @@ func (m *MockNoteRepository) FindExistingIDsByProjectID(ctx context.Context, ids
 
 // --- UNIT TESTS ---
 
-func SetupItemTagUseCaseTest() (
-	*MockItemTagRepository,
-	*MockTagRepository,
-	*MockProjectRepository,
-	*MockSnippetRepository,
-	*MockLinkRepository,
-	*MockProblemRepository,
-	*usecase.ItemTagUseCase,
-) {
+type ItemTagTestSetup struct {
+	MockItemTagRepo *MockItemTagRepository
+	MockTagRepo     *MockTagRepository
+	MockProjectRepo *MockProjectRepository
+	MockSnippetRepo *MockSnippetRepository
+	MockCredRepo    *MockCredentialRepository
+	MockLinkRepo    *MockLinkRepository
+	MockProblemRepo *MockProblemRepository
+	MockNoteRepo    *MockNoteRepository
+	MockBoardRepo   *MockBoardRepository
+	MockCardRepo    *MockCardRepository
+	UC              *usecase.ItemTagUseCase
+}
+
+func SetupItemTagUseCaseTest() ItemTagTestSetup {
 	mockItemTagRepo := new(MockItemTagRepository)
 	mockTagRepo := new(MockTagRepository)
 	mockProjectRepo := new(MockProjectRepository)
@@ -107,6 +113,8 @@ func SetupItemTagUseCaseTest() (
 	mockLinkRepo := new(MockLinkRepository)
 	mockProblemRepo := new(MockProblemRepository)
 	mockNoteRepo := new(MockNoteRepository)
+	mockBoardRepo := new(MockBoardRepository)
+	mockCardRepo := new(MockCardRepository)
 
 	uc := usecase.NewItemTagUseCase(
 		mockItemTagRepo,
@@ -117,9 +125,23 @@ func SetupItemTagUseCaseTest() (
 		mockLinkRepo,
 		mockProblemRepo,
 		mockNoteRepo,
+		mockBoardRepo,
+		mockCardRepo,
 	)
 
-	return mockItemTagRepo, mockTagRepo, mockProjectRepo, mockSnippetRepo, mockLinkRepo, mockProblemRepo, uc
+	return ItemTagTestSetup{
+		MockItemTagRepo: mockItemTagRepo,
+		MockTagRepo:     mockTagRepo,
+		MockProjectRepo: mockProjectRepo,
+		MockSnippetRepo: mockSnippetRepo,
+		MockCredRepo:    mockCredRepo,
+		MockLinkRepo:    mockLinkRepo,
+		MockProblemRepo: mockProblemRepo,
+		MockNoteRepo:    mockNoteRepo,
+		MockBoardRepo:   mockBoardRepo,
+		MockCardRepo:    mockCardRepo,
+		UC:              uc,
+	}
 }
 
 func TestItemTagUseCase_AssociateTagToItem(t *testing.T) {
@@ -128,77 +150,113 @@ func TestItemTagUseCase_AssociateTagToItem(t *testing.T) {
 	tagID := uuid.New()
 	snippetID := uuid.New()
 
-	t.Run("Associate_Success", func(t *testing.T) {
-		mockItemTagRepo, mockTagRepo, mockProjectRepo, mockSnippetRepo, _, _, uc := SetupItemTagUseCaseTest()
+	t.Run("Associate_Success_Snippet", func(t *testing.T) {
+		s := SetupItemTagUseCaseTest()
 
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
-		mockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
-		mockSnippetRepo.On("ExistsByIDAndProjectID", ctx, snippetID, projectID).Return(true, nil)
-		mockItemTagRepo.On("AssociateTagToItem", ctx, projectID, tagID, model.ItemTypeSnippet, snippetID).Return(nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
+		s.MockSnippetRepo.On("ExistsByIDAndProjectID", ctx, snippetID, projectID).Return(true, nil)
+		s.MockItemTagRepo.On("AssociateTagToItem", ctx, projectID, tagID, model.ItemTypeSnippet, snippetID).Return(nil)
 
-		err := uc.AssociateTagToItem(ctx, projectID, model.ItemTypeSnippet, snippetID, tagID)
+		err := s.UC.AssociateTagToItem(ctx, projectID, model.ItemTypeSnippet, snippetID, tagID)
 
 		assert.NoError(t, err)
-		mockProjectRepo.AssertExpectations(t)
-		mockTagRepo.AssertExpectations(t)
-		mockSnippetRepo.AssertExpectations(t)
-		mockItemTagRepo.AssertExpectations(t)
+		s.MockProjectRepo.AssertExpectations(t)
+		s.MockTagRepo.AssertExpectations(t)
+		s.MockSnippetRepo.AssertExpectations(t)
+		s.MockItemTagRepo.AssertExpectations(t)
+	})
+
+	t.Run("Associate_Success_Board", func(t *testing.T) {
+		s := SetupItemTagUseCaseTest()
+		boardID := uuid.New()
+
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
+		s.MockBoardRepo.On("ExistsByIDAndProjectID", ctx, boardID, projectID).Return(true, nil)
+		s.MockItemTagRepo.On("AssociateTagToItem", ctx, projectID, tagID, model.ItemTypeBoard, boardID).Return(nil)
+
+		err := s.UC.AssociateTagToItem(ctx, projectID, model.ItemTypeBoard, boardID, tagID)
+
+		assert.NoError(t, err)
+		s.MockProjectRepo.AssertExpectations(t)
+		s.MockTagRepo.AssertExpectations(t)
+		s.MockBoardRepo.AssertExpectations(t)
+		s.MockItemTagRepo.AssertExpectations(t)
+	})
+
+	t.Run("Associate_Success_Card", func(t *testing.T) {
+		s := SetupItemTagUseCaseTest()
+		cardID := uuid.New()
+
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
+		s.MockCardRepo.On("ExistsByIDAndProjectID", ctx, cardID, projectID).Return(true, nil)
+		s.MockItemTagRepo.On("AssociateTagToItem", ctx, projectID, tagID, model.ItemTypeCard, cardID).Return(nil)
+
+		err := s.UC.AssociateTagToItem(ctx, projectID, model.ItemTypeCard, cardID, tagID)
+
+		assert.NoError(t, err)
+		s.MockProjectRepo.AssertExpectations(t)
+		s.MockTagRepo.AssertExpectations(t)
+		s.MockCardRepo.AssertExpectations(t)
+		s.MockItemTagRepo.AssertExpectations(t)
 	})
 
 	t.Run("Associate_ProjectNotFound", func(t *testing.T) {
-		_, _, mockProjectRepo, _, _, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(false, nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(false, nil)
 
-		err := uc.AssociateTagToItem(ctx, projectID, model.ItemTypeSnippet, snippetID, tagID)
+		err := s.UC.AssociateTagToItem(ctx, projectID, model.ItemTypeSnippet, snippetID, tagID)
 
 		assert.ErrorIs(t, err, usecase.ErrProjectNotFound)
 	})
 
 	t.Run("Associate_TagNotFound", func(t *testing.T) {
-		_, mockTagRepo, mockProjectRepo, _, _, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
-		mockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(false, nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(false, nil)
 
-		err := uc.AssociateTagToItem(ctx, projectID, model.ItemTypeSnippet, snippetID, tagID)
+		err := s.UC.AssociateTagToItem(ctx, projectID, model.ItemTypeSnippet, snippetID, tagID)
 
 		assert.ErrorIs(t, err, usecase.ErrTagNotFound)
 	})
 
 	t.Run("Associate_UnsupportedItemType", func(t *testing.T) {
-		_, mockTagRepo, mockProjectRepo, _, _, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
-		mockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
 
-		err := uc.AssociateTagToItem(ctx, projectID, model.ItemType("UNKNOWN"), snippetID, tagID)
+		err := s.UC.AssociateTagToItem(ctx, projectID, model.ItemType("UNKNOWN"), snippetID, tagID)
 
 		assert.ErrorIs(t, err, usecase.ErrUnsupportedItemType)
 	})
 
 	t.Run("Associate_ItemNotFound", func(t *testing.T) {
-		_, mockTagRepo, mockProjectRepo, mockSnippetRepo, _, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
-		mockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
-		mockSnippetRepo.On("ExistsByIDAndProjectID", ctx, snippetID, projectID).Return(false, nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
+		s.MockSnippetRepo.On("ExistsByIDAndProjectID", ctx, snippetID, projectID).Return(false, nil)
 
-		err := uc.AssociateTagToItem(ctx, projectID, model.ItemTypeSnippet, snippetID, tagID)
+		err := s.UC.AssociateTagToItem(ctx, projectID, model.ItemTypeSnippet, snippetID, tagID)
 
 		assert.ErrorIs(t, err, usecase.ErrItemNotFound)
 	})
 
 	t.Run("Associate_RepoError", func(t *testing.T) {
-		mockItemTagRepo, mockTagRepo, mockProjectRepo, mockSnippetRepo, _, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
 		dbErr := errors.New("db insert failure")
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
-		mockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
-		mockSnippetRepo.On("ExistsByIDAndProjectID", ctx, snippetID, projectID).Return(true, nil)
-		mockItemTagRepo.On("AssociateTagToItem", ctx, projectID, tagID, model.ItemTypeSnippet, snippetID).Return(dbErr)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
+		s.MockSnippetRepo.On("ExistsByIDAndProjectID", ctx, snippetID, projectID).Return(true, nil)
+		s.MockItemTagRepo.On("AssociateTagToItem", ctx, projectID, tagID, model.ItemTypeSnippet, snippetID).Return(dbErr)
 
-		err := uc.AssociateTagToItem(ctx, projectID, model.ItemTypeSnippet, snippetID, tagID)
+		err := s.UC.AssociateTagToItem(ctx, projectID, model.ItemTypeSnippet, snippetID, tagID)
 
 		assert.ErrorIs(t, err, dbErr)
 	})
@@ -211,76 +269,76 @@ func TestItemTagUseCase_DisassociateTagFromItem(t *testing.T) {
 	linkID := uuid.New()
 
 	t.Run("Disassociate_Success", func(t *testing.T) {
-		mockItemTagRepo, mockTagRepo, mockProjectRepo, _, mockLinkRepo, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
-		mockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
-		mockLinkRepo.On("ExistsByIDAndProjectID", ctx, linkID, projectID).Return(true, nil)
-		mockItemTagRepo.On("DisassembleTagFromItem", ctx, projectID, tagID, model.ItemTypeLink, linkID).Return(nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
+		s.MockLinkRepo.On("ExistsByIDAndProjectID", ctx, linkID, projectID).Return(true, nil)
+		s.MockItemTagRepo.On("DisassembleTagFromItem", ctx, projectID, tagID, model.ItemTypeLink, linkID).Return(nil)
 
-		err := uc.DisassociateTagFromItem(ctx, projectID, model.ItemTypeLink, linkID, tagID)
+		err := s.UC.DisassociateTagFromItem(ctx, projectID, model.ItemTypeLink, linkID, tagID)
 
 		assert.NoError(t, err)
-		mockProjectRepo.AssertExpectations(t)
-		mockTagRepo.AssertExpectations(t)
-		mockLinkRepo.AssertExpectations(t)
-		mockItemTagRepo.AssertExpectations(t)
+		s.MockProjectRepo.AssertExpectations(t)
+		s.MockTagRepo.AssertExpectations(t)
+		s.MockLinkRepo.AssertExpectations(t)
+		s.MockItemTagRepo.AssertExpectations(t)
 	})
 
 	t.Run("Disassociate_ProjectNotFound", func(t *testing.T) {
-		_, _, mockProjectRepo, _, _, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(false, nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(false, nil)
 
-		err := uc.DisassociateTagFromItem(ctx, projectID, model.ItemTypeLink, linkID, tagID)
+		err := s.UC.DisassociateTagFromItem(ctx, projectID, model.ItemTypeLink, linkID, tagID)
 
 		assert.ErrorIs(t, err, usecase.ErrProjectNotFound)
 	})
 
 	t.Run("Disassociate_TagNotFound", func(t *testing.T) {
-		_, mockTagRepo, mockProjectRepo, _, _, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
-		mockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(false, nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(false, nil)
 
-		err := uc.DisassociateTagFromItem(ctx, projectID, model.ItemTypeLink, linkID, tagID)
+		err := s.UC.DisassociateTagFromItem(ctx, projectID, model.ItemTypeLink, linkID, tagID)
 
 		assert.ErrorIs(t, err, usecase.ErrTagNotFound)
 	})
 
 	t.Run("Disassociate_UnsupportedItemType", func(t *testing.T) {
-		_, mockTagRepo, mockProjectRepo, _, _, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
-		mockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
 
-		err := uc.DisassociateTagFromItem(ctx, projectID, model.ItemType("INVALID"), linkID, tagID)
+		err := s.UC.DisassociateTagFromItem(ctx, projectID, model.ItemType("INVALID"), linkID, tagID)
 
 		assert.ErrorIs(t, err, usecase.ErrUnsupportedItemType)
 	})
 
 	t.Run("Disassociate_ItemNotFound", func(t *testing.T) {
-		_, mockTagRepo, mockProjectRepo, _, mockLinkRepo, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
-		mockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
-		mockLinkRepo.On("ExistsByIDAndProjectID", ctx, linkID, projectID).Return(false, nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
+		s.MockLinkRepo.On("ExistsByIDAndProjectID", ctx, linkID, projectID).Return(false, nil)
 
-		err := uc.DisassociateTagFromItem(ctx, projectID, model.ItemTypeLink, linkID, tagID)
+		err := s.UC.DisassociateTagFromItem(ctx, projectID, model.ItemTypeLink, linkID, tagID)
 
 		assert.ErrorIs(t, err, usecase.ErrItemNotFound)
 	})
 
 	t.Run("Disassociate_RepoError", func(t *testing.T) {
-		mockItemTagRepo, mockTagRepo, mockProjectRepo, _, mockLinkRepo, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
 		dbErr := errors.New("db delete failure")
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
-		mockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
-		mockLinkRepo.On("ExistsByIDAndProjectID", ctx, linkID, projectID).Return(true, nil)
-		mockItemTagRepo.On("DisassembleTagFromItem", ctx, projectID, tagID, model.ItemTypeLink, linkID).Return(dbErr)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockTagRepo.On("ExistsByIDAndProjectID", ctx, tagID, projectID).Return(true, nil)
+		s.MockLinkRepo.On("ExistsByIDAndProjectID", ctx, linkID, projectID).Return(true, nil)
+		s.MockItemTagRepo.On("DisassembleTagFromItem", ctx, projectID, tagID, model.ItemTypeLink, linkID).Return(dbErr)
 
-		err := uc.DisassociateTagFromItem(ctx, projectID, model.ItemTypeLink, linkID, tagID)
+		err := s.UC.DisassociateTagFromItem(ctx, projectID, model.ItemTypeLink, linkID, tagID)
 
 		assert.ErrorIs(t, err, dbErr)
 	})
@@ -292,65 +350,65 @@ func TestItemTagUseCase_GetTagsForItem(t *testing.T) {
 	problemID := uuid.New()
 
 	t.Run("GetTagsForItem_Success", func(t *testing.T) {
-		mockItemTagRepo, _, mockProjectRepo, _, _, mockProblemRepo, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
 		expectedTags := []model.Tag{
 			{ID: uuid.New(), ProjectID: projectID, Name: "Bug"},
 		}
 
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
-		mockProblemRepo.On("ExistsByIDAndProjectID", ctx, problemID, projectID).Return(true, nil)
-		mockItemTagRepo.On("FindTagsForItem", ctx, model.ItemTypeProblem, projectID, problemID).Return(expectedTags, nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockProblemRepo.On("ExistsByIDAndProjectID", ctx, problemID, projectID).Return(true, nil)
+		s.MockItemTagRepo.On("FindTagsForItem", ctx, model.ItemTypeProblem, projectID, problemID).Return(expectedTags, nil)
 
-		result, err := uc.GetTagsForItem(ctx, projectID, model.ItemTypeProblem, problemID)
+		result, err := s.UC.GetTagsForItem(ctx, projectID, model.ItemTypeProblem, problemID)
 
 		assert.NoError(t, err)
 		assert.Equal(t, expectedTags, result)
 	})
 
 	t.Run("GetTagsForItem_ProjectNotFound", func(t *testing.T) {
-		_, _, mockProjectRepo, _, _, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(false, nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(false, nil)
 
-		result, err := uc.GetTagsForItem(ctx, projectID, model.ItemTypeProblem, problemID)
+		result, err := s.UC.GetTagsForItem(ctx, projectID, model.ItemTypeProblem, problemID)
 
 		assert.ErrorIs(t, err, usecase.ErrProjectNotFound)
 		assert.Nil(t, result)
 	})
 
 	t.Run("GetTagsForItem_UnsupportedItemType", func(t *testing.T) {
-		_, _, mockProjectRepo, _, _, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 
-		result, err := uc.GetTagsForItem(ctx, projectID, model.ItemType("DUMMY"), problemID)
+		result, err := s.UC.GetTagsForItem(ctx, projectID, model.ItemType("DUMMY"), problemID)
 
 		assert.ErrorIs(t, err, usecase.ErrUnsupportedItemType)
 		assert.Nil(t, result)
 	})
 
 	t.Run("GetTagsForItem_ItemNotFound", func(t *testing.T) {
-		_, _, mockProjectRepo, _, _, mockProblemRepo, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
-		mockProblemRepo.On("ExistsByIDAndProjectID", ctx, problemID, projectID).Return(false, nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockProblemRepo.On("ExistsByIDAndProjectID", ctx, problemID, projectID).Return(false, nil)
 
-		result, err := uc.GetTagsForItem(ctx, projectID, model.ItemTypeProblem, problemID)
+		result, err := s.UC.GetTagsForItem(ctx, projectID, model.ItemTypeProblem, problemID)
 
 		assert.ErrorIs(t, err, usecase.ErrItemNotFound)
 		assert.Nil(t, result)
 	})
 
 	t.Run("GetTagsForItem_RepoError", func(t *testing.T) {
-		mockItemTagRepo, _, mockProjectRepo, _, _, mockProblemRepo, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
 		dbErr := errors.New("find tags error")
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
-		mockProblemRepo.On("ExistsByIDAndProjectID", ctx, problemID, projectID).Return(true, nil)
-		mockItemTagRepo.On("FindTagsForItem", ctx, model.ItemTypeProblem, projectID, problemID).Return(nil, dbErr)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockProblemRepo.On("ExistsByIDAndProjectID", ctx, problemID, projectID).Return(true, nil)
+		s.MockItemTagRepo.On("FindTagsForItem", ctx, model.ItemTypeProblem, projectID, problemID).Return(nil, dbErr)
 
-		result, err := uc.GetTagsForItem(ctx, projectID, model.ItemTypeProblem, problemID)
+		result, err := s.UC.GetTagsForItem(ctx, projectID, model.ItemTypeProblem, problemID)
 
 		assert.ErrorIs(t, err, dbErr)
 		assert.Nil(t, result)
@@ -365,29 +423,29 @@ func TestItemTagUseCase_GetTagsForItems(t *testing.T) {
 	itemIDs := []uuid.UUID{id1, id2}
 
 	t.Run("GetTagsForItems_Success", func(t *testing.T) {
-		mockItemTagRepo, _, mockProjectRepo, mockSnippetRepo, _, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
 		expectedMap := map[uuid.UUID][]model.Tag{
 			id1: {{ID: uuid.New(), ProjectID: projectID, Name: "Tag A"}},
 			id2: {{ID: uuid.New(), ProjectID: projectID, Name: "Tag B"}},
 		}
 
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
-		mockSnippetRepo.On("FindExistingIDsByProjectID", ctx, itemIDs, projectID).Return(itemIDs, nil)
-		mockItemTagRepo.On("FindTagsForItems", ctx, model.ItemTypeSnippet, projectID, itemIDs).Return(expectedMap, nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockSnippetRepo.On("FindExistingIDsByProjectID", ctx, itemIDs, projectID).Return(itemIDs, nil)
+		s.MockItemTagRepo.On("FindTagsForItems", ctx, model.ItemTypeSnippet, projectID, itemIDs).Return(expectedMap, nil)
 
-		result, err := uc.GetTagsForItems(ctx, projectID, model.ItemTypeSnippet, itemIDs)
+		result, err := s.UC.GetTagsForItems(ctx, projectID, model.ItemTypeSnippet, itemIDs)
 
 		assert.NoError(t, err)
 		assert.Equal(t, expectedMap, result)
 	})
 
 	t.Run("GetTagsForItems_Success_EmptyList", func(t *testing.T) {
-		_, _, mockProjectRepo, _, _, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 
-		result, err := uc.GetTagsForItems(ctx, projectID, model.ItemTypeSnippet, []uuid.UUID{})
+		result, err := s.UC.GetTagsForItems(ctx, projectID, model.ItemTypeSnippet, []uuid.UUID{})
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -395,56 +453,56 @@ func TestItemTagUseCase_GetTagsForItems(t *testing.T) {
 	})
 
 	t.Run("GetTagsForItems_ProjectNotFound", func(t *testing.T) {
-		_, _, mockProjectRepo, _, _, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(false, nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(false, nil)
 
-		result, err := uc.GetTagsForItems(ctx, projectID, model.ItemTypeSnippet, itemIDs)
+		result, err := s.UC.GetTagsForItems(ctx, projectID, model.ItemTypeSnippet, itemIDs)
 
 		assert.ErrorIs(t, err, usecase.ErrProjectNotFound)
 		assert.Nil(t, result)
 	})
 
 	t.Run("GetTagsForItems_UnsupportedItemType", func(t *testing.T) {
-		_, _, mockProjectRepo, _, _, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 
-		result, err := uc.GetTagsForItems(ctx, projectID, model.ItemType("UNKNOWN"), itemIDs)
+		result, err := s.UC.GetTagsForItems(ctx, projectID, model.ItemType("UNKNOWN"), itemIDs)
 
 		assert.ErrorIs(t, err, usecase.ErrUnsupportedItemType)
 		assert.Nil(t, result)
 	})
 
 	t.Run("GetTagsForItems_ItemNotFound", func(t *testing.T) {
-		_, _, mockProjectRepo, mockSnippetRepo, _, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
 		// Only id1 is returned from db, so length doesn't match itemIDs (2 != 1)
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
-		mockSnippetRepo.On("FindExistingIDsByProjectID", ctx, itemIDs, projectID).Return([]uuid.UUID{id1}, nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockSnippetRepo.On("FindExistingIDsByProjectID", ctx, itemIDs, projectID).Return([]uuid.UUID{id1}, nil)
 
-		result, err := uc.GetTagsForItems(ctx, projectID, model.ItemTypeSnippet, itemIDs)
+		result, err := s.UC.GetTagsForItems(ctx, projectID, model.ItemTypeSnippet, itemIDs)
 
 		assert.ErrorIs(t, err, usecase.ErrItemNotFound)
 		assert.Nil(t, result)
 	})
 
 	t.Run("GetTagsForItems_RepoError", func(t *testing.T) {
-		mockItemTagRepo, _, mockProjectRepo, mockSnippetRepo, _, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
 		dbErr := errors.New("batch query error")
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
-		mockSnippetRepo.On("FindExistingIDsByProjectID", ctx, itemIDs, projectID).Return(itemIDs, nil)
-		mockItemTagRepo.On("FindTagsForItems", ctx, model.ItemTypeSnippet, projectID, itemIDs).Return(nil, dbErr)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockSnippetRepo.On("FindExistingIDsByProjectID", ctx, itemIDs, projectID).Return(itemIDs, nil)
+		s.MockItemTagRepo.On("FindTagsForItems", ctx, model.ItemTypeSnippet, projectID, itemIDs).Return(nil, dbErr)
 
-		result, err := uc.GetTagsForItems(ctx, projectID, model.ItemTypeSnippet, itemIDs)
+		result, err := s.UC.GetTagsForItems(ctx, projectID, model.ItemTypeSnippet, itemIDs)
 
 		assert.ErrorIs(t, err, dbErr)
 		assert.Nil(t, result)
 	})
 
 	t.Run("GetTagsForItems_DuplicateIDsSuccess", func(t *testing.T) {
-		mockItemTagRepo, _, mockProjectRepo, mockSnippetRepo, _, _, uc := SetupItemTagUseCaseTest()
+		s := SetupItemTagUseCaseTest()
 
 		duplicateIDs := []uuid.UUID{id1, id1}
 		existingIDs := []uuid.UUID{id1} // DB returns unique existing ID
@@ -453,11 +511,11 @@ func TestItemTagUseCase_GetTagsForItems(t *testing.T) {
 			id1: {{ID: uuid.New(), Name: "Go"}},
 		}
 
-		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
-		mockSnippetRepo.On("FindExistingIDsByProjectID", ctx, duplicateIDs, projectID).Return(existingIDs, nil)
-		mockItemTagRepo.On("FindTagsForItems", ctx, model.ItemTypeSnippet, projectID, duplicateIDs).Return(expectedTags, nil)
+		s.MockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		s.MockSnippetRepo.On("FindExistingIDsByProjectID", ctx, duplicateIDs, projectID).Return(existingIDs, nil)
+		s.MockItemTagRepo.On("FindTagsForItems", ctx, model.ItemTypeSnippet, projectID, duplicateIDs).Return(expectedTags, nil)
 
-		result, err := uc.GetTagsForItems(ctx, projectID, model.ItemTypeSnippet, duplicateIDs)
+		result, err := s.UC.GetTagsForItems(ctx, projectID, model.ItemTypeSnippet, duplicateIDs)
 
 		assert.NoError(t, err)
 		assert.Equal(t, expectedTags, result)
