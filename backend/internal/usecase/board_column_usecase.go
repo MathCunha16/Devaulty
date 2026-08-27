@@ -186,6 +186,7 @@ func (uc *BoardColumnUseCase) Reorder(ctx context.Context, cmd dto.ReorderBoardC
 		if !existingMap[posID] {
 			return nil, ErrBoardColumnNotFound
 		}
+		delete(existingMap, posID)
 	}
 
 	err = uc.boardColumnRepo.Reorder(ctx, cmd.BoardID, cmd.Positions)

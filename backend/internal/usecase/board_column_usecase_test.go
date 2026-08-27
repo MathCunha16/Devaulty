@@ -986,6 +986,40 @@ func TestBoardColumnUseCase_Reorder_CountMismatch(t *testing.T) {
 	mockBoardColumnRepo.AssertExpectations(t)
 }
 
+func TestBoardColumnUseCase_Reorder_DuplicatePositions(t *testing.T) {
+	mockBoardColumnRepo := new(MockBoardColumnRepository)
+	mockBoardRepo := new(MockBoardRepository)
+	mockProjectRepo := new(MockProjectRepository)
+	uc := usecase.NewBoardColumnUseCase(mockBoardColumnRepo, mockBoardRepo, mockProjectRepo)
+	ctx := context.Background()
+
+	projectID := uuid.New()
+	boardID := uuid.New()
+	col1ID := uuid.New()
+	col2ID := uuid.New()
+
+	cmd := dto.ReorderBoardColumnsCommand{
+		ProjectID: projectID,
+		BoardID:   boardID,
+		Positions: []uuid.UUID{col1ID, col1ID}, // duplicate [A, A] with same total count
+	}
+
+	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+	mockBoardRepo.On("ExistsByIDAndProjectID", ctx, boardID, projectID).Return(true, nil)
+	mockBoardColumnRepo.On("FindAllByBoardIDAndProjectID", ctx, projectID, boardID).Return([]model.BoardColumn{
+		{ID: col1ID, BoardID: boardID, Name: "Col 1"},
+		{ID: col2ID, BoardID: boardID, Name: "Col 2"},
+	}, nil)
+
+	views, err := uc.Reorder(ctx, cmd)
+
+	assert.Nil(t, views)
+	assert.ErrorIs(t, err, usecase.ErrBoardColumnNotFound)
+	mockProjectRepo.AssertExpectations(t)
+	mockBoardRepo.AssertExpectations(t)
+	mockBoardColumnRepo.AssertExpectations(t)
+}
+
 func TestBoardColumnUseCase_Reorder_RepoError(t *testing.T) {
 	mockBoardColumnRepo := new(MockBoardColumnRepository)
 	mockBoardRepo := new(MockBoardRepository)
