@@ -191,10 +191,6 @@ func (uc *CardUseCase) Update(ctx context.Context, cmd dto.UpdateCardCommand) (*
 	if err != nil {
 		return nil, err
 	}
-	err = ensureBoardColumnExists(ctx, uc.boardColumnRepo, cmd.ProjectID, cmd.BoardID, cmd.ColumnID)
-	if err != nil {
-		return nil, err
-	}
 
 	card, err := uc.cardRepo.FindByIDAndBoardID(ctx, cmd.BoardID, cmd.ID)
 	if err != nil {

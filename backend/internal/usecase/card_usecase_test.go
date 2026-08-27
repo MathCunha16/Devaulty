@@ -763,7 +763,6 @@ func TestCardUseCase_Update_Success_WithNewLinkedItems(t *testing.T) {
 		ID:        cardID,
 		ProjectID: projectID,
 		BoardID:   boardID,
-		ColumnID:  columnID,
 		Title:     &newTitle,
 		Priority:  &newPriority,
 		LinkedItems: []dto.CreateCardItemCommand{
@@ -779,7 +778,6 @@ func TestCardUseCase_Update_Success_WithNewLinkedItems(t *testing.T) {
 
 	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 	mockBoardRepo.On("ExistsByIDAndProjectID", ctx, boardID, projectID).Return(true, nil)
-	mockBoardColumnRepo.On("ExistsByIDAndBoardIDAndProjectID", ctx, columnID, boardID, projectID).Return(true, nil)
 	mockCardRepo.On("FindByIDAndBoardID", ctx, boardID, cardID).Return(existingCard, nil)
 	mockCardRepo.On("Save", ctx, mock.MatchedBy(func(c *model.Card) bool {
 		return c.ID == cardID && c.Title == "Updated Name" || c.Title == "Updated Title" && c.UpdatedAt != nil
@@ -802,7 +800,6 @@ func TestCardUseCase_Update_Success_WithNewLinkedItems(t *testing.T) {
 	assert.Equal(t, 1, len(updated.LinkedItems))
 	mockProjectRepo.AssertExpectations(t)
 	mockBoardRepo.AssertExpectations(t)
-	mockBoardColumnRepo.AssertExpectations(t)
 	mockCardRepo.AssertExpectations(t)
 	mockItemTagRepo.AssertExpectations(t)
 }
@@ -826,7 +823,6 @@ func TestCardUseCase_Update_Success_KeepExistingLinkedItems(t *testing.T) {
 		ID:          cardID,
 		ProjectID:   projectID,
 		BoardID:     boardID,
-		ColumnID:    columnID,
 		Title:       &newTitle,
 		LinkedItems: nil,
 	}
@@ -839,7 +835,6 @@ func TestCardUseCase_Update_Success_KeepExistingLinkedItems(t *testing.T) {
 
 	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 	mockBoardRepo.On("ExistsByIDAndProjectID", ctx, boardID, projectID).Return(true, nil)
-	mockBoardColumnRepo.On("ExistsByIDAndBoardIDAndProjectID", ctx, columnID, boardID, projectID).Return(true, nil)
 	mockCardRepo.On("FindByIDAndBoardID", ctx, boardID, cardID).Return(existingCard, nil)
 	mockCardRepo.On("Save", ctx, mock.Anything).Return(&model.Card{ID: cardID, ColumnID: columnID, Title: newTitle}, nil)
 	mockCardRepo.On("FindLinkedItemsByCardID", ctx, cardID).Return([]model.CardItem{{CardID: cardID, ItemID: uuid.New()}}, nil)
@@ -852,7 +847,6 @@ func TestCardUseCase_Update_Success_KeepExistingLinkedItems(t *testing.T) {
 	assert.Equal(t, 1, len(updated.LinkedItems))
 	mockProjectRepo.AssertExpectations(t)
 	mockBoardRepo.AssertExpectations(t)
-	mockBoardColumnRepo.AssertExpectations(t)
 	mockCardRepo.AssertExpectations(t)
 	mockItemTagRepo.AssertExpectations(t)
 }
@@ -889,19 +883,16 @@ func TestCardUseCase_Update_CardNotFound(t *testing.T) {
 
 	projectID := uuid.New()
 	boardID := uuid.New()
-	columnID := uuid.New()
 	cardID := uuid.New()
 
 	cmd := dto.UpdateCardCommand{
 		ID:        cardID,
 		ProjectID: projectID,
 		BoardID:   boardID,
-		ColumnID:  columnID,
 	}
 
 	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 	mockBoardRepo.On("ExistsByIDAndProjectID", ctx, boardID, projectID).Return(true, nil)
-	mockBoardColumnRepo.On("ExistsByIDAndBoardIDAndProjectID", ctx, columnID, boardID, projectID).Return(true, nil)
 	mockCardRepo.On("FindByIDAndBoardID", ctx, boardID, cardID).Return(nil, nil)
 
 	updated, err := uc.Update(ctx, cmd)
@@ -910,7 +901,6 @@ func TestCardUseCase_Update_CardNotFound(t *testing.T) {
 	assert.ErrorIs(t, err, usecase.ErrCardNotFound)
 	mockProjectRepo.AssertExpectations(t)
 	mockBoardRepo.AssertExpectations(t)
-	mockBoardColumnRepo.AssertExpectations(t)
 	mockCardRepo.AssertExpectations(t)
 }
 

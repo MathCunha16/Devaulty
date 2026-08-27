@@ -27,7 +27,6 @@ type UpdateCardCommand struct {
 	ID          uuid.UUID               `json:"-"`
 	ProjectID   uuid.UUID               `json:"-"`
 	BoardID     uuid.UUID               `json:"-"`
-	ColumnID    uuid.UUID               `json:"-"`
 	Title       *string                 `json:"title,omitempty" binding:"omitempty,min=2,max=255"`
 	Description *string                 `json:"description,omitempty" binding:"omitempty,min=1"`
 	Priority    *model.CardPriority     `json:"priority,omitempty"`

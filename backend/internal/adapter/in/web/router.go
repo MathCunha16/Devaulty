@@ -11,15 +11,18 @@ import (
 )
 
 type Handlers struct {
-	Project    *handler.ProjectHandler
-	Snippet    *handler.SnippetHandler
-	Credential *handler.CredentialHandler
-	Link       *handler.LinkHandler
-	Problem    *handler.ProblemHandler
-	Note       *handler.NoteHandler
-	Tag        *handler.TagHandler
-	ItemTag    *handler.ItemTagHandler
-	Security   *handler.SecurityHandler
+	Project     *handler.ProjectHandler
+	Snippet     *handler.SnippetHandler
+	Credential  *handler.CredentialHandler
+	Link        *handler.LinkHandler
+	Problem     *handler.ProblemHandler
+	Note        *handler.NoteHandler
+	Board       *handler.BoardHandler
+	BoardColumn *handler.BoardColumnHandler
+	Card        *handler.CardHandler
+	Tag         *handler.TagHandler
+	ItemTag     *handler.ItemTagHandler
+	Security    *handler.SecurityHandler
 }
 
 func SetupRouter(h *Handlers, apiToken string) *gin.Engine {
@@ -47,6 +50,9 @@ func SetupRouter(h *Handlers, apiToken string) *gin.Engine {
 			mapLinkRoutes(protected, h.Link)
 			mapProblemRoutes(protected, h.Problem)
 			mapNoteRoutes(protected, h.Note)
+			mapBoardRoutes(protected, h.Board)
+			mapBoardColumnRoutes(protected, h.BoardColumn)
+			mapCardRoutes(protected, h.Card)
 			mapTagRoutes(protected, h.Tag)
 			mapItemTagRoutes(protected, h.ItemTag)
 			mapSecurityRoutes(protected, h.Security)
@@ -121,6 +127,43 @@ func mapNoteRoutes(rg *gin.RouterGroup, h *handler.NoteHandler) {
 		notes.GET("/:note_id", h.Get)
 		notes.PATCH("/:note_id", h.Update)
 		notes.DELETE("/:note_id", h.Delete)
+	}
+}
+
+func mapBoardRoutes(rg *gin.RouterGroup, h *handler.BoardHandler) {
+	boards := rg.Group("/projects/:project_id/boards")
+	{
+		boards.POST("", h.Create)
+		boards.GET("", h.GetAll)
+		boards.GET("/default", h.GetDefault)
+		boards.GET("/:board_id", h.Get)
+		boards.PATCH("/:board_id", h.Update)
+		boards.DELETE("/:board_id", h.Delete)
+	}
+}
+
+func mapBoardColumnRoutes(rg *gin.RouterGroup, h *handler.BoardColumnHandler) {
+	bc := rg.Group("/projects/:project_id/boards/:board_id/columns")
+	{
+		bc.POST("", h.Create)
+		bc.GET("", h.GetAll)
+		bc.GET("/:board_column_id", h.Get)
+		bc.PATCH("/:board_column_id", h.Update)
+		bc.PATCH("/reorder", h.Reorder)
+		bc.DELETE("/:board_column_id", h.Delete)
+	}
+}
+
+func mapCardRoutes(rg *gin.RouterGroup, h *handler.CardHandler) {
+	rg.POST("/projects/:project_id/boards/:board_id/columns/:board_column_id/cards", h.Create)
+
+	cards := rg.Group("/projects/:project_id/boards/:board_id/cards")
+	{
+		cards.GET("", h.GetAll)
+		cards.GET("/:card_id", h.Get)
+		cards.PATCH("/:card_id", h.Update)
+		cards.PATCH("/:card_id/move", h.Move)
+		cards.DELETE("/:card_id", h.Delete)
 	}
 }
 

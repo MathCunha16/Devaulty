@@ -10,7 +10,7 @@ type CreateBoardCommand struct {
 	ProjectID   uuid.UUID `json:"-"`
 	Name        string    `json:"name" binding:"required,min=2,max=255"`
 	Description *string   `json:"description,omitempty" binding:"omitempty,min=1"`
-	IsDefault   bool      `json:"isDefault" binding:"required"`
+	IsDefault   bool      `json:"isDefault"`
 }
 
 type UpdateBoardCommand struct {
