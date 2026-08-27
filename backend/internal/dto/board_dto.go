@@ -16,7 +16,7 @@ type CreateBoardCommand struct {
 type UpdateBoardCommand struct {
 	ID          uuid.UUID `json:"-"`
 	ProjectID   uuid.UUID `json:"-"`
-	Name        *string   `json:"name,omitempty" binding:"omitempty,min=2"`
+	Name        *string   `json:"name,omitempty" binding:"omitempty,min=2,max=255"`
 	Description *string   `json:"description,omitempty" binding:"omitempty,min=1,max=255"`
 	IsDefault   *bool     `json:"isDefault,omitempty" binding:"omitempty"`
 }

@@ -219,7 +219,7 @@ func (uc *CardUseCase) Update(ctx context.Context, cmd dto.UpdateCardCommand) (*
 		return nil, err
 	}
 
-	if cmd.LinkedItems != nil && len(cmd.LinkedItems) > 0 {
+	if cmd.LinkedItems != nil {
 		linkedItems := make([]model.CardItem, len(cmd.LinkedItems))
 		for i, item := range cmd.LinkedItems {
 			linkedItems[i] = model.CardItem{

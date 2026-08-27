@@ -79,9 +79,16 @@ func (r *BoardColumnRepositoryAdapter) Reorder(ctx context.Context, boardID uuid
 
 	query := `UPDATE board_columns SET position = ? WHERE board_id = ? AND id = ?`
 	for position, columnID := range columnsIDs {
-		_, err := tx.ExecContext(ctx, query, position, boardID, columnID)
+		res, err := tx.ExecContext(ctx, query, position, boardID, columnID)
 		if err != nil {
 			return fmt.Errorf("error updating position for column %s: %w", columnID, err)
+		}
+		rows, err := res.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("error checking rows affected for column %s: %w", columnID, err)
+		}
+		if rows == 0 {
+			return fmt.Errorf("board column %s not found in board %s", columnID, boardID)
 		}
 	}
 	if err := tx.Commit(); err != nil {

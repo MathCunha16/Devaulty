@@ -780,7 +780,7 @@ func TestCardUseCase_Update_Success_WithNewLinkedItems(t *testing.T) {
 	mockBoardRepo.On("ExistsByIDAndProjectID", ctx, boardID, projectID).Return(true, nil)
 	mockCardRepo.On("FindByIDAndBoardID", ctx, boardID, cardID).Return(existingCard, nil)
 	mockCardRepo.On("Save", ctx, mock.MatchedBy(func(c *model.Card) bool {
-		return c.ID == cardID && c.Title == "Updated Name" || c.Title == "Updated Title" && c.UpdatedAt != nil
+		return c.ID == cardID && c.Title == "Updated Title" && c.UpdatedAt != nil
 	})).Return(&model.Card{
 		ID:       cardID,
 		ColumnID: columnID,
@@ -845,6 +845,53 @@ func TestCardUseCase_Update_Success_KeepExistingLinkedItems(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, updated)
 	assert.Equal(t, 1, len(updated.LinkedItems))
+	mockProjectRepo.AssertExpectations(t)
+	mockBoardRepo.AssertExpectations(t)
+	mockCardRepo.AssertExpectations(t)
+	mockItemTagRepo.AssertExpectations(t)
+}
+
+func TestCardUseCase_Update_Success_ClearLinkedItemsWhenEmptySliceProvided(t *testing.T) {
+	mockCardRepo := new(MockCardRepository)
+	mockBoardRepo := new(MockBoardRepository)
+	mockBoardColumnRepo := new(MockBoardColumnRepository)
+	mockProjectRepo := new(MockProjectRepository)
+	mockItemTagRepo := new(MockItemTagRepository)
+	uc := usecase.NewCardUseCase(mockCardRepo, mockBoardRepo, mockBoardColumnRepo, mockProjectRepo, mockItemTagRepo)
+	ctx := context.Background()
+
+	projectID := uuid.New()
+	boardID := uuid.New()
+	columnID := uuid.New()
+	cardID := uuid.New()
+	newTitle := "Updated Title"
+
+	cmd := dto.UpdateCardCommand{
+		ID:          cardID,
+		ProjectID:   projectID,
+		BoardID:     boardID,
+		Title:       &newTitle,
+		LinkedItems: []dto.CreateCardItemCommand{}, // explicit empty slice
+	}
+
+	existingCard := &model.Card{
+		ID:       cardID,
+		ColumnID: columnID,
+		Title:    "Old Title",
+	}
+
+	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+	mockBoardRepo.On("ExistsByIDAndProjectID", ctx, boardID, projectID).Return(true, nil)
+	mockCardRepo.On("FindByIDAndBoardID", ctx, boardID, cardID).Return(existingCard, nil)
+	mockCardRepo.On("Save", ctx, mock.Anything).Return(&model.Card{ID: cardID, ColumnID: columnID, Title: newTitle}, nil)
+	mockCardRepo.On("SaveLinkedItems", ctx, cardID, []model.CardItem{}).Return(nil)
+	mockItemTagRepo.On("FindTagsForItem", ctx, model.ItemTypeCard, projectID, cardID).Return([]model.Tag{}, nil)
+
+	updated, err := uc.Update(ctx, cmd)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, updated)
+	assert.Equal(t, 0, len(updated.LinkedItems))
 	mockProjectRepo.AssertExpectations(t)
 	mockBoardRepo.AssertExpectations(t)
 	mockCardRepo.AssertExpectations(t)

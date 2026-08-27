@@ -171,6 +171,23 @@ func (uc *BoardColumnUseCase) Reorder(ctx context.Context, cmd dto.ReorderBoardC
 		return nil, err
 	}
 
+	existingCols, err := uc.boardColumnRepo.FindAllByBoardIDAndProjectID(ctx, cmd.ProjectID, cmd.BoardID)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching board columns: %w", err)
+	}
+	if len(existingCols) != len(cmd.Positions) {
+		return nil, fmt.Errorf("column count mismatch: expected %d, got %d", len(existingCols), len(cmd.Positions))
+	}
+	existingMap := make(map[uuid.UUID]bool, len(existingCols))
+	for _, col := range existingCols {
+		existingMap[col.ID] = true
+	}
+	for _, posID := range cmd.Positions {
+		if !existingMap[posID] {
+			return nil, ErrBoardColumnNotFound
+		}
+	}
+
 	err = uc.boardColumnRepo.Reorder(ctx, cmd.BoardID, cmd.Positions)
 	if err != nil {
 		return nil, fmt.Errorf("error reordering board columns: %w", err)

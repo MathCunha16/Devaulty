@@ -41,7 +41,7 @@ func (h *BoardHandler) Create(c *gin.Context) {
 			return
 		}
 		if errors.Is(err, usecase.ErrNotPossibleToUnsetDefaultBoard) {
-			c.JSON(http.StatusInternalServerError, gin.H{"error trying to unset default board": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		log.Printf("[BoardHandler.Create] %v", err)
@@ -153,7 +153,7 @@ func (h *BoardHandler) Update(c *gin.Context) {
 			return
 		}
 		if errors.Is(err, usecase.ErrNotPossibleToUnsetDefaultBoard) {
-			c.JSON(http.StatusInternalServerError, gin.H{"error trying to unset default board": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		log.Printf("[BoardHandler.Update] %v", err)

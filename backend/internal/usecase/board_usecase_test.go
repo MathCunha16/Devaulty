@@ -420,15 +420,17 @@ func TestBoardUseCase_Create_CreateDefaultColumnsError(t *testing.T) {
 		IsDefault: true,
 	}
 
+	savedBoardID := uuid.New()
 	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 	mockBoardRepo.On("UnsetAllDefaultsByProjectID", ctx, projectID).Return(true, nil)
 	mockBoardRepo.On("Save", ctx, mock.Anything).Return(&model.Board{
-		ID:        uuid.New(),
+		ID:        savedBoardID,
 		ProjectID: projectID,
 		Name:      "New Board",
 		IsDefault: true,
 	}, nil)
 	mockBoardColumnRepo.On("Save", ctx, mock.Anything).Return(nil, errors.New("column insert failed"))
+	mockBoardRepo.On("DeleteByIDAndProjectID", ctx, projectID, savedBoardID).Return(true, nil)
 
 	created, err := uc.Create(ctx, cmd)
 

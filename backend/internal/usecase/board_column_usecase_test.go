@@ -843,10 +843,16 @@ func TestBoardColumnUseCase_Reorder_Success(t *testing.T) {
 		{ID: col1ID, BoardID: boardID, Name: "To Do", Position: 1},
 	}
 
+	initialColumns := []model.BoardColumn{
+		{ID: col1ID, BoardID: boardID, Name: "To Do", Position: 0},
+		{ID: col2ID, BoardID: boardID, Name: "Done", Position: 1},
+	}
+
 	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 	mockBoardRepo.On("ExistsByIDAndProjectID", ctx, boardID, projectID).Return(true, nil)
+	mockBoardColumnRepo.On("FindAllByBoardIDAndProjectID", ctx, projectID, boardID).Return(initialColumns, nil).Once()
 	mockBoardColumnRepo.On("Reorder", ctx, boardID, newOrder).Return(nil)
-	mockBoardColumnRepo.On("FindAllByBoardIDAndProjectID", ctx, projectID, boardID).Return(expectedReorderedColumns, nil)
+	mockBoardColumnRepo.On("FindAllByBoardIDAndProjectID", ctx, projectID, boardID).Return(expectedReorderedColumns, nil).Once()
 
 	views, err := uc.Reorder(ctx, cmd)
 
@@ -913,6 +919,73 @@ func TestBoardColumnUseCase_Reorder_BoardNotFound(t *testing.T) {
 	mockBoardRepo.AssertExpectations(t)
 }
 
+func TestBoardColumnUseCase_Reorder_ColumnNotFound(t *testing.T) {
+	mockBoardColumnRepo := new(MockBoardColumnRepository)
+	mockBoardRepo := new(MockBoardRepository)
+	mockProjectRepo := new(MockProjectRepository)
+	uc := usecase.NewBoardColumnUseCase(mockBoardColumnRepo, mockBoardRepo, mockProjectRepo)
+	ctx := context.Background()
+
+	projectID := uuid.New()
+	boardID := uuid.New()
+	existingColID := uuid.New()
+	unknownColID := uuid.New()
+
+	cmd := dto.ReorderBoardColumnsCommand{
+		ProjectID: projectID,
+		BoardID:   boardID,
+		Positions: []uuid.UUID{unknownColID},
+	}
+
+	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+	mockBoardRepo.On("ExistsByIDAndProjectID", ctx, boardID, projectID).Return(true, nil)
+	mockBoardColumnRepo.On("FindAllByBoardIDAndProjectID", ctx, projectID, boardID).Return([]model.BoardColumn{
+		{ID: existingColID, BoardID: boardID, Name: "Backlog"},
+	}, nil)
+
+	views, err := uc.Reorder(ctx, cmd)
+
+	assert.Nil(t, views)
+	assert.ErrorIs(t, err, usecase.ErrBoardColumnNotFound)
+	mockProjectRepo.AssertExpectations(t)
+	mockBoardRepo.AssertExpectations(t)
+	mockBoardColumnRepo.AssertExpectations(t)
+}
+
+func TestBoardColumnUseCase_Reorder_CountMismatch(t *testing.T) {
+	mockBoardColumnRepo := new(MockBoardColumnRepository)
+	mockBoardRepo := new(MockBoardRepository)
+	mockProjectRepo := new(MockProjectRepository)
+	uc := usecase.NewBoardColumnUseCase(mockBoardColumnRepo, mockBoardRepo, mockProjectRepo)
+	ctx := context.Background()
+
+	projectID := uuid.New()
+	boardID := uuid.New()
+	col1ID := uuid.New()
+	col2ID := uuid.New()
+
+	cmd := dto.ReorderBoardColumnsCommand{
+		ProjectID: projectID,
+		BoardID:   boardID,
+		Positions: []uuid.UUID{col1ID}, // only 1 provided when 2 exist
+	}
+
+	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+	mockBoardRepo.On("ExistsByIDAndProjectID", ctx, boardID, projectID).Return(true, nil)
+	mockBoardColumnRepo.On("FindAllByBoardIDAndProjectID", ctx, projectID, boardID).Return([]model.BoardColumn{
+		{ID: col1ID, BoardID: boardID, Name: "Col 1"},
+		{ID: col2ID, BoardID: boardID, Name: "Col 2"},
+	}, nil)
+
+	views, err := uc.Reorder(ctx, cmd)
+
+	assert.Nil(t, views)
+	assert.ErrorContains(t, err, "column count mismatch")
+	mockProjectRepo.AssertExpectations(t)
+	mockBoardRepo.AssertExpectations(t)
+	mockBoardColumnRepo.AssertExpectations(t)
+}
+
 func TestBoardColumnUseCase_Reorder_RepoError(t *testing.T) {
 	mockBoardColumnRepo := new(MockBoardColumnRepository)
 	mockBoardRepo := new(MockBoardRepository)
@@ -922,7 +995,8 @@ func TestBoardColumnUseCase_Reorder_RepoError(t *testing.T) {
 
 	projectID := uuid.New()
 	boardID := uuid.New()
-	positions := []uuid.UUID{uuid.New()}
+	colID := uuid.New()
+	positions := []uuid.UUID{colID}
 
 	cmd := dto.ReorderBoardColumnsCommand{
 		ProjectID: projectID,
@@ -932,6 +1006,9 @@ func TestBoardColumnUseCase_Reorder_RepoError(t *testing.T) {
 
 	mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
 	mockBoardRepo.On("ExistsByIDAndProjectID", ctx, boardID, projectID).Return(true, nil)
+	mockBoardColumnRepo.On("FindAllByBoardIDAndProjectID", ctx, projectID, boardID).Return([]model.BoardColumn{
+		{ID: colID, BoardID: boardID, Name: "Col 1"},
+	}, nil)
 	mockBoardColumnRepo.On("Reorder", ctx, boardID, positions).Return(errors.New("db reorder error"))
 
 	views, err := uc.Reorder(ctx, cmd)

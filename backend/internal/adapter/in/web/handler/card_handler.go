@@ -56,7 +56,7 @@ func (h *CardHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	location := "/projects/" + projectID.String() + "/boards/" + boardID.String() + "/columns/" + boardColumnID.String() + "/cards/" + card.ID.String()
+	location := "/api/v1/projects/" + projectID.String() + "/boards/" + boardID.String() + "/cards/" + card.ID.String()
 	c.Header("Location", location)
 	c.JSON(http.StatusCreated, card)
 }

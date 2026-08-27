@@ -77,6 +77,7 @@ func (uc *BoardUseCase) Create(ctx context.Context, cmd dto.CreateBoardCommand) 
 
 	err = uc.createDefaultBoardColumns(ctx, saved.ID)
 	if err != nil {
+		_, _ = uc.boardRepo.DeleteByIDAndProjectID(ctx, cmd.ProjectID, saved.ID)
 		return nil, fmt.Errorf("error creating default board columns: %w", err)
 	}
 
