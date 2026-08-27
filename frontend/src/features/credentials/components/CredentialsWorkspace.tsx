@@ -25,6 +25,7 @@ interface CredentialsWorkspaceProps {
   isActive: boolean;
   onNavigateTab?: (tab: "snippets" | "problems" | "credentials" | "notes" | "links") => void;
   onOpenManageTagsModal: () => void;
+  initialSelectedId?: string;
 }
 
 export const CredentialsWorkspace: React.FC<CredentialsWorkspaceProps> = ({
@@ -32,6 +33,7 @@ export const CredentialsWorkspace: React.FC<CredentialsWorkspaceProps> = ({
   isActive,
   onNavigateTab,
   onOpenManageTagsModal,
+  initialSelectedId,
 }) => {
   // Security queries
   const { data: isSetupRequired, isLoading: isSetupLoading } =
@@ -72,7 +74,13 @@ export const CredentialsWorkspace: React.FC<CredentialsWorkspaceProps> = ({
   >("ALL");
   const [isCredentialFormOpen, setIsCredentialFormOpen] = useState(false);
   const [editingCredentialId, setEditingCredentialId] = useState<string | undefined>(undefined);
-  const [viewingCredentialId, setViewingCredentialId] = useState<string | undefined>(undefined);
+  const [viewingCredentialId, setViewingCredentialId] = useState<string | undefined>(initialSelectedId);
+
+  useEffect(() => {
+    if (initialSelectedId && isVaultActive) {
+      setViewingCredentialId(initialSelectedId);
+    }
+  }, [initialSelectedId, isVaultActive]);
 
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;

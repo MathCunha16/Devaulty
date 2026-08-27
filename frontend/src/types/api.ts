@@ -410,3 +410,135 @@ export interface UpdateDownloadProgressResponse {
   savedFilePath?: string;
 }
 
+// ─────────────────────────────────────────────
+// Kanban / Board Models
+// ─────────────────────────────────────────────
+
+export type ItemType =
+  | "SNIPPET"
+  | "NOTE"
+  | "LINK"
+  | "PROBLEM"
+  | "CREDENTIAL"
+  | "BOARD"
+  | "CARD";
+
+export type CardPriority = "LOW" | "MEDIUM" | "HIGH" | "EXTREMELY_HIGH";
+
+export interface CardItem {
+  cardId: string;
+  itemId: string;
+  itemType: ItemType;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateCardItemCommand {
+  itemType: ItemType;
+  itemId: string;
+}
+
+export interface BoardView {
+  id: string;
+  projectId: string;
+  name: string;
+  description?: string;
+  isDefault: boolean;
+  tags: TagSummaryResponse[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateBoardRequest {
+  name: string;
+  description?: string;
+  isDefault?: boolean;
+}
+
+export interface UpdateBoardRequest {
+  name?: string;
+  description?: string;
+  isDefault?: boolean;
+}
+
+export interface PagedModelBoardView {
+  content: BoardView[];
+  page: PageMetadata;
+}
+
+export interface BoardColumnView {
+  id: string;
+  projectId: string;
+  boardId: string;
+  name: string;
+  position: number;
+  wipLimit?: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateBoardColumnRequest {
+  name: string;
+  wipLimit?: number;
+}
+
+export interface UpdateBoardColumnRequest {
+  name?: string;
+  wipLimit?: number;
+}
+
+export interface ReorderBoardColumnsRequest {
+  positions: string[];
+}
+
+export interface CardSummaryView {
+  id: string;
+  projectId: string;
+  boardId: string;
+  columnId: string;
+  title: string;
+  position: number;
+  priority?: CardPriority;
+  dueDate?: string;
+  tags: TagSummaryResponse[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CardView {
+  id: string;
+  projectId: string;
+  boardId: string;
+  columnId: string;
+  title: string;
+  description?: string;
+  position: number;
+  priority?: CardPriority;
+  dueDate?: string;
+  linkedItems?: CardItem[];
+  tags: TagSummaryResponse[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateCardRequest {
+  title: string;
+  description?: string;
+  priority?: CardPriority;
+  dueDate?: string;
+  linkedItems?: CreateCardItemCommand[];
+}
+
+export interface UpdateCardRequest {
+  title?: string;
+  description?: string;
+  priority?: CardPriority;
+  dueDate?: string;
+  linkedItems?: CreateCardItemCommand[];
+}
+
+export interface MoveCardRequest {
+  targetColumnId: string;
+  position: number;
+}
+

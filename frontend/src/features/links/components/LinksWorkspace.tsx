@@ -15,17 +15,25 @@ import styles from "../../../routes/projects.$projectId.module.css";
 interface LinksWorkspaceProps {
   projectId: string;
   onOpenManageTagsModal: () => void;
+  initialSelectedId?: string;
 }
 
 export const LinksWorkspace: React.FC<LinksWorkspaceProps> = ({
   projectId,
   onOpenManageTagsModal,
+  initialSelectedId,
 }) => {
   const { data: linksData } = useLinksQuery(projectId);
   const deleteLinkMutation = useDeleteLinkMutation(projectId);
 
-  const [selectedLinkId, setSelectedLinkId] = useState<string | undefined>(undefined);
+  const [selectedLinkId, setSelectedLinkId] = useState<string | undefined>(initialSelectedId);
   const [linkSearchQuery, setLinkSearchQuery] = useState("");
+
+  React.useEffect(() => {
+    if (initialSelectedId) {
+      setSelectedLinkId(initialSelectedId);
+    }
+  }, [initialSelectedId]);
 
   const [isLinkFormOpen, setIsLinkFormOpen] = useState(false);
   const [editingLinkId, setEditingLinkId] = useState<string | undefined>(undefined);

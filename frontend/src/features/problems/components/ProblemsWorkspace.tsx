@@ -20,20 +20,28 @@ import styles from "../../../routes/projects.$projectId.module.css";
 interface ProblemsWorkspaceProps {
   projectId: string;
   onOpenManageTagsModal: () => void;
+  initialSelectedId?: string;
 }
 
 export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
   projectId,
   onOpenManageTagsModal,
+  initialSelectedId,
 }) => {
   const { data: problemsData } = useProblemsQuery(projectId);
   const updateProblemStatusMutation = useUpdateProblemStatusMutation(projectId);
   const deleteProblemMutation = useDeleteProblemMutation(projectId);
 
-  const [selectedProblemId, setSelectedProblemId] = useState<string | undefined>(undefined);
+  const [selectedProblemId, setSelectedProblemId] = useState<string | undefined>(initialSelectedId);
   const [problemSearchQuery, setProblemSearchQuery] = useState("");
   const [problemSeverityFilter, setProblemSeverityFilter] = useState<"ALL" | ProblemSeverity>("ALL");
   const [problemStatusFilter, setProblemStatusFilter] = useState<"ALL" | "UNRESOLVED" | ProblemStatus>("UNRESOLVED");
+
+  React.useEffect(() => {
+    if (initialSelectedId) {
+      setSelectedProblemId(initialSelectedId);
+    }
+  }, [initialSelectedId]);
 
   const [isProblemFormOpen, setIsProblemFormOpen] = useState(false);
   const [editingProblemId, setEditingProblemId] = useState<string | undefined>(undefined);

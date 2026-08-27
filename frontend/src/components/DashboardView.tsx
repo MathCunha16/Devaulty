@@ -314,6 +314,17 @@ export const DashboardView: React.FC = () => {
                   <Link
                     to="/projects/$projectId"
                     params={{ projectId: project.id }}
+                    search={{ tab: "boards" }}
+                    className={styles.shortcutTag}
+                    title="Kanban Boards"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Icons.SquareKanban size={11} />
+                    <span>Kanban</span>
+                  </Link>
+                  <Link
+                    to="/projects/$projectId"
+                    params={{ projectId: project.id }}
                     search={{ tab: "snippets" }}
                     className={styles.shortcutTag}
                     title="Code Snippets"
