@@ -348,6 +348,7 @@ const CardModalInner: React.FC<CardModalInnerProps> = ({
           linkedItems,
         };
         const createdCard = await createMutation.mutateAsync(createPayload);
+        const failedTags: string[] = [];
         if (cardTags.length > 0) {
           for (const tag of cardTags) {
             try {
@@ -357,11 +358,17 @@ const CardModalInner: React.FC<CardModalInnerProps> = ({
                 tagId: tag.id,
               });
             } catch {
-              // Non-blocking tag association error
+              failedTags.push(tag.name);
             }
           }
         }
-        toast.success("Card created successfully");
+        if (failedTags.length > 0) {
+          toast.warning(
+            `Card created, but failed to associate tag(s): ${failedTags.join(", ")}`
+          );
+        } else {
+          toast.success("Card created successfully");
+        }
       }
       onClose();
     } catch (err) {
