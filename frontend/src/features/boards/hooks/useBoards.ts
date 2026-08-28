@@ -64,7 +64,7 @@ export const useBoardQuery = (
   boardId?: string
 ): UseQueryResult<BoardView, Error> => {
   return useQuery({
-    queryKey: boardId ? boardKeys.detail(projectId, boardId) : [],
+    queryKey: boardKeys.detail(projectId, boardId || ""),
     queryFn: () => boardsApi.getBoardById(projectId, boardId!),
     enabled: Boolean(projectId && boardId),
   });
@@ -231,7 +231,7 @@ export const useBoardCardsQuery = (
   boardId?: string
 ): UseQueryResult<CardSummaryView[], Error> => {
   return useQuery({
-    queryKey: boardId ? boardKeys.cards(projectId, boardId) : [],
+    queryKey: boardKeys.cards(projectId, boardId || ""),
     queryFn: () => boardsApi.getCards(projectId, boardId!),
     enabled: Boolean(projectId && boardId),
   });
@@ -243,10 +243,7 @@ export const useCardDetailQuery = (
   cardId?: string
 ): UseQueryResult<CardView, Error> => {
   return useQuery({
-    queryKey:
-      boardId && cardId
-        ? boardKeys.cardDetail(projectId, boardId, cardId)
-        : [],
+    queryKey: boardKeys.cardDetail(projectId, boardId || "", cardId || ""),
     queryFn: () => boardsApi.getCardById(projectId, boardId!, cardId!),
     enabled: Boolean(projectId && boardId && cardId),
   });

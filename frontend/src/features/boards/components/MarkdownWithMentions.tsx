@@ -114,7 +114,7 @@ export const MarkdownWithMentions: React.FC<MarkdownWithMentionsProps> = ({
     } else {
       // Fallback: all project items
       itemLookup.forEach((val, key) => {
-        const [_, id] = key.split("-");
+        const id = key.substring(key.indexOf("-") + 1);
         list.push({ id, type: val.type, title: val.title });
       });
     }
@@ -132,7 +132,7 @@ export const MarkdownWithMentions: React.FC<MarkdownWithMentionsProps> = ({
         ADD_ATTR: ["data-item-type", "data-item-id", "data-display-name", "style"],
       });
     } catch {
-      return text;
+      return DOMPurify.sanitize(text);
     }
   }, [text, availableMentionItems]);
 

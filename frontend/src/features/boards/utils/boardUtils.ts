@@ -109,9 +109,17 @@ export const formatMentionToken = (title: string): string => {
   return `@[${title}]`;
 };
 
+const escapeHtml = (str: string): string => {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
 /**
- * Replace mention tokens (e.g. @[Item Title] or @Title) in HTML with interactive pill spans.
- * Matches against the list of available items linked to the card.
+ * Replaces mentions in HTML with interactive stylized pills.
  */
 export const replaceMentionsWithPills = (
   html: string,
@@ -127,7 +135,8 @@ export const replaceMentionsWithPills = (
     const bracketRegex = new RegExp(`@\\[${escapedTitle}\\]`, "gi");
 
     const meta = getItemTypeMeta(item.type);
-    const pillHtml = `<span class="devaulty-mention-pill" data-item-type="${item.type}" data-item-id="${item.id}" data-display-name="${item.title}" style="--mention-color: ${meta.color}; cursor: pointer;">${item.title}</span>`;
+    const safeTitle = escapeHtml(item.title);
+    const pillHtml = `<span class="devaulty-mention-pill" data-item-type="${item.type}" data-item-id="${item.id}" data-display-name="${safeTitle}" style="--mention-color: ${meta.color}; cursor: pointer;">${safeTitle}</span>`;
 
     result = result.replace(bracketRegex, pillHtml);
   });
@@ -140,7 +149,8 @@ export const replaceMentionsWithPills = (
       const wordRegex = new RegExp(`\\B@${escapedTitle}\\b`, "gi");
 
       const meta = getItemTypeMeta(item.type);
-      const pillHtml = `<span class="devaulty-mention-pill" data-item-type="${item.type}" data-item-id="${item.id}" data-display-name="${item.title}" style="--mention-color: ${meta.color}; cursor: pointer;">${item.title}</span>`;
+      const safeTitle = escapeHtml(item.title);
+      const pillHtml = `<span class="devaulty-mention-pill" data-item-type="${item.type}" data-item-id="${item.id}" data-display-name="${safeTitle}" style="--mention-color: ${meta.color}; cursor: pointer;">${safeTitle}</span>`;
 
       result = result.replace(wordRegex, pillHtml);
     }

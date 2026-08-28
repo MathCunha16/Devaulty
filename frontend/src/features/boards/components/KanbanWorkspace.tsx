@@ -133,7 +133,30 @@ export const KanbanWorkspace: React.FC<KanbanWorkspaceProps> = ({
     });
   }, [cards, priorityFilter, search]);
 
-  // Group cards by column ID and sort by position
+  // Group all cards by column ID (unfiltered, for accurate WIP counting & drag positioning)
+  const allCardsByColumn = useMemo(() => {
+    const map = new Map<string, CardSummaryView[]>();
+    sortedColumns.forEach((col) => {
+      map.set(col.id, []);
+    });
+
+    cards.forEach((card) => {
+      const list = map.get(card.columnId);
+      if (list) {
+        list.push(card);
+      } else {
+        map.set(card.columnId, [card]);
+      }
+    });
+
+    map.forEach((list) => {
+      list.sort((a, b) => a.position - b.position);
+    });
+
+    return map;
+  }, [sortedColumns, cards]);
+
+  // Group filtered cards by column ID and sort by position (for display)
   const cardsByColumn = useMemo(() => {
     const map = new Map<string, CardSummaryView[]>();
     sortedColumns.forEach((col) => {
@@ -221,7 +244,7 @@ export const KanbanWorkspace: React.FC<KanbanWorkspaceProps> = ({
 
     if (isOverColumn) {
       targetColumnId = overId;
-      const columnCards = cardsByColumn.get(targetColumnId) || [];
+      const columnCards = allCardsByColumn.get(targetColumnId) || [];
       targetPosition = columnCards.length;
     } else {
       // Over another card
@@ -365,7 +388,7 @@ export const KanbanWorkspace: React.FC<KanbanWorkspaceProps> = ({
             )}
           </div>
 
-          {/* Priority Segmented Filter Bar */}
+          {/* Priority Segmented Filter Bar (Desktop) */}
           <div className={`hidden xl:flex ${styles.prioritySegmentedGroup}`}>
             {(
               [
@@ -389,6 +412,22 @@ export const KanbanWorkspace: React.FC<KanbanWorkspaceProps> = ({
                 </button>
               );
             })}
+          </div>
+
+          {/* Priority Filter Select (Tablet / Mobile) */}
+          <div className="flex xl:hidden items-center">
+            <select
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value as "ALL" | CardPriority)}
+              className="text-xs bg-background border border-border rounded-md px-2 py-1 font-mono text-muted-foreground focus:text-foreground outline-none cursor-pointer"
+              title="Filter by priority"
+            >
+              <option value="ALL">Priority: All</option>
+              <option value="EXTREMELY_HIGH">Priority: Urgent</option>
+              <option value="HIGH">Priority: High</option>
+              <option value="MEDIUM">Priority: Medium</option>
+              <option value="LOW">Priority: Low</option>
+            </select>
           </div>
         </div>
 
@@ -446,6 +485,7 @@ export const KanbanWorkspace: React.FC<KanbanWorkspaceProps> = ({
                   key={column.id}
                   column={column}
                   cards={cardsByColumn.get(column.id) || []}
+                  totalCardsCount={(allCardsByColumn.get(column.id) || []).length}
                   onOpenCard={handleOpenCardDetail}
                   onAddCardToColumn={handleOpenAddCard}
                   onEditColumn={handleOpenEditColumn}

@@ -53,6 +53,20 @@ const ColumnModalInner: React.FC<ColumnModalInnerProps> = ({
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (isConfirmDeleteOpen) {
+          setIsConfirmDeleteOpen(false);
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isConfirmDeleteOpen, onClose]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -60,20 +74,18 @@ const ColumnModalInner: React.FC<ColumnModalInnerProps> = ({
       return;
     }
 
-    const calculatedWipLimit = hasWipLimit && wipLimit > 0 ? wipLimit : undefined;
-
     try {
       if (isEditing && column) {
         const payload: UpdateBoardColumnRequest = {
           name: name.trim(),
-          wipLimit: calculatedWipLimit,
+          wipLimit: hasWipLimit && wipLimit > 0 ? wipLimit : 0,
         };
         await updateMutation.mutateAsync({ columnId: column.id, payload });
         toast.success(`Column "${name}" updated`);
       } else {
         const payload: CreateBoardColumnRequest = {
           name: name.trim(),
-          wipLimit: calculatedWipLimit,
+          wipLimit: hasWipLimit && wipLimit > 0 ? wipLimit : undefined,
         };
         await createMutation.mutateAsync(payload);
         toast.success(`Column "${name}" created`);
@@ -220,16 +232,6 @@ export const ColumnModal: React.FC<ColumnModalProps> = ({
   projectColor,
 }) => {
   const isEditing = Boolean(column);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 

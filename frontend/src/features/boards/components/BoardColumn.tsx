@@ -9,6 +9,7 @@ import styles from "./KanbanWorkspace.module.css";
 interface BoardColumnProps {
   column: BoardColumnView;
   cards: CardSummaryView[];
+  totalCardsCount?: number;
   onOpenCard: (cardId: string) => void;
   onAddCardToColumn: (columnId: string) => void;
   onEditColumn: (column: BoardColumnView) => void;
@@ -17,6 +18,7 @@ interface BoardColumnProps {
 export const BoardColumn: React.FC<BoardColumnProps> = ({
   column,
   cards,
+  totalCardsCount,
   onOpenCard,
   onAddCardToColumn,
   onEditColumn,
@@ -44,10 +46,12 @@ export const BoardColumn: React.FC<BoardColumnProps> = ({
 
   const cardIds = React.useMemo(() => cards.map((c) => c.id), [cards]);
 
+  const effectiveTotalCount = totalCardsCount ?? cards.length;
+
   const isWipExceeded =
     column.wipLimit != null &&
     column.wipLimit > 0 &&
-    cards.length > column.wipLimit;
+    effectiveTotalCount > column.wipLimit;
 
   return (
     <div
@@ -78,12 +82,14 @@ export const BoardColumn: React.FC<BoardColumnProps> = ({
               isWipExceeded ? styles.wipWarning : ""
             }`}
             title={
-              column.wipLimit
-                ? `WIP Limit: ${column.wipLimit} cards (Current: ${cards.length})`
-                : `${cards.length} cards`
+              column.wipLimit != null && column.wipLimit > 0
+                ? `WIP limit: ${column.wipLimit} (Current: ${effectiveTotalCount})`
+                : `${effectiveTotalCount} cards`
             }
           >
-            {column.wipLimit ? `${cards.length}/${column.wipLimit}` : cards.length}
+            {column.wipLimit != null && column.wipLimit > 0
+              ? `${effectiveTotalCount}/${column.wipLimit}`
+              : effectiveTotalCount}
           </span>
         </div>
 

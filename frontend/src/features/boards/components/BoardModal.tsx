@@ -51,6 +51,20 @@ const BoardModalInner: React.FC<BoardModalInnerProps> = ({
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (isConfirmDeleteOpen) {
+          setIsConfirmDeleteOpen(false);
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isConfirmDeleteOpen, onClose]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -62,7 +76,7 @@ const BoardModalInner: React.FC<BoardModalInnerProps> = ({
       if (isEditing && board) {
         const payload: UpdateBoardRequest = {
           name: name.trim(),
-          description: description.trim() ? description.trim() : undefined,
+          description: description.trim() ? description.trim() : "",
           isDefault,
         };
         await updateMutation.mutateAsync({ boardId: board.id, payload });
@@ -212,16 +226,6 @@ export const BoardModal: React.FC<BoardModalProps> = ({
   projectColor,
 }) => {
   const isEditing = Boolean(board);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 

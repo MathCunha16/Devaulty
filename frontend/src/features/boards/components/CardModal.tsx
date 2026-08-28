@@ -332,7 +332,7 @@ const CardModalInner: React.FC<CardModalInnerProps> = ({
       if (isEditing && cardId) {
         const updatePayload: UpdateCardRequest = {
           title: title.trim(),
-          description: description.trim() ? description : undefined,
+          description: description.trim() ? description : "",
           priority: payloadPriority,
           dueDate: payloadDueDate,
           linkedItems,
@@ -347,7 +347,20 @@ const CardModalInner: React.FC<CardModalInnerProps> = ({
           dueDate: payloadDueDate,
           linkedItems,
         };
-        await createMutation.mutateAsync(createPayload);
+        const createdCard = await createMutation.mutateAsync(createPayload);
+        if (cardTags.length > 0) {
+          for (const tag of cardTags) {
+            try {
+              await associateTagMutation.mutateAsync({
+                itemType: "card",
+                itemId: createdCard.id,
+                tagId: tag.id,
+              });
+            } catch {
+              // Non-blocking tag association error
+            }
+          }
+        }
         toast.success("Card created successfully");
       }
       onClose();
@@ -736,11 +749,12 @@ export const CardModal: React.FC<CardModalProps> = ({
 }) => {
   const isEditing = Boolean(cardId);
 
-  const { data: cardDetail, isLoading: isLoadingCard } = useCardDetailQuery(
-    projectId,
-    boardId,
-    cardId
-  );
+  const {
+    data: cardDetail,
+    isLoading: isLoadingCard,
+    isError: isErrorCard,
+    error: cardError,
+  } = useCardDetailQuery(projectId, boardId, cardId);
   const { data: allTags = [] } = useTagsQuery(projectId);
 
   if (!isOpen) return null;
@@ -751,6 +765,29 @@ export const CardModal: React.FC<CardModalProps> = ({
         <div className="relative w-full max-w-md p-8 flex flex-col items-center justify-center gap-3 rounded-xl bg-card border border-border shadow-2xl">
           <Icons.Loader2 size={24} className="animate-spin text-primary" />
           <span className="text-xs font-mono text-muted-foreground">Loading card details...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (isEditing && (isErrorCard || !cardDetail)) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="relative w-full max-w-md p-6 flex flex-col items-center justify-center gap-3 text-center rounded-xl bg-card border border-destructive/40 shadow-2xl">
+          <div className="p-2.5 rounded-full bg-destructive/10 text-destructive">
+            <Icons.AlertCircle size={24} />
+          </div>
+          <h3 className="text-sm font-bold font-mono text-foreground">Failed to Load Card</h3>
+          <p className="text-xs text-muted-foreground">
+            {cardError instanceof Error ? cardError.message : "The requested card could not be found."}
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-2 px-4 py-1.5 rounded-md bg-secondary text-xs font-mono font-medium hover:bg-secondary/80 cursor-pointer"
+          >
+            Close
+          </button>
         </div>
       </div>
     );

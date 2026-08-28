@@ -84,8 +84,12 @@ export const useAssociateTagMutation = (projectId: string) => {
       else if (typeLower === "link") itemKey = "links";
       else if (typeLower === "credential") itemKey = "credentials";
       else if (typeLower === "card" || typeLower === "board") itemKey = "boards";
-      queryClient.invalidateQueries({ queryKey: ["projects", projectId, itemKey] });
-      queryClient.invalidateQueries({ queryKey: ["boards", projectId] });
+
+      if (typeLower === "card" || typeLower === "board") {
+        queryClient.invalidateQueries({ queryKey: ["boards", projectId] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["projects", projectId, itemKey] });
+      }
     },
   });
 };
@@ -103,8 +107,12 @@ export const useDisassociateTagMutation = (projectId: string) => {
       else if (typeLower === "link") itemKey = "links";
       else if (typeLower === "credential") itemKey = "credentials";
       else if (typeLower === "card" || typeLower === "board") itemKey = "boards";
-      queryClient.invalidateQueries({ queryKey: ["projects", projectId, itemKey] });
-      queryClient.invalidateQueries({ queryKey: ["boards", projectId] });
+
+      if (typeLower === "card" || typeLower === "board") {
+        queryClient.invalidateQueries({ queryKey: ["boards", projectId] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["projects", projectId, itemKey] });
+      }
     },
   });
 };

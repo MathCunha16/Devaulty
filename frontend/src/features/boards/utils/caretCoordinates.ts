@@ -73,8 +73,8 @@ export function getCaretCoordinates(
   mirror.appendChild(span);
 
   const coordinates: CaretCoordinates = {
-    top: span.offsetTop + parseInt(style.borderTopWidth, 10),
-    left: span.offsetLeft + parseInt(style.borderLeftWidth, 10),
+    top: span.offsetTop + parseInt(style.borderTopWidth, 10) - element.scrollTop,
+    left: span.offsetLeft + parseInt(style.borderLeftWidth, 10) - element.scrollLeft,
     lineHeight: parseInt(style.lineHeight, 10) || parseInt(style.fontSize, 10) * 1.4,
   };
 
