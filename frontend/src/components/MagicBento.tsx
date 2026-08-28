@@ -569,6 +569,10 @@ export const MagicBento: React.FC<BentoProps> = ({
             .bento-grid-layout {
               grid-template-columns: repeat(2, 1fr);
             }
+
+            .bento-grid-layout .bento-card:nth-child(7) {
+              grid-column: span 2;
+            }
           }
 
           @media (min-width: 1024px) {
@@ -597,7 +601,11 @@ export const MagicBento: React.FC<BentoProps> = ({
             }
 
             .bento-grid-layout .bento-card:nth-child(6) {
-              grid-column: span 2;
+              grid-column: span 1;
+            }
+
+            .bento-grid-layout .bento-card:nth-child(7) {
+              grid-column: span 1;
             }
           }
 

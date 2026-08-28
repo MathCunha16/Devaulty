@@ -12,6 +12,7 @@ import { ProblemsWorkspace } from "~features/problems/components/ProblemsWorkspa
 import { CredentialsWorkspace } from "~features/credentials/components/CredentialsWorkspace";
 import { NotesWorkspace } from "~features/notes/components/NotesWorkspace";
 import { LinksWorkspace } from "~features/links/components/LinksWorkspace";
+import { KanbanWorkspace } from "~features/boards/components/KanbanWorkspace";
 import styles from "../routes/projects.$projectId.module.css";
 import type { ProjectTabType } from "../routes/projects.$projectId";
 
@@ -49,6 +50,7 @@ export const ProjectDetailView: React.FC = () => {
 
   const navItems: GooeyNavItem[] = [
     { id: "overview", label: "Overview", icon: Icons.LayoutGrid },
+    { id: "boards", label: "Kanban", icon: Icons.SquareKanban },
     { id: "snippets", label: "Snippets", icon: Icons.Code2 },
     {
       id: "problems",
@@ -118,10 +120,19 @@ export const ProjectDetailView: React.FC = () => {
           </div>
         )}
 
+        {activeTab === "boards" && (
+          <KanbanWorkspace
+            projectId={projectId}
+            onOpenManageTagsModal={() => setIsTagsManagerOpen(true)}
+            projectColor={project?.color}
+          />
+        )}
+
         {activeTab === "snippets" && (
           <SnippetsWorkspace
             projectId={projectId}
             onOpenManageTagsModal={() => setIsTagsManagerOpen(true)}
+            initialSelectedId={search.itemId}
           />
         )}
 
@@ -129,6 +140,7 @@ export const ProjectDetailView: React.FC = () => {
           <ProblemsWorkspace
             projectId={projectId}
             onOpenManageTagsModal={() => setIsTagsManagerOpen(true)}
+            initialSelectedId={search.itemId}
           />
         )}
 
@@ -138,6 +150,7 @@ export const ProjectDetailView: React.FC = () => {
             isActive={activeTab === "credentials"}
             onNavigateTab={handleTabChange}
             onOpenManageTagsModal={() => setIsTagsManagerOpen(true)}
+            initialSelectedId={search.itemId}
           />
         )}
 
@@ -145,6 +158,7 @@ export const ProjectDetailView: React.FC = () => {
           <NotesWorkspace
             projectId={projectId}
             onOpenManageTagsModal={() => setIsTagsManagerOpen(true)}
+            initialSelectedId={search.itemId}
           />
         )}
 
@@ -152,6 +166,7 @@ export const ProjectDetailView: React.FC = () => {
           <LinksWorkspace
             projectId={projectId}
             onOpenManageTagsModal={() => setIsTagsManagerOpen(true)}
+            initialSelectedId={search.itemId}
           />
         )}
       </div>

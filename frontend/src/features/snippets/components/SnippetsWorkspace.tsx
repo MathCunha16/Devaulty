@@ -25,18 +25,26 @@ import styles from "../../../routes/projects.$projectId.module.css";
 interface SnippetsWorkspaceProps {
   projectId: string;
   onOpenManageTagsModal: () => void;
+  initialSelectedId?: string;
 }
 
 export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
   projectId,
   onOpenManageTagsModal,
+  initialSelectedId,
 }) => {
   const { data: snippetsData } = useSnippetsQuery(projectId);
   const deleteSnippetMutation = useDeleteSnippetMutation(projectId);
 
-  const [selectedSnippetId, setSelectedSnippetId] = useState<string | undefined>(undefined);
+  const [selectedSnippetId, setSelectedSnippetId] = useState<string | undefined>(initialSelectedId);
   const [snippetSearchQuery, setSnippetSearchQuery] = useState("");
   const [snippetTypeFilter, setSnippetTypeFilter] = useState<"ALL" | SnippetType>("ALL");
+
+  React.useEffect(() => {
+    if (initialSelectedId) {
+      setSelectedSnippetId(initialSelectedId);
+    }
+  }, [initialSelectedId]);
 
   const [isSnippetFormOpen, setIsSnippetFormOpen] = useState(false);
   const [editingSnippetId, setEditingSnippetId] = useState<string | undefined>(undefined);

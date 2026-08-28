@@ -7,6 +7,7 @@ import { useCredentialsQuery } from "~features/credentials/hooks/useCredentials"
 import { useNotesQuery } from "~features/notes/hooks/useNotes";
 import { useLinksQuery } from "~features/links/hooks/useLinks";
 import { useTagsQuery } from "~features/tags/hooks/useTags";
+import { useBoardsQuery } from "~features/boards/hooks/useBoards";
 import type { ProjectViewResponse } from "~types/api";
 import type { ProjectTabType } from "../../../routes/projects.$projectId";
 
@@ -41,6 +42,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   onOpenTagsManager,
 }) => {
   // Query project asset metrics
+  const { data: boardsData } = useBoardsQuery(projectId);
   const { data: snippetsData } = useSnippetsQuery(projectId);
   const { data: problemsData } = useProblemsQuery(projectId);
   const { data: credentialsData } = useCredentialsQuery(projectId);
@@ -48,6 +50,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   const { data: linksData } = useLinksQuery(projectId);
   const { data: tagsData } = useTagsQuery(projectId);
 
+  const boardsCount = boardsData?.page?.totalElements ?? boardsData?.content?.length ?? 0;
   const snippetsCount =
     snippetsData?.page?.totalElements ?? snippetsData?.content?.length ?? 0;
   
@@ -68,6 +71,18 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
 
   const cards: BentoCardItem[] = useMemo(
     () => [
+      {
+        id: "boards",
+        title: "Kanban Boards",
+        description:
+          "Manage sprint tasks, backlog priorities, and cross-cutting workflow cards with interactive Drag & Drop.",
+        label: "Sprint & Tasks",
+        icon: Icons.SquareKanban,
+        stat: boardsCount,
+        statLabel: "Boards",
+        color: project?.color || "#10b981",
+        onClick: () => onNavigateTab("boards"),
+      },
       {
         id: "snippets",
         title: "Code Snippets",
@@ -142,6 +157,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
       },
     ],
     [
+      boardsCount,
       snippetsCount,
       openProblemsCount,
       credentialsCount,

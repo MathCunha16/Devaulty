@@ -59,7 +59,13 @@ const ProjectFormInner: React.FC<ProjectFormInnerProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ name, description, color, icon });
+    const trimmedDesc = description.trim();
+    onSubmit({
+      name: name.trim(),
+      description: trimmedDesc.length > 0 ? trimmedDesc : (undefined as unknown as string),
+      color,
+      icon,
+    });
   };
 
   return (
