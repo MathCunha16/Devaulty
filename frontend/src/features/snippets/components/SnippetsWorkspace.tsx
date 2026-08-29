@@ -26,12 +26,14 @@ interface SnippetsWorkspaceProps {
   projectId: string;
   onOpenManageTagsModal: () => void;
   initialSelectedId?: string;
+  projectColor?: string;
 }
 
 export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
   projectId,
   onOpenManageTagsModal,
   initialSelectedId,
+  projectColor,
 }) => {
   const { data: snippetsData } = useSnippetsQuery(projectId);
   const deleteSnippetMutation = useDeleteSnippetMutation(projectId);
@@ -333,6 +335,7 @@ export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
             }}
             projectId={projectId}
             snippetId={editingSnippetId}
+            projectColor={projectColor}
           />
         </React.Suspense>
       )}

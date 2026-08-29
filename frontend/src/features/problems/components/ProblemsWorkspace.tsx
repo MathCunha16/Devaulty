@@ -21,12 +21,14 @@ interface ProblemsWorkspaceProps {
   projectId: string;
   onOpenManageTagsModal: () => void;
   initialSelectedId?: string;
+  projectColor?: string;
 }
 
 export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
   projectId,
   onOpenManageTagsModal,
   initialSelectedId,
+  projectColor,
 }) => {
   const { data: problemsData } = useProblemsQuery(projectId);
   const updateProblemStatusMutation = useUpdateProblemStatusMutation(projectId);
@@ -517,6 +519,7 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
         }}
         projectId={projectId}
         problemId={editingProblemId}
+        projectColor={projectColor}
       />
 
       <ConfirmModal

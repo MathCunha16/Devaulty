@@ -14,6 +14,7 @@ interface NoteFormProps {
   onClose: () => void;
   projectId: string;
   noteId?: string;
+  projectColor?: string;
 }
 
 interface NoteFormValues {
@@ -27,6 +28,7 @@ interface NoteFormInnerProps {
   onSubmit: (values: NoteFormValues) => Promise<void>;
   onClose: () => void;
   isSubmitting: boolean;
+  projectColor?: string;
 }
 
 const NoteFormInner: React.FC<NoteFormInnerProps> = ({
@@ -35,6 +37,7 @@ const NoteFormInner: React.FC<NoteFormInnerProps> = ({
   onSubmit,
   onClose,
   isSubmitting,
+  projectColor,
 }) => {
   const [formTitle, setFormTitle] = useState(initialValues?.title || "");
   const [content, setContent] = useState(initialValues?.content || "");
@@ -112,7 +115,11 @@ const NoteFormInner: React.FC<NoteFormInnerProps> = ({
   };
 
   return (
-    <div className={styles.overlay} onClick={() => !isSubmitting && onClose()}>
+    <div
+      className={styles.overlay}
+      onClick={() => !isSubmitting && onClose()}
+      style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
+    >
       <div
         ref={modalRef}
         className={styles.modal}
@@ -181,10 +188,11 @@ const NoteFormInner: React.FC<NoteFormInnerProps> = ({
   );
 };
 
-const CreateNoteFormModal: React.FC<{ projectId: string; onClose: () => void }> = ({
-  projectId,
-  onClose,
-}) => {
+const CreateNoteFormModal: React.FC<{
+  projectId: string;
+  onClose: () => void;
+  projectColor?: string;
+}> = ({ projectId, onClose, projectColor }) => {
   const createMutation = useCreateNoteMutation(projectId);
 
   const handleSubmit = async (values: NoteFormValues) => {
@@ -202,10 +210,11 @@ const CreateNoteFormModal: React.FC<{ projectId: string; onClose: () => void }> 
 
   return (
     <NoteFormInner
-      title="NEW SYSTEM NOTE"
+      title="CREATE NEW NOTE"
       onSubmit={handleSubmit}
       onClose={onClose}
       isSubmitting={createMutation.isPending}
+      projectColor={projectColor}
     />
   );
 };
@@ -214,7 +223,8 @@ const EditNoteFormModal: React.FC<{
   projectId: string;
   noteId: string;
   onClose: () => void;
-}> = ({ projectId, noteId, onClose }) => {
+  projectColor?: string;
+}> = ({ projectId, noteId, onClose, projectColor }) => {
   const { data: note, isLoading, isError } = useNoteQuery(projectId, noteId);
   const updateMutation = useUpdateNoteMutation(projectId, noteId);
 
@@ -222,7 +232,7 @@ const EditNoteFormModal: React.FC<{
     try {
       await updateMutation.mutateAsync({
         title: values.title,
-        content: values.content || undefined,
+        content: values.content,
       });
       toast.success("Note updated successfully");
       onClose();
@@ -233,7 +243,11 @@ const EditNoteFormModal: React.FC<{
 
   if (isLoading) {
     return (
-      <div className={styles.overlay} onClick={onClose}>
+      <div
+        className={styles.overlay}
+        onClick={onClose}
+        style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
+      >
         <div className={styles.modal}>
           <div className="flex flex-col items-center justify-center p-12 gap-3">
             <Loader2 className="animate-spin text-primary" size={28} />
@@ -246,7 +260,11 @@ const EditNoteFormModal: React.FC<{
 
   if (isError || !note) {
     return (
-      <div className={styles.overlay} onClick={onClose}>
+      <div
+        className={styles.overlay}
+        onClick={onClose}
+        style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
+      >
         <div className={styles.modal}>
           <div className="flex flex-col items-center justify-center p-12 gap-3 text-destructive font-mono text-xs">
             <span>FAILED TO LOAD NOTE.</span>
@@ -268,6 +286,7 @@ const EditNoteFormModal: React.FC<{
       onSubmit={handleSubmit}
       onClose={onClose}
       isSubmitting={updateMutation.isPending}
+      projectColor={projectColor}
     />
   );
 };
@@ -277,12 +296,26 @@ export const NoteForm: React.FC<NoteFormProps> = ({
   onClose,
   projectId,
   noteId,
+  projectColor,
 }) => {
   if (!isOpen) return null;
 
   if (noteId) {
-    return <EditNoteFormModal projectId={projectId} noteId={noteId} onClose={onClose} />;
+    return (
+      <EditNoteFormModal
+        projectId={projectId}
+        noteId={noteId}
+        onClose={onClose}
+        projectColor={projectColor}
+      />
+    );
   }
 
-  return <CreateNoteFormModal projectId={projectId} onClose={onClose} />;
+  return (
+    <CreateNoteFormModal
+      projectId={projectId}
+      onClose={onClose}
+      projectColor={projectColor}
+    />
+  );
 };

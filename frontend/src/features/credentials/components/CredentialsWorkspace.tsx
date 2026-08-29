@@ -26,6 +26,7 @@ interface CredentialsWorkspaceProps {
   onNavigateTab?: (tab: "snippets" | "problems" | "credentials" | "notes" | "links") => void;
   onOpenManageTagsModal: () => void;
   initialSelectedId?: string;
+  projectColor?: string;
 }
 
 export const CredentialsWorkspace: React.FC<CredentialsWorkspaceProps> = ({
@@ -34,6 +35,7 @@ export const CredentialsWorkspace: React.FC<CredentialsWorkspaceProps> = ({
   onNavigateTab,
   onOpenManageTagsModal,
   initialSelectedId,
+  projectColor,
 }) => {
   // Security queries
   const { data: isSetupRequired, isLoading: isSetupLoading } =
@@ -321,6 +323,7 @@ export const CredentialsWorkspace: React.FC<CredentialsWorkspaceProps> = ({
         }}
         projectId={projectId}
         credentialId={editingCredentialId}
+        projectColor={projectColor}
       />
 
       {viewingCredentialId && (
@@ -329,6 +332,7 @@ export const CredentialsWorkspace: React.FC<CredentialsWorkspaceProps> = ({
           onClose={() => setViewingCredentialId(undefined)}
           projectId={projectId}
           credentialId={viewingCredentialId}
+          projectColor={projectColor}
         />
       )}
 

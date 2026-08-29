@@ -14,6 +14,7 @@ interface CredentialFormProps {
   onClose: () => void;
   projectId: string;
   credentialId?: string;
+  projectColor?: string;
 }
 
 interface CredentialFormInnerProps {
@@ -31,6 +32,7 @@ interface CredentialFormInnerProps {
   onSubmit: (values: CreateCredentialRequest) => Promise<void>;
   onClose: () => void;
   isSubmitting: boolean;
+  projectColor?: string;
 }
 
 const CredentialFormInner: React.FC<CredentialFormInnerProps> = ({
@@ -39,6 +41,7 @@ const CredentialFormInner: React.FC<CredentialFormInnerProps> = ({
   onSubmit,
   onClose,
   isSubmitting,
+  projectColor,
 }) => {
   const [formTitle, setFormTitle] = useState(initialValues?.title || "");
   const [secretType, setSecretType] = useState<CredentialSecretType>(
@@ -137,7 +140,11 @@ const CredentialFormInner: React.FC<CredentialFormInnerProps> = ({
   };
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div
+      className={styles.overlay}
+      onClick={onClose}
+      style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
+    >
       <div
         ref={modalRef}
         className={styles.modal}
@@ -332,28 +339,30 @@ const CredentialFormInner: React.FC<CredentialFormInnerProps> = ({
   );
 };
 
-const CreateCredentialModal: React.FC<{ projectId: string; onClose: () => void }> = ({
-  projectId,
-  onClose,
-}) => {
+const CreateCredentialModal: React.FC<{
+  projectId: string;
+  onClose: () => void;
+  projectColor?: string;
+}> = ({ projectId, onClose, projectColor }) => {
   const createMutation = useCreateCredentialMutation(projectId);
 
   const handleSubmit = async (values: CreateCredentialRequest) => {
     try {
       await createMutation.mutateAsync(values);
-      toast.success("Credential created successfully!");
+      toast.success("Credential securely saved to vault");
       onClose();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to create credential.");
+      toast.error(error instanceof Error ? error.message : "Failed to create credential");
     }
   };
 
   return (
     <CredentialFormInner
-      title="NEW VAULT CREDENTIAL"
+      title="STORE NEW CREDENTIAL"
       onSubmit={handleSubmit}
       onClose={onClose}
       isSubmitting={createMutation.isPending}
+      projectColor={projectColor}
     />
   );
 };
@@ -362,34 +371,28 @@ const EditCredentialModal: React.FC<{
   projectId: string;
   credentialId: string;
   onClose: () => void;
-}> = ({ projectId, credentialId, onClose }) => {
+  projectColor?: string;
+}> = ({ projectId, credentialId, onClose, projectColor }) => {
   const { data: cred, isLoading, isError } = useCredentialQuery(projectId, credentialId);
   const updateMutation = useUpdateCredentialMutation(projectId, credentialId);
 
   const handleSubmit = async (values: CreateCredentialRequest) => {
     try {
-      const updatePayload: UpdateCredentialRequest = {
-        title: values.title,
-        secretType: values.secretType,
-        username: values.username,
-        password: values.password,
-        apiKey: values.apiKey,
-        rawTextContent: values.rawTextContent,
-        notes: values.notes,
-        relatedUrl: values.relatedUrl,
-      };
-
-      await updateMutation.mutateAsync(updatePayload);
-      toast.success("Credential updated successfully!");
+      await updateMutation.mutateAsync(values as UpdateCredentialRequest);
+      toast.success("Credential updated in vault");
       onClose();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update credential.");
+      toast.error(error instanceof Error ? error.message : "Failed to update credential");
     }
   };
 
   if (isLoading) {
     return (
-      <div className={styles.overlay} onClick={onClose}>
+      <div
+        className={styles.overlay}
+        onClick={onClose}
+        style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
+      >
         <div className={styles.modal}>
           <div className="flex flex-col items-center justify-center p-12 gap-3">
             <Loader2 className="animate-spin text-primary" size={28} />
@@ -402,7 +405,11 @@ const EditCredentialModal: React.FC<{
 
   if (isError || !cred) {
     return (
-      <div className={styles.overlay} onClick={onClose}>
+      <div
+        className={styles.overlay}
+        onClick={onClose}
+        style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
+      >
         <div className={styles.modal}>
           <div className="flex flex-col items-center justify-center p-12 gap-3 text-destructive font-mono text-xs">
             <span>FAILED TO LOAD VAULT CREDENTIAL.</span>
@@ -438,6 +445,7 @@ const EditCredentialModal: React.FC<{
       onSubmit={handleSubmit}
       onClose={onClose}
       isSubmitting={updateMutation.isPending}
+      projectColor={projectColor}
     />
   );
 };
@@ -447,12 +455,26 @@ export const CredentialForm: React.FC<CredentialFormProps> = ({
   onClose,
   projectId,
   credentialId,
+  projectColor,
 }) => {
   if (!isOpen) return null;
 
   if (credentialId) {
-    return <EditCredentialModal projectId={projectId} credentialId={credentialId} onClose={onClose} />;
+    return (
+      <EditCredentialModal
+        projectId={projectId}
+        credentialId={credentialId}
+        onClose={onClose}
+        projectColor={projectColor}
+      />
+    );
   }
 
-  return <CreateCredentialModal projectId={projectId} onClose={onClose} />;
+  return (
+    <CreateCredentialModal
+      projectId={projectId}
+      onClose={onClose}
+      projectColor={projectColor}
+    />
+  );
 };

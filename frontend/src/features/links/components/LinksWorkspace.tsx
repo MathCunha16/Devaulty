@@ -16,12 +16,14 @@ interface LinksWorkspaceProps {
   projectId: string;
   onOpenManageTagsModal: () => void;
   initialSelectedId?: string;
+  projectColor?: string;
 }
 
 export const LinksWorkspace: React.FC<LinksWorkspaceProps> = ({
   projectId,
   onOpenManageTagsModal,
   initialSelectedId,
+  projectColor,
 }) => {
   const { data: linksData } = useLinksQuery(projectId);
   const deleteLinkMutation = useDeleteLinkMutation(projectId);
@@ -272,6 +274,7 @@ export const LinksWorkspace: React.FC<LinksWorkspaceProps> = ({
         }}
         projectId={projectId}
         linkId={editingLinkId}
+        projectColor={projectColor}
       />
 
       <ConfirmModal

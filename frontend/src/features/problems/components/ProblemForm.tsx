@@ -15,6 +15,7 @@ interface ProblemFormProps {
   onClose: () => void;
   projectId: string;
   problemId?: string;
+  projectColor?: string;
 }
 
 interface ProblemFormValues {
@@ -31,6 +32,7 @@ interface ProblemFormInnerProps {
   onSubmit: (values: ProblemFormValues) => Promise<void>;
   onClose: () => void;
   isSubmitting: boolean;
+  projectColor?: string;
 }
 
 const ProblemFormInner: React.FC<ProblemFormInnerProps> = ({
@@ -39,6 +41,7 @@ const ProblemFormInner: React.FC<ProblemFormInnerProps> = ({
   onSubmit,
   onClose,
   isSubmitting,
+  projectColor,
 }) => {
   const [formTitle, setFormTitle] = useState(initialValues?.title || "");
   const [errorDescription, setErrorDescription] = useState(initialValues?.errorDescription || "");
@@ -65,7 +68,11 @@ const ProblemFormInner: React.FC<ProblemFormInnerProps> = ({
   };
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div
+      className={styles.overlay}
+      onClick={onClose}
+      style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
+    >
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <h2 className={styles.title}>{title}</h2>
@@ -173,10 +180,11 @@ const ProblemFormInner: React.FC<ProblemFormInnerProps> = ({
   );
 };
 
-const CreateProblemFormModal: React.FC<{ projectId: string; onClose: () => void }> = ({
-  projectId,
-  onClose,
-}) => {
+const CreateProblemFormModal: React.FC<{
+  projectId: string;
+  onClose: () => void;
+  projectColor?: string;
+}> = ({ projectId, onClose, projectColor }) => {
   const createMutation = useCreateProblemMutation(projectId);
 
   const handleSubmit = async (values: ProblemFormValues) => {
@@ -188,19 +196,20 @@ const CreateProblemFormModal: React.FC<{ projectId: string; onClose: () => void 
         status: values.status,
         severity: values.severity,
       });
-      toast.success("Problem node created successfully");
+      toast.success("Problem diagnostic created successfully");
       onClose();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to create problem node");
+      toast.error(error instanceof Error ? error.message : "Failed to create problem diagnostic");
     }
   };
 
   return (
     <ProblemFormInner
-      title="NEW DIAGNOSTIC PROBLEM"
+      title="LOG DIAGNOSTIC PROBLEM"
       onSubmit={handleSubmit}
       onClose={onClose}
       isSubmitting={createMutation.isPending}
+      projectColor={projectColor}
     />
   );
 };
@@ -209,7 +218,8 @@ const EditProblemFormModal: React.FC<{
   projectId: string;
   problemId: string;
   onClose: () => void;
-}> = ({ projectId, problemId, onClose }) => {
+  projectColor?: string;
+}> = ({ projectId, problemId, onClose, projectColor }) => {
   const { data: problem, isLoading, isError } = useProblemQuery(projectId, problemId);
   const updateMutation = useUpdateProblemMutation(projectId, problemId);
 
@@ -221,16 +231,20 @@ const EditProblemFormModal: React.FC<{
         solution: values.solution || undefined,
         severity: values.severity,
       });
-      toast.success("Problem updated successfully");
+      toast.success("Problem diagnostic updated successfully");
       onClose();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update problem");
+      toast.error(error instanceof Error ? error.message : "Failed to update problem diagnostic");
     }
   };
 
   if (isLoading) {
     return (
-      <div className={styles.overlay} onClick={onClose}>
+      <div
+        className={styles.overlay}
+        onClick={onClose}
+        style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
+      >
         <div className={styles.modal}>
           <div className="flex flex-col items-center justify-center p-12 gap-3">
             <Loader2 className="animate-spin text-primary" size={28} />
@@ -243,7 +257,11 @@ const EditProblemFormModal: React.FC<{
 
   if (isError || !problem) {
     return (
-      <div className={styles.overlay} onClick={onClose}>
+      <div
+        className={styles.overlay}
+        onClick={onClose}
+        style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
+      >
         <div className={styles.modal}>
           <div className="flex flex-col items-center justify-center p-12 gap-3 text-destructive font-mono text-xs">
             <span>FAILED TO LOAD DIAGNOSTICS DATA.</span>
@@ -268,6 +286,7 @@ const EditProblemFormModal: React.FC<{
       onSubmit={handleSubmit}
       onClose={onClose}
       isSubmitting={updateMutation.isPending}
+      projectColor={projectColor}
     />
   );
 };
@@ -277,6 +296,7 @@ export const ProblemForm: React.FC<ProblemFormProps> = ({
   onClose,
   projectId,
   problemId,
+  projectColor,
 }) => {
   if (!isOpen) return null;
 
@@ -284,7 +304,11 @@ export const ProblemForm: React.FC<ProblemFormProps> = ({
     return (
       <Suspense
         fallback={
-          <div className={styles.overlay} onClick={onClose}>
+          <div
+            className={styles.overlay}
+            onClick={onClose}
+            style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
+          >
             <div className={styles.modal}>
               <div className="flex flex-col items-center justify-center p-12 gap-3">
                 <Loader2 className="animate-spin text-primary" size={28} />
@@ -294,10 +318,21 @@ export const ProblemForm: React.FC<ProblemFormProps> = ({
           </div>
         }
       >
-        <EditProblemFormModal projectId={projectId} problemId={problemId} onClose={onClose} />
+        <EditProblemFormModal
+          projectId={projectId}
+          problemId={problemId}
+          onClose={onClose}
+          projectColor={projectColor}
+        />
       </Suspense>
     );
   }
 
-  return <CreateProblemFormModal projectId={projectId} onClose={onClose} />;
+  return (
+    <CreateProblemFormModal
+      projectId={projectId}
+      onClose={onClose}
+      projectColor={projectColor}
+    />
+  );
 };

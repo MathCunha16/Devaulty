@@ -14,6 +14,7 @@ interface TagsManagerModalProps {
   isOpen: boolean;
   onClose: () => void;
   projectId: string;
+  projectColor?: string;
 }
 
 const PRESET_COLORS = [
@@ -36,6 +37,7 @@ export const TagsManagerModal: React.FC<TagsManagerModalProps> = ({
   isOpen,
   onClose,
   projectId,
+  projectColor,
 }) => {
   const { data: tags = [], isLoading } = useTagsQuery(projectId);
   const createMutation = useCreateTagMutation(projectId);
@@ -192,7 +194,11 @@ export const TagsManagerModal: React.FC<TagsManagerModalProps> = ({
 
   return (
     <>
-      <div className={styles.overlay} onClick={handleClose}>
+      <div
+        className={styles.overlay}
+        onClick={handleClose}
+        style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
+      >
         <div
           ref={modalRef}
           className={styles.modal}

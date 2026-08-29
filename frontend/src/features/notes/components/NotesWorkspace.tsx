@@ -22,12 +22,14 @@ interface NotesWorkspaceProps {
   projectId: string;
   onOpenManageTagsModal: () => void;
   initialSelectedId?: string;
+  projectColor?: string;
 }
 
 export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
   projectId,
   onOpenManageTagsModal,
   initialSelectedId,
+  projectColor,
 }) => {
   const { data: notesData } = useNotesQuery(projectId);
   const deleteNoteMutation = useDeleteNoteMutation(projectId);
@@ -512,6 +514,7 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
         }}
         projectId={projectId}
         noteId={editingNoteId}
+        projectColor={projectColor}
       />
 
       <ConfirmModal

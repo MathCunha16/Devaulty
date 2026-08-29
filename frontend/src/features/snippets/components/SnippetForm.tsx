@@ -19,6 +19,7 @@ interface SnippetFormProps {
   onClose: () => void;
   projectId: string;
   snippetId?: string;
+  projectColor?: string;
 }
 
 interface SnippetFormValues {
@@ -35,6 +36,7 @@ interface SnippetFormInnerProps {
   onSubmit: (values: SnippetFormValues) => Promise<void>;
   onClose: () => void;
   isSubmitting: boolean;
+  projectColor?: string;
 }
 
 const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
@@ -43,6 +45,7 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
   onSubmit,
   onClose,
   isSubmitting,
+  projectColor,
 }) => {
   const { theme } = useTheme();
   const [formTitle, setFormTitle] = useState(initialValues?.title || "");
@@ -161,7 +164,11 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
   };
 
   return (
-    <div className={styles.overlay} onClick={() => !isSubmitting && onClose()}>
+    <div
+      className={styles.overlay}
+      onClick={() => !isSubmitting && onClose()}
+      style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
+    >
       <div
         ref={modalRef}
         className={styles.modal}
@@ -312,21 +319,16 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
   );
 };
 
-const CreateSnippetFormModal: React.FC<{ projectId: string; onClose: () => void }> = ({
-  projectId,
-  onClose,
-}) => {
+const CreateSnippetFormModal: React.FC<{
+  projectId: string;
+  onClose: () => void;
+  projectColor?: string;
+}> = ({ projectId, onClose, projectColor }) => {
   const createMutation = useCreateSnippetMutation(projectId);
 
   const handleSubmit = async (values: SnippetFormValues) => {
     try {
-      await createMutation.mutateAsync({
-        title: values.title,
-        description: values.description,
-        content: values.content,
-        language: values.language,
-        snippetType: values.snippetType,
-      });
+      await createMutation.mutateAsync(values);
       toast.success("Snippet created successfully");
       onClose();
     } catch (error) {
@@ -340,6 +342,7 @@ const CreateSnippetFormModal: React.FC<{ projectId: string; onClose: () => void 
       onSubmit={handleSubmit}
       onClose={onClose}
       isSubmitting={createMutation.isPending}
+      projectColor={projectColor}
     />
   );
 };
@@ -348,7 +351,8 @@ const EditSnippetFormModal: React.FC<{
   projectId: string;
   snippetId: string;
   onClose: () => void;
-}> = ({ projectId, snippetId, onClose }) => {
+  projectColor?: string;
+}> = ({ projectId, snippetId, onClose, projectColor }) => {
   const { data: snippet, isLoading, isError } = useSnippetQuery(projectId, snippetId);
   const updateMutation = useUpdateSnippetMutation(projectId, snippetId);
 
@@ -370,7 +374,11 @@ const EditSnippetFormModal: React.FC<{
 
   if (isLoading) {
     return (
-      <div className={styles.overlay} onClick={onClose}>
+      <div
+        className={styles.overlay}
+        onClick={onClose}
+        style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
+      >
         <div className={styles.modal}>
           <div className="flex flex-col items-center justify-center p-12 gap-3">
             <Loader2 className="animate-spin text-primary" size={28} />
@@ -383,7 +391,11 @@ const EditSnippetFormModal: React.FC<{
 
   if (isError || !snippet) {
     return (
-      <div className={styles.overlay} onClick={onClose}>
+      <div
+        className={styles.overlay}
+        onClick={onClose}
+        style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
+      >
         <div className={styles.modal}>
           <div className="flex flex-col items-center justify-center p-12 gap-3 text-destructive font-mono text-xs">
             <span>FAILED TO LOAD SNIPPET.</span>
@@ -408,6 +420,7 @@ const EditSnippetFormModal: React.FC<{
       onSubmit={handleSubmit}
       onClose={onClose}
       isSubmitting={updateMutation.isPending}
+      projectColor={projectColor}
     />
   );
 };
@@ -417,12 +430,26 @@ export const SnippetForm: React.FC<SnippetFormProps> = ({
   onClose,
   projectId,
   snippetId,
+  projectColor,
 }) => {
   if (!isOpen) return null;
 
   if (snippetId) {
-    return <EditSnippetFormModal projectId={projectId} snippetId={snippetId} onClose={onClose} />;
+    return (
+      <EditSnippetFormModal
+        projectId={projectId}
+        snippetId={snippetId}
+        onClose={onClose}
+        projectColor={projectColor}
+      />
+    );
   }
 
-  return <CreateSnippetFormModal projectId={projectId} onClose={onClose} />;
+  return (
+    <CreateSnippetFormModal
+      projectId={projectId}
+      onClose={onClose}
+      projectColor={projectColor}
+    />
+  );
 };

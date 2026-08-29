@@ -63,11 +63,14 @@ export const ProjectDetailView: React.FC = () => {
     { id: "links", label: "Links", icon: Icons.Link2 },
   ];
 
+  const activeProjectColor = project?.color || "#10b981";
+
   return (
     <div
       className={`flex flex-col gap-2.5 h-full p-4 overflow-hidden transition-all duration-300 ${
         isOpen ? "pt-3" : "pt-20"
       }`}
+      style={{ "--color-primary": activeProjectColor } as React.CSSProperties}
     >
       {/* Centered Unified Navigation Dock */}
       <div className="flex items-center justify-center shrink-0 w-full mb-1">
@@ -89,7 +92,7 @@ export const ProjectDetailView: React.FC = () => {
             items={navItems}
             activeId={activeTab}
             onChange={(id) => handleTabChange(id as ProjectTabType)}
-            projectColor={project?.color}
+            projectColor={activeProjectColor}
           />
 
           <div className="w-[1px] h-4 bg-border/80 mx-0.5" />
@@ -124,7 +127,7 @@ export const ProjectDetailView: React.FC = () => {
           <KanbanWorkspace
             projectId={projectId}
             onOpenManageTagsModal={() => setIsTagsManagerOpen(true)}
-            projectColor={project?.color}
+            projectColor={activeProjectColor}
           />
         )}
 
@@ -133,6 +136,7 @@ export const ProjectDetailView: React.FC = () => {
             projectId={projectId}
             onOpenManageTagsModal={() => setIsTagsManagerOpen(true)}
             initialSelectedId={search.itemId}
+            projectColor={activeProjectColor}
           />
         )}
 
@@ -141,6 +145,7 @@ export const ProjectDetailView: React.FC = () => {
             projectId={projectId}
             onOpenManageTagsModal={() => setIsTagsManagerOpen(true)}
             initialSelectedId={search.itemId}
+            projectColor={activeProjectColor}
           />
         )}
 
@@ -151,6 +156,7 @@ export const ProjectDetailView: React.FC = () => {
             onNavigateTab={handleTabChange}
             onOpenManageTagsModal={() => setIsTagsManagerOpen(true)}
             initialSelectedId={search.itemId}
+            projectColor={activeProjectColor}
           />
         )}
 
@@ -159,6 +165,7 @@ export const ProjectDetailView: React.FC = () => {
             projectId={projectId}
             onOpenManageTagsModal={() => setIsTagsManagerOpen(true)}
             initialSelectedId={search.itemId}
+            projectColor={activeProjectColor}
           />
         )}
 
@@ -167,6 +174,7 @@ export const ProjectDetailView: React.FC = () => {
             projectId={projectId}
             onOpenManageTagsModal={() => setIsTagsManagerOpen(true)}
             initialSelectedId={search.itemId}
+            projectColor={activeProjectColor}
           />
         )}
       </div>
@@ -176,6 +184,7 @@ export const ProjectDetailView: React.FC = () => {
         isOpen={isTagsManagerOpen}
         onClose={() => setIsTagsManagerOpen(false)}
         projectId={projectId}
+        projectColor={activeProjectColor}
       />
     </div>
   );
