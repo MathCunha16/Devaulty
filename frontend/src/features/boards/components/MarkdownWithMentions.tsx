@@ -100,22 +100,16 @@ export const MarkdownWithMentions: React.FC<MarkdownWithMentionsProps> = ({
     return map;
   }, [snippetsData, problemsData, credentialsData, notesData, linksData]);
 
-  // List of resolved mention items (if linkedItems provided, prioritize those; else all project items)
+  // List of resolved mention items (strictly from linkedItems if provided)
   const availableMentionItems: ResolvedMentionItem[] = useMemo(() => {
     const list: ResolvedMentionItem[] = [];
 
-    if (linkedItems && linkedItems.length > 0) {
+    if (linkedItems !== undefined) {
       linkedItems.forEach((li) => {
         const found = itemLookup.get(`${li.itemType}-${li.itemId}`);
         if (found) {
           list.push({ id: li.itemId, type: li.itemType, title: found.title });
         }
-      });
-    } else {
-      // Fallback: all project items
-      itemLookup.forEach((val, key) => {
-        const id = key.substring(key.indexOf("-") + 1);
-        list.push({ id, type: val.type, title: val.title });
       });
     }
 

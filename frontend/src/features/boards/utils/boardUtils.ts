@@ -103,9 +103,16 @@ export interface ResolvedMentionItem {
 
 /**
  * Format a mention token for inserting into markdown.
- * Uses clean syntax: @[Item Title]
+ * Uses clean syntax with item metadata: @[Item Title](item:TYPE:ID)
  */
-export const formatMentionToken = (title: string): string => {
+export const formatMentionToken = (
+  title: string,
+  type?: ItemType,
+  id?: string
+): string => {
+  if (type && id) {
+    return `@[${title}](item:${type}:${id})`;
+  }
   return `@[${title}]`;
 };
 
@@ -125,11 +132,27 @@ export const replaceMentionsWithPills = (
   html: string,
   availableItems: ResolvedMentionItem[]
 ): string => {
-  if (!availableItems.length || !html) return html;
+  if (!html) return html;
 
   let result = html;
 
-  // 1. First replace bracketed mentions: @[Item Title]
+  // 1. First replace ID-based mentions: @<a href="item:TYPE:ID">Title</a> or <a href="item:TYPE:ID">Title</a>
+  const itemLinkRegex =
+    /@?<a\s+[^>]*href=["']item:([A-Z_]+):([a-zA-Z0-9-]+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  result = result.replace(itemLinkRegex, (_match, _type, id, fallbackTitle) => {
+    const item = availableItems.find((i) => i.id === id);
+    if (item) {
+      const meta = getItemTypeMeta(item.type);
+      const safeTitle = escapeHtml(item.title);
+      return `<span class="devaulty-mention-pill" data-item-type="${item.type}" data-item-id="${item.id}" data-display-name="${safeTitle}" style="--mention-color: ${meta.color}; cursor: pointer;">${safeTitle}</span>`;
+    }
+    // If not found, detached, or deleted, render fallback text without active pill
+    return `@${fallbackTitle}`;
+  });
+
+  if (!availableItems.length) return result;
+
+  // 2. Backward compatibility: replace legacy bracketed mentions: @[Item Title]
   availableItems.forEach((item) => {
     const escapedTitle = item.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const bracketRegex = new RegExp(`@\\[${escapedTitle}\\]`, "gi");
@@ -141,7 +164,7 @@ export const replaceMentionsWithPills = (
     result = result.replace(bracketRegex, pillHtml);
   });
 
-  // 2. Also replace single-word direct mentions: @ItemTitle (if word boundaries match)
+  // 3. Backward compatibility: replace legacy single-word direct mentions: @ItemTitle
   availableItems.forEach((item) => {
     // Only if title has no spaces
     if (!item.title.includes(" ")) {
@@ -157,4 +180,26 @@ export const replaceMentionsWithPills = (
   });
 
   return result;
+};
+
+/**
+ * Formats a due date string (ISO / YYYY-MM-DD) safely without timezone rollover.
+ */
+export const formatDueDate = (
+  dateStr?: string
+): { formatted: string; isOverdue: boolean } | null => {
+  if (!dateStr) return null;
+  const datePart = dateStr.split("T")[0];
+  const [year, month, day] = datePart.split("-").map(Number);
+  if (!year || !month || !day) return null;
+
+  const date = new Date(year, month - 1, day);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const isOverdue = date < today;
+  return {
+    formatted: date.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+    isOverdue,
+  };
 };

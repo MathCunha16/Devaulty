@@ -273,7 +273,7 @@ const CardModalInner: React.FC<CardModalInnerProps> = ({
 
       const before = val.substring(0, atPos);
       const after = val.substring(currentCaret);
-      const mentionToken = formatMentionToken(item.title);
+      const mentionToken = formatMentionToken(item.title, item.type, item.id);
       const newText = before + mentionToken + " " + after;
 
       setDescription(newText);
@@ -327,7 +327,7 @@ const CardModalInner: React.FC<CardModalInnerProps> = ({
 
     try {
       const payloadPriority = priority ? (priority as CardPriority) : undefined;
-      const payloadDueDate = dueDate ? new Date(dueDate).toISOString() : undefined;
+      const payloadDueDate = dueDate ? `${dueDate}T00:00:00Z` : undefined;
 
       if (isEditing && cardId) {
         const updatePayload: UpdateCardRequest = {

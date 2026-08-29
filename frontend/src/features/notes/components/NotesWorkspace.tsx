@@ -32,15 +32,17 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
   const { data: notesData } = useNotesQuery(projectId);
   const deleteNoteMutation = useDeleteNoteMutation(projectId);
 
+  const [prevInitialId, setPrevInitialId] = useState(initialSelectedId);
   const [selectedNoteId, setSelectedNoteId] = useState<string | undefined>(initialSelectedId);
   const [noteSearchQuery, setNoteSearchQuery] = useState("");
   const [noteArchivedFilter, setNoteArchivedFilter] = useState<"ACTIVE" | "ARCHIVED" | "ALL">("ACTIVE");
 
-  React.useEffect(() => {
+  if (initialSelectedId !== prevInitialId) {
+    setPrevInitialId(initialSelectedId);
     if (initialSelectedId) {
       setSelectedNoteId(initialSelectedId);
     }
-  }, [initialSelectedId]);
+  }
 
   const [isNoteFormOpen, setIsNoteFormOpen] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | undefined>(undefined);

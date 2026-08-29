@@ -26,14 +26,16 @@ export const LinksWorkspace: React.FC<LinksWorkspaceProps> = ({
   const { data: linksData } = useLinksQuery(projectId);
   const deleteLinkMutation = useDeleteLinkMutation(projectId);
 
+  const [prevInitialId, setPrevInitialId] = useState(initialSelectedId);
   const [selectedLinkId, setSelectedLinkId] = useState<string | undefined>(initialSelectedId);
   const [linkSearchQuery, setLinkSearchQuery] = useState("");
 
-  React.useEffect(() => {
+  if (initialSelectedId !== prevInitialId) {
+    setPrevInitialId(initialSelectedId);
     if (initialSelectedId) {
       setSelectedLinkId(initialSelectedId);
     }
-  }, [initialSelectedId]);
+  }
 
   const [isLinkFormOpen, setIsLinkFormOpen] = useState(false);
   const [editingLinkId, setEditingLinkId] = useState<string | undefined>(undefined);

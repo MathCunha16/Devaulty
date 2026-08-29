@@ -32,16 +32,18 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
   const updateProblemStatusMutation = useUpdateProblemStatusMutation(projectId);
   const deleteProblemMutation = useDeleteProblemMutation(projectId);
 
+  const [prevInitialId, setPrevInitialId] = useState(initialSelectedId);
   const [selectedProblemId, setSelectedProblemId] = useState<string | undefined>(initialSelectedId);
   const [problemSearchQuery, setProblemSearchQuery] = useState("");
   const [problemSeverityFilter, setProblemSeverityFilter] = useState<"ALL" | ProblemSeverity>("ALL");
   const [problemStatusFilter, setProblemStatusFilter] = useState<"ALL" | "UNRESOLVED" | ProblemStatus>("UNRESOLVED");
 
-  React.useEffect(() => {
+  if (initialSelectedId !== prevInitialId) {
+    setPrevInitialId(initialSelectedId);
     if (initialSelectedId) {
       setSelectedProblemId(initialSelectedId);
     }
-  }, [initialSelectedId]);
+  }
 
   const [isProblemFormOpen, setIsProblemFormOpen] = useState(false);
   const [editingProblemId, setEditingProblemId] = useState<string | undefined>(undefined);

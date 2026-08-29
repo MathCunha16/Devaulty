@@ -3,6 +3,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import * as Icons from "lucide-react";
 import type { CardSummaryView } from "~types/api";
+import { formatDueDate } from "../utils/boardUtils";
 import styles from "./KanbanWorkspace.module.css";
 
 interface KanbanCardProps {
@@ -29,17 +30,6 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ card, onOpenCard }) => {
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
     transition,
-  };
-
-  const formatDueDate = (dateStr?: string) => {
-    if (!dateStr) return null;
-    const date = new Date(dateStr);
-    const now = new Date();
-    const isOverdue = date < now && date.toDateString() !== now.toDateString();
-    return {
-      formatted: date.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-      isOverdue,
-    };
   };
 
   const due = formatDueDate(card.dueDate);

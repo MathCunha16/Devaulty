@@ -74,13 +74,17 @@ export const CredentialsWorkspace: React.FC<CredentialsWorkspaceProps> = ({
   >("ALL");
   const [isCredentialFormOpen, setIsCredentialFormOpen] = useState(false);
   const [editingCredentialId, setEditingCredentialId] = useState<string | undefined>(undefined);
+  const [prevInitialId, setPrevInitialId] = useState(initialSelectedId);
+  const [prevVaultActive, setPrevVaultActive] = useState(isVaultActive);
   const [viewingCredentialId, setViewingCredentialId] = useState<string | undefined>(initialSelectedId);
 
-  useEffect(() => {
+  if (initialSelectedId !== prevInitialId || isVaultActive !== prevVaultActive) {
+    setPrevInitialId(initialSelectedId);
+    setPrevVaultActive(isVaultActive);
     if (initialSelectedId && isVaultActive) {
       setViewingCredentialId(initialSelectedId);
     }
-  }, [initialSelectedId, isVaultActive]);
+  }
 
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
