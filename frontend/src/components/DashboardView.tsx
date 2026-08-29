@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import * as Icons from "lucide-react";
@@ -11,7 +10,7 @@ import {
 } from "~features/projects/hooks/useProjects";
 import { ProjectForm } from "~features/projects/components/ProjectForm";
 import { ConfirmModal } from "./ConfirmModal";
-import { getIconComponent } from "../utils/icons";
+import { ProjectCard } from "./ProjectCard";
 import { useTheme } from "../hooks/useTheme";
 import FloatingLines from "./FloatingLines";
 import styles from "../routes/index.module.css";
@@ -28,7 +27,6 @@ const LINE_DISTANCE = [6, 4];
 type TabFilter = "ACTIVE" | "ARCHIVED" | "ALL";
 
 export const DashboardView: React.FC = () => {
-  const navigate = useNavigate();
   const { theme } = useTheme();
   const { data: projectsData, isLoading } = useProjectsQuery();
 
@@ -251,194 +249,18 @@ export const DashboardView: React.FC = () => {
         </div>
       ) : (
         <div className={styles.projectsGrid}>
-          {filteredProjects.map((project) => {
-            const ProjectIcon = getIconComponent(project.icon);
-            const cardColor = project.color || "var(--color-primary, #6366f1)";
-
-            return (
-              <div
-                key={project.id}
-                role="button"
-                tabIndex={0}
-                className={`${styles.projectCard} ${project.archived ? styles.projectCardArchived : ""}`}
-                onClick={() =>
-                  navigate({
-                    to: "/projects/$projectId",
-                    params: { projectId: project.id },
-                  })
-                }
-                onKeyDown={(e) => {
-                  if (e.target !== e.currentTarget) return;
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    navigate({
-                      to: "/projects/$projectId",
-                      params: { projectId: project.id },
-                    });
-                  }
-                }}
-              >
-                {/* Top Accent Strip */}
-                <div
-                  className={styles.cardAccentBar}
-                  style={{ backgroundColor: cardColor }}
-                />
-
-                {/* Card Header */}
-                <div className={styles.cardHeader}>
-                  <div
-                    className={styles.cardIconBox}
-                    style={{
-                      borderColor: `color-mix(in srgb, ${cardColor} 25%, transparent)`,
-                      backgroundColor: `color-mix(in srgb, ${cardColor} 10%, transparent)`,
-                    }}
-                  >
-                    <ProjectIcon size={20} style={{ color: cardColor }} />
-                  </div>
-
-                  <div className={styles.cardTitleBox}>
-                    <h3 className={styles.cardTitle}>{project.name}</h3>
-                    {project.archived && (
-                      <span className={styles.archivedBadge}>ARCHIVED</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Card Body */}
-                <p className={styles.cardDesc}>
-                  {project.description || "No description provided."}
-                </p>
-
-                {/* Direct Shortcut Feature Badges */}
-                <div className={styles.shortcutRow} onClick={(e) => e.stopPropagation()}>
-                  <Link
-                    to="/projects/$projectId"
-                    params={{ projectId: project.id }}
-                    search={{ tab: "boards" }}
-                    className={styles.shortcutTag}
-                    title="Kanban Boards"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Icons.SquareKanban size={11} />
-                    <span>Kanban</span>
-                  </Link>
-                  <Link
-                    to="/projects/$projectId"
-                    params={{ projectId: project.id }}
-                    search={{ tab: "snippets" }}
-                    className={styles.shortcutTag}
-                    title="Code Snippets"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Icons.Code2 size={11} />
-                    <span>Snippets</span>
-                  </Link>
-                  <Link
-                    to="/projects/$projectId"
-                    params={{ projectId: project.id }}
-                    search={{ tab: "credentials" }}
-                    className={styles.shortcutTag}
-                    title="Vault Credentials"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Icons.KeyRound size={11} />
-                    <span>Vault</span>
-                  </Link>
-                  <Link
-                    to="/projects/$projectId"
-                    params={{ projectId: project.id }}
-                    search={{ tab: "problems" }}
-                    className={styles.shortcutTag}
-                    title="Problems & Solutions"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Icons.AlertCircle size={11} />
-                    <span>Problems</span>
-                  </Link>
-                  <Link
-                    to="/projects/$projectId"
-                    params={{ projectId: project.id }}
-                    search={{ tab: "notes" }}
-                    className={styles.shortcutTag}
-                    title="Notes"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Icons.FileText size={11} />
-                    <span>Notes</span>
-                  </Link>
-                  <Link
-                    to="/projects/$projectId"
-                    params={{ projectId: project.id }}
-                    search={{ tab: "links" }}
-                    className={styles.shortcutTag}
-                    title="Links"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Icons.Link2 size={11} />
-                    <span>Links</span>
-                  </Link>
-                </div>
-
-                {/* Card Footer */}
-                <div className={styles.cardFooter}>
-                  <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
-                    {project.archived ? (
-                      <button
-                        type="button"
-                        className={styles.actionBtn}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUnarchive(project.id, project.name);
-                        }}
-                        title="Restore Project"
-                        disabled={isMutationPending}
-                      >
-                        <Icons.ArchiveRestore size={13} />
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className={styles.actionBtn}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleArchive(project.id, project.name);
-                        }}
-                        title="Archive Project"
-                        disabled={isMutationPending}
-                      >
-                        <Icons.Archive size={13} />
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(project.id, project.name);
-                      }}
-                      title="Delete Project"
-                      disabled={isMutationPending}
-                    >
-                      <Icons.Trash2 size={13} />
-                    </button>
-                  </div>
-
-                  <button
-                    type="button"
-                    className={styles.enterLink}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingProjectId(project.id);
-                    }}
-                    title="View & Edit Project Details"
-                  >
-                    <span>View Details</span>
-                    <Icons.Settings size={13} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          {filteredProjects.map((project) => (
+            <ProjectCard
+              key={project.id}
+              project={project}
+              isArchived={project.archived}
+              isMutationPending={isMutationPending}
+              onArchive={handleArchive}
+              onUnarchive={handleUnarchive}
+              onDelete={(id, name) => handleDelete(id, name)}
+              onEdit={(id) => setEditingProjectId(id)}
+            />
+          ))}
 
 
           {/* Create Project Card in Grid */}
