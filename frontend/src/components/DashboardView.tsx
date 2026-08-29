@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 
 import * as Icons from "lucide-react";
@@ -79,27 +79,33 @@ export const DashboardView: React.FC = () => {
   });
 
 
-  const handleArchive = async (id: string, name: string) => {
-    try {
-      await archiveMutation.mutateAsync(id);
-      toast.success(`Project "${name}" archived`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to archive project");
-    }
-  };
+  const handleArchive = useCallback(
+    async (id: string, name: string) => {
+      try {
+        await archiveMutation.mutateAsync(id);
+        toast.success(`Project "${name}" archived`);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to archive project");
+      }
+    },
+    [archiveMutation]
+  );
 
-  const handleUnarchive = async (id: string, name: string) => {
-    try {
-      await unarchiveMutation.mutateAsync(id);
-      toast.success(`Project "${name}" restored`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to restore project");
-    }
-  };
+  const handleUnarchive = useCallback(
+    async (id: string, name: string) => {
+      try {
+        await unarchiveMutation.mutateAsync(id);
+        toast.success(`Project "${name}" restored`);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to restore project");
+      }
+    },
+    [unarchiveMutation]
+  );
 
-  const handleDelete = (id: string, name: string) => {
+  const handleDelete = useCallback((id: string, name: string) => {
     setConfirmModal({ isOpen: true, itemId: id, itemName: name, isLoading: false });
-  };
+  }, []);
 
   const handleConfirmDelete = async () => {
     setConfirmModal((prev) => ({ ...prev, isLoading: true }));
@@ -257,8 +263,8 @@ export const DashboardView: React.FC = () => {
               isMutationPending={isMutationPending}
               onArchive={handleArchive}
               onUnarchive={handleUnarchive}
-              onDelete={(id, name) => handleDelete(id, name)}
-              onEdit={(id) => setEditingProjectId(id)}
+              onDelete={handleDelete}
+              onEdit={setEditingProjectId}
             />
           ))}
 

@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState, useEffect, type ReactNode } from 'react';
+import { useRef, useCallback, useState, useEffect, useMemo, type ReactNode } from 'react';
 
 interface BorderGlowProps {
   children?: ReactNode;
@@ -192,16 +192,18 @@ export const BorderGlow: React.FC<BorderGlowProps> = ({
     ? Math.max(0, (edgeProximity * 100 - edgeSensitivity) / (100 - edgeSensitivity))
     : 0;
 
-  const meshGradients = buildMeshGradients(colors);
-  const borderBg = meshGradients.map(g => `${g} border-box`);
-  const fillBg = meshGradients.map(g => `${g} padding-box`);
+  const meshGradients = useMemo(() => buildMeshGradients(colors), [colors]);
+  const borderBg = useMemo(() => meshGradients.map((g) => `${g} border-box`), [meshGradients]);
+  const fillBg = useMemo(() => meshGradients.map((g) => `${g} padding-box`), [meshGradients]);
+  const boxShadowStyle = useMemo(
+    () => buildBoxShadow(glowColor, glowIntensity),
+    [glowColor, glowIntensity]
+  );
   const angleDeg = `${cursorAngle.toFixed(3)}deg`;
 
   return (
     <div
       ref={cardRef}
-      role="button"
-      tabIndex={0}
       onClick={onClick}
       onKeyDown={onKeyDown}
       onPointerMove={handlePointerMove}
@@ -287,7 +289,7 @@ export const BorderGlow: React.FC<BorderGlowProps> = ({
           className="absolute rounded-[inherit]"
           style={{
             inset: `${glowRadius}px`,
-            boxShadow: buildBoxShadow(glowColor, glowIntensity),
+            boxShadow: boxShadowStyle,
           }}
         />
       </span>

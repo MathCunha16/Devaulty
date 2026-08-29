@@ -105,7 +105,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = React.memo(
         glowColor={glowHsl}
         colors={glowColors}
         backgroundColor="color-mix(in srgb, var(--color-card) 75%, transparent)"
-        className={`cursor-pointer transition-transform duration-200 hover:-translate-y-1 ${
+        className={`group cursor-pointer transition-transform duration-200 hover:-translate-y-1 ${
           isArchived ? "opacity-70 grayscale-[0.3] hover:opacity-95 hover:grayscale-0" : ""
         }`}
         onClick={navigateToProject}
@@ -233,13 +233,16 @@ export const ProjectCard: React.FC<ProjectCardProps> = React.memo(
             Workspace
           </span>
 
-          <div
-            className="inline-flex items-center gap-1.5 text-xs font-bold transition-all"
+          <Link
+            to="/projects/$projectId"
+            params={{ projectId: project.id }}
+            className="inline-flex items-center gap-1.5 text-xs font-bold transition-all hover:brightness-110 focus:outline-none focus-visible:underline"
             style={{ color: cardColor }}
+            onClick={(e) => e.stopPropagation()}
           >
             <span>Open</span>
             <Icons.ArrowRight size={13} className="transition-transform duration-150 group-hover:translate-x-1" />
-          </div>
+          </Link>
         </div>
       </BorderGlow>
     );
