@@ -64,8 +64,9 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
     (p) => p.status === "OPEN" || p.status === "WORKING_ON"
   ).length;
 
-  const credentialsCount =
-    credentialsData?.page?.totalElements ?? credentialsData?.content?.length ?? 0;
+  const credentialsCount = isVaultActive
+    ? (credentialsData?.page?.totalElements ?? credentialsData?.content?.length ?? 0)
+    : 0;
   const notesCount =
     notesData?.page?.totalElements ?? notesData?.content?.length ?? 0;
   const linksCount =
