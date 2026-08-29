@@ -16,24 +16,28 @@ interface LinksWorkspaceProps {
   projectId: string;
   onOpenManageTagsModal: () => void;
   initialSelectedId?: string;
+  projectColor?: string;
 }
 
 export const LinksWorkspace: React.FC<LinksWorkspaceProps> = ({
   projectId,
   onOpenManageTagsModal,
   initialSelectedId,
+  projectColor,
 }) => {
   const { data: linksData } = useLinksQuery(projectId);
   const deleteLinkMutation = useDeleteLinkMutation(projectId);
 
+  const [prevInitialId, setPrevInitialId] = useState(initialSelectedId);
   const [selectedLinkId, setSelectedLinkId] = useState<string | undefined>(initialSelectedId);
   const [linkSearchQuery, setLinkSearchQuery] = useState("");
 
-  React.useEffect(() => {
+  if (initialSelectedId !== prevInitialId) {
+    setPrevInitialId(initialSelectedId);
     if (initialSelectedId) {
       setSelectedLinkId(initialSelectedId);
     }
-  }, [initialSelectedId]);
+  }
 
   const [isLinkFormOpen, setIsLinkFormOpen] = useState(false);
   const [editingLinkId, setEditingLinkId] = useState<string | undefined>(undefined);
@@ -270,6 +274,7 @@ export const LinksWorkspace: React.FC<LinksWorkspaceProps> = ({
         }}
         projectId={projectId}
         linkId={editingLinkId}
+        projectColor={projectColor}
       />
 
       <ConfirmModal

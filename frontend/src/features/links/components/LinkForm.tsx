@@ -14,6 +14,7 @@ interface LinkFormProps {
   onClose: () => void;
   projectId: string;
   linkId?: string;
+  projectColor?: string;
 }
 
 interface LinkFormValues {
@@ -28,6 +29,7 @@ interface LinkFormInnerProps {
   onSubmit: (values: LinkFormValues) => Promise<void>;
   onClose: () => void;
   isSubmitting: boolean;
+  projectColor?: string;
 }
 
 const LinkFormInner: React.FC<LinkFormInnerProps> = ({
@@ -36,6 +38,7 @@ const LinkFormInner: React.FC<LinkFormInnerProps> = ({
   onSubmit,
   onClose,
   isSubmitting,
+  projectColor,
 }) => {
   const [formTitle, setFormTitle] = useState(initialValues?.title || "");
   const [url, setUrl] = useState(initialValues?.url || "");
@@ -119,7 +122,11 @@ const LinkFormInner: React.FC<LinkFormInnerProps> = ({
   };
 
   return (
-    <div className={styles.overlay} onClick={() => !isSubmitting && onClose()}>
+    <div
+      className={styles.overlay}
+      onClick={() => !isSubmitting && onClose()}
+      style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
+    >
       <div
         ref={modalRef}
         className={styles.modal}
@@ -202,10 +209,11 @@ const LinkFormInner: React.FC<LinkFormInnerProps> = ({
   );
 };
 
-const CreateLinkFormModal: React.FC<{ projectId: string; onClose: () => void }> = ({
-  projectId,
-  onClose,
-}) => {
+const CreateLinkFormModal: React.FC<{
+  projectId: string;
+  onClose: () => void;
+  projectColor?: string;
+}> = ({ projectId, onClose, projectColor }) => {
   const createMutation = useCreateLinkMutation(projectId);
 
   const handleSubmit = async (values: LinkFormValues) => {
@@ -224,10 +232,11 @@ const CreateLinkFormModal: React.FC<{ projectId: string; onClose: () => void }> 
 
   return (
     <LinkFormInner
-      title="NEW WEB LINK"
+      title="CREATE NEW LINK"
       onSubmit={handleSubmit}
       onClose={onClose}
       isSubmitting={createMutation.isPending}
+      projectColor={projectColor}
     />
   );
 };
@@ -236,7 +245,8 @@ const EditLinkFormModal: React.FC<{
   projectId: string;
   linkId: string;
   onClose: () => void;
-}> = ({ projectId, linkId, onClose }) => {
+  projectColor?: string;
+}> = ({ projectId, linkId, onClose, projectColor }) => {
   const { data: link, isLoading, isError } = useLinkQuery(projectId, linkId);
   const updateMutation = useUpdateLinkMutation(projectId, linkId);
 
@@ -245,7 +255,7 @@ const EditLinkFormModal: React.FC<{
       await updateMutation.mutateAsync({
         title: values.title,
         url: values.url,
-        description: values.description || undefined,
+        description: values.description,
       });
       toast.success("Link updated successfully");
       onClose();
@@ -256,7 +266,11 @@ const EditLinkFormModal: React.FC<{
 
   if (isLoading) {
     return (
-      <div className={styles.overlay} onClick={onClose}>
+      <div
+        className={styles.overlay}
+        onClick={onClose}
+        style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
+      >
         <div className={styles.modal}>
           <div className="flex flex-col items-center justify-center p-12 gap-3">
             <Loader2 className="animate-spin text-primary" size={28} />
@@ -269,7 +283,11 @@ const EditLinkFormModal: React.FC<{
 
   if (isError || !link) {
     return (
-      <div className={styles.overlay} onClick={onClose}>
+      <div
+        className={styles.overlay}
+        onClick={onClose}
+        style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
+      >
         <div className={styles.modal}>
           <div className="flex flex-col items-center justify-center p-12 gap-3 text-destructive font-mono text-xs">
             <span>FAILED TO LOAD LINK.</span>
@@ -292,6 +310,7 @@ const EditLinkFormModal: React.FC<{
       onSubmit={handleSubmit}
       onClose={onClose}
       isSubmitting={updateMutation.isPending}
+      projectColor={projectColor}
     />
   );
 };
@@ -301,12 +320,26 @@ export const LinkForm: React.FC<LinkFormProps> = ({
   onClose,
   projectId,
   linkId,
+  projectColor,
 }) => {
   if (!isOpen) return null;
 
   if (linkId) {
-    return <EditLinkFormModal projectId={projectId} linkId={linkId} onClose={onClose} />;
+    return (
+      <EditLinkFormModal
+        projectId={projectId}
+        linkId={linkId}
+        onClose={onClose}
+        projectColor={projectColor}
+      />
+    );
   }
 
-  return <CreateLinkFormModal projectId={projectId} onClose={onClose} />;
+  return (
+    <CreateLinkFormModal
+      projectId={projectId}
+      onClose={onClose}
+      projectColor={projectColor}
+    />
+  );
 };

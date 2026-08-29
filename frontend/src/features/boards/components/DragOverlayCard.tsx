@@ -1,6 +1,7 @@
 import React from "react";
 import * as Icons from "lucide-react";
 import type { CardSummaryView } from "~types/api";
+import { formatDueDate } from "../utils/boardUtils";
 import styles from "./KanbanWorkspace.module.css";
 
 interface DragOverlayCardProps {
@@ -8,17 +9,6 @@ interface DragOverlayCardProps {
 }
 
 export const DragOverlayCard: React.FC<DragOverlayCardProps> = ({ card }) => {
-  const formatDueDate = (dateStr?: string) => {
-    if (!dateStr) return null;
-    const date = new Date(dateStr);
-    const now = new Date();
-    const isOverdue = date < now && date.toDateString() !== now.toDateString();
-    return {
-      formatted: date.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-      isOverdue,
-    };
-  };
-
   const due = formatDueDate(card.dueDate);
 
   return (

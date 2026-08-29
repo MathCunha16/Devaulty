@@ -26,6 +26,7 @@ interface CredentialsWorkspaceProps {
   onNavigateTab?: (tab: "snippets" | "problems" | "credentials" | "notes" | "links") => void;
   onOpenManageTagsModal: () => void;
   initialSelectedId?: string;
+  projectColor?: string;
 }
 
 export const CredentialsWorkspace: React.FC<CredentialsWorkspaceProps> = ({
@@ -34,6 +35,7 @@ export const CredentialsWorkspace: React.FC<CredentialsWorkspaceProps> = ({
   onNavigateTab,
   onOpenManageTagsModal,
   initialSelectedId,
+  projectColor,
 }) => {
   // Security queries
   const { data: isSetupRequired, isLoading: isSetupLoading } =
@@ -74,13 +76,23 @@ export const CredentialsWorkspace: React.FC<CredentialsWorkspaceProps> = ({
   >("ALL");
   const [isCredentialFormOpen, setIsCredentialFormOpen] = useState(false);
   const [editingCredentialId, setEditingCredentialId] = useState<string | undefined>(undefined);
-  const [viewingCredentialId, setViewingCredentialId] = useState<string | undefined>(initialSelectedId);
+  const [prevInitialId, setPrevInitialId] = useState(initialSelectedId);
+  const [prevVaultActive, setPrevVaultActive] = useState(isVaultActive);
+  const [viewingCredentialId, setViewingCredentialId] = useState<string | undefined>(
+    isVaultActive ? initialSelectedId : undefined
+  );
 
-  useEffect(() => {
-    if (initialSelectedId && isVaultActive) {
+  if (initialSelectedId !== prevInitialId || isVaultActive !== prevVaultActive) {
+    setPrevInitialId(initialSelectedId);
+    setPrevVaultActive(isVaultActive);
+    if (!isVaultActive) {
+      setViewingCredentialId(undefined);
+      setIsCredentialFormOpen(false);
+      setEditingCredentialId(undefined);
+    } else if (initialSelectedId) {
       setViewingCredentialId(initialSelectedId);
     }
-  }, [initialSelectedId, isVaultActive]);
+  }
 
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -317,6 +329,7 @@ export const CredentialsWorkspace: React.FC<CredentialsWorkspaceProps> = ({
         }}
         projectId={projectId}
         credentialId={editingCredentialId}
+        projectColor={projectColor}
       />
 
       {viewingCredentialId && (
@@ -325,6 +338,7 @@ export const CredentialsWorkspace: React.FC<CredentialsWorkspaceProps> = ({
           onClose={() => setViewingCredentialId(undefined)}
           projectId={projectId}
           credentialId={viewingCredentialId}
+          projectColor={projectColor}
         />
       )}
 

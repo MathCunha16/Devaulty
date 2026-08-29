@@ -24,6 +24,7 @@ interface CredentialDetailModalProps {
   onClose: () => void;
   projectId: string;
   credentialId: string;
+  projectColor?: string;
 }
 
 export const CredentialDetailModal: React.FC<CredentialDetailModalProps> = ({
@@ -31,6 +32,7 @@ export const CredentialDetailModal: React.FC<CredentialDetailModalProps> = ({
   onClose,
   projectId,
   credentialId,
+  projectColor,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -131,7 +133,11 @@ export const CredentialDetailModal: React.FC<CredentialDetailModalProps> = ({
   };
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div
+      className={styles.overlay}
+      onClick={onClose}
+      style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
+    >
       <div
         ref={modalRef}
         tabIndex={-1}

@@ -26,25 +26,29 @@ interface SnippetsWorkspaceProps {
   projectId: string;
   onOpenManageTagsModal: () => void;
   initialSelectedId?: string;
+  projectColor?: string;
 }
 
 export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
   projectId,
   onOpenManageTagsModal,
   initialSelectedId,
+  projectColor,
 }) => {
   const { data: snippetsData } = useSnippetsQuery(projectId);
   const deleteSnippetMutation = useDeleteSnippetMutation(projectId);
 
+  const [prevInitialId, setPrevInitialId] = useState(initialSelectedId);
   const [selectedSnippetId, setSelectedSnippetId] = useState<string | undefined>(initialSelectedId);
   const [snippetSearchQuery, setSnippetSearchQuery] = useState("");
   const [snippetTypeFilter, setSnippetTypeFilter] = useState<"ALL" | SnippetType>("ALL");
 
-  React.useEffect(() => {
+  if (initialSelectedId !== prevInitialId) {
+    setPrevInitialId(initialSelectedId);
     if (initialSelectedId) {
       setSelectedSnippetId(initialSelectedId);
     }
-  }, [initialSelectedId]);
+  }
 
   const [isSnippetFormOpen, setIsSnippetFormOpen] = useState(false);
   const [editingSnippetId, setEditingSnippetId] = useState<string | undefined>(undefined);
@@ -331,6 +335,7 @@ export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
             }}
             projectId={projectId}
             snippetId={editingSnippetId}
+            projectColor={projectColor}
           />
         </React.Suspense>
       )}
