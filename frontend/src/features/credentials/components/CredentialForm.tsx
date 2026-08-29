@@ -123,8 +123,8 @@ const CredentialFormInner: React.FC<CredentialFormInnerProps> = ({
     const payload: CreateCredentialRequest = {
       title: formTitle.trim(),
       secretType,
-      notes: notes.trim() || undefined,
-      relatedUrl: relatedUrl.trim() || undefined,
+      notes: notes.trim(),
+      relatedUrl: relatedUrl.trim(),
     };
 
     if (secretType === "LOGIN") {

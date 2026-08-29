@@ -4,6 +4,7 @@ import { MagicBento, type BentoCardItem } from "../../../components/MagicBento";
 import { useSnippetsQuery } from "~features/snippets/hooks/useSnippets";
 import { useProblemsQuery } from "~features/problems/hooks/useProblems";
 import { useCredentialsQuery } from "~features/credentials/hooks/useCredentials";
+import { useVaultStatusQuery } from "~features/security/hooks/useSecurity";
 import { useNotesQuery } from "~features/notes/hooks/useNotes";
 import { useLinksQuery } from "~features/links/hooks/useLinks";
 import { useTagsQuery } from "~features/tags/hooks/useTags";
@@ -41,11 +42,15 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   onNavigateTab,
   onOpenTagsManager,
 }) => {
+  // Check vault unlock status
+  const { data: vaultStatus } = useVaultStatusQuery();
+  const isVaultActive = vaultStatus?.active === true;
+
   // Query project asset metrics
   const { data: boardsData } = useBoardsQuery(projectId);
   const { data: snippetsData } = useSnippetsQuery(projectId);
   const { data: problemsData } = useProblemsQuery(projectId);
-  const { data: credentialsData } = useCredentialsQuery(projectId);
+  const { data: credentialsData } = useCredentialsQuery(projectId, isVaultActive);
   const { data: notesData } = useNotesQuery(projectId);
   const { data: linksData } = useLinksQuery(projectId);
   const { data: tagsData } = useTagsQuery(projectId);
@@ -113,9 +118,9 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
         description:
           "Securely store API keys, database credentials, and secret tokens protected with Argon2id + AES-256-GCM.",
         label: "Encrypted Vault",
-        icon: Icons.KeyRound,
-        stat: credentialsCount,
-        statLabel: "Secrets",
+        icon: isVaultActive ? Icons.KeyRound : Icons.Lock,
+        stat: isVaultActive ? credentialsCount : "?",
+        statLabel: isVaultActive ? "Secrets" : "Locked",
         color: "#8b5cf6",
         onClick: () => onNavigateTab("credentials"),
       },
@@ -161,6 +166,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
       snippetsCount,
       openProblemsCount,
       credentialsCount,
+      isVaultActive,
       notesCount,
       linksCount,
       tagsCount,
