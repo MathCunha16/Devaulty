@@ -115,10 +115,10 @@ jobs:
           if-no-files-found: error
 
   # ===========================================
-  # STAGE 2: Windows Packaging (.msi, .nsis)
+  # STAGE 2: Windows Packaging (NSIS .exe)
   # ===========================================
   build-windows:
-    name: Package Windows Installer (.msi, .nsis)
+    name: Package Windows Installer (NSIS .exe)
     needs: verify
     runs-on: windows-latest
 

@@ -31,6 +31,7 @@ src/
 ├── components/     # Shared global UI components (RootLayout, Sidebar, HackerLogo, ThemeProvider)
 ├── contexts/       # React Context providers (Sidebar, Theme)
 ├── features/       # Modular domain features:
+│   ├── boards      # Multi-board Kanban workspace, column WIP limits, card dnd, @ mention resolution
 │   ├── credentials # Encrypted credential forms & vault UI
 │   ├── links       # Project bookmark links
 │   ├── notes       # Markdown note editor & renderer
@@ -52,8 +53,9 @@ src/
 
 ### 3. Rich UI Components & Editors
 
+- **Kanban Drag-and-Drop (`@dnd-kit`)**: High-performance, accessible 60fps drag-and-drop system powering Kanban columns and cards.
 - **Monaco Editor (`@monaco-editor/react`)**: Embedded VS Code editor powering the code snippets vault.
-- **Markdown Processing (`marked` + `dompurify`)**: Renders markdown notes securely with XSS sanitization.
+- **Markdown Processing (`marked` + `dompurify`)**: Renders markdown notes and card descriptions securely with XSS sanitization.
 - **Lucide Icons (`lucide-react`)**: Dynamic icon resolution for project badges and UI navigation.
 - **Sonner (`sonner`)**: Clean toast notifications for user interactions.
 
@@ -101,8 +103,8 @@ sequenceDiagram
 
 The desktop app is packaged using Tauri's cross-platform bundler into native installers:
 
-- **Linux**: `.deb` (Debian/Ubuntu) and `.rpm` (Fedora/RHEL)
-- **Windows**: `.msi` (WiX Toolset installer)
+- **Linux**: `.AppImage` (portable), `.deb` (Debian/Ubuntu), and `.rpm` (Fedora/RHEL)
+- **Windows**: `.exe` (NSIS installer)
 - **macOS**: `.dmg` disk image
 
 ---

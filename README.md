@@ -36,7 +36,9 @@ Security is the core foundation of Devaulty.
 
 ## Key Features
 
-- **Project Workspaces**: Group your credentials, snippets, problems, and notes by project.
+- **Project Workspaces**: Group your credentials, snippets, problems, notes, and boards by project.
+- **Interactive Kanban Boards**: Visual task management with customizable columns, WIP (Work In Progress) limits, priority tagging, and fluid drag-and-drop.
+- **Smart `@` Mentions & Deep Linking**: Mention any project item directly inside Markdown descriptions with caret-anchored autocomplete and live preview hovercards.
 - **Encrypted Credential Store**: Safely store API keys, database URLs, SSH keys, and passwords.
 - **Code Snippets Vault**: Save reusable code snippets with syntax highlighting and language tag filters.
 - **Problem Tracking**: Keep track of current bugs, technical debt, and blocker issues for each project.
@@ -51,8 +53,8 @@ You do not need to compile from source to use Devaulty. Pre-compiled native inst
 
 1. Go to the [Releases](../../releases) page of this repository.
 2. Download the package for your operating system:
-   - **Linux**: `.deb` (Debian/Ubuntu) or `.rpm` (Fedora/RHEL)
-   - **Windows**: `.msi` installer
+   - **Linux**: `.AppImage` (portable), `.deb` (Debian/Ubuntu), or `.rpm` (Fedora/RHEL)
+   - **Windows**: `.exe` (NSIS installer)
    - **macOS**: `.dmg` package
 3. Install and run the application.
 
