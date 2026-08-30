@@ -1,11 +1,13 @@
 package main
 
 import (
+	"devaulty-backend/internal/adapter/in/mcp"
 	"devaulty-backend/internal/adapter/in/scheduler"
 	"devaulty-backend/internal/adapter/in/web"
 	"devaulty-backend/internal/adapter/in/web/handler"
 	"devaulty-backend/internal/usecase"
 	"devaulty-backend/migrations"
+	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -78,6 +80,11 @@ func main() {
 	projectRepo := persistence.NewProjectRepository(db)
 	projectUseCase := usecase.NewProjectUseCase(projectRepo)
 	projectHandler := handler.NewProjectHandler(projectUseCase)
+
+	if len(os.Args) > 1 && os.Args[1] == "mcp" {
+		runMCPServer(projectUseCase)
+		return
+	}
 
 	snippetRepo := persistence.NewSnippetRepository(db)
 	snippetUseCase := usecase.NewSnippetUseCase(snippetRepo, projectRepo, itemTagRepo)
@@ -158,5 +165,24 @@ func main() {
 	log.Printf("Starting server on port %d...", port)
 	if err := r.RunListener(listener); err != nil {
 		log.Fatalf("Critical error while starting Devaulty API: %v", err)
+	}
+}
+
+func runMCPServer(projectUseCase *usecase.ProjectUseCase) {
+	fs := flag.NewFlagSet("mcp", flag.ExitOnError)
+	readOnly := fs.Bool("readonly", false, "only register ready-only tools")
+	disableDelete := fs.Bool("disable-delete", false, "disable delete tool")
+	if err := fs.Parse(os.Args[2:]); err != nil {
+		log.Fatalf("Failed to parse command line arguments: %v", err)
+	}
+
+	opts := mcp.Options{
+		ReadOnly:      *readOnly,
+		DisableDelete: *disableDelete,
+	}
+
+	adapter := mcp.NewMCPServerAdapter(opts, projectUseCase)
+	if err := adapter.Serve(); err != nil {
+		log.Fatalf("Failed to start MCP server: %v", err)
 	}
 }

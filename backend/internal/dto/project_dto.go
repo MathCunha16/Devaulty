@@ -10,7 +10,7 @@ type CreateProjectCommand struct {
 }
 
 type UpdateProjectCommand struct {
-	ID          uuid.UUID `json:"-"`
+	ID          uuid.UUID `json:"id"`
 	Name        *string   `json:"name,omitempty" binding:"omitempty,min=2,max=255"`
 	Description *string   `json:"description,omitempty" binding:"omitempty,min=1,max=255"`
 	Icon        *string   `json:"icon,omitempty" binding:"omitempty,max=100"`
