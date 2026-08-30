@@ -11,6 +11,11 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
+var ( // This is determined by the Frontend, here we are just providing the same defaults
+	ProjectIcons  = []string{"Folder", "Terminal", "Database", "Globe", "Cpu", "Activity", "BookOpen", "Code"}
+	ProjectColors = []string{"#ef4444", "#f97316", "#facc15", "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899"}
+)
+
 type ProjectTools struct {
 	projectUseCase *usecase.ProjectUseCase
 }
@@ -41,13 +46,24 @@ func (t *ProjectTools) Register(s *server.MCPServer, opts Options) {
 
 	createProjectTool := mcp.NewTool("create_project",
 		mcp.WithDescription("creates a new project in Devaulty"),
-		mcp.WithInputSchema[dto.CreateProjectCommand](),
+		mcp.WithString("name", mcp.Required(), mcp.Description("Name of the project"),
+			mcp.MinLength(2), mcp.MaxLength(255)),
+		mcp.WithString("description", mcp.Description("Description of the project"),
+			mcp.MinLength(1), mcp.MaxLength(255)),
+		mcp.WithString("icon", mcp.Description("Icon of the project"), mcp.Enum(ProjectIcons...)),
+		mcp.WithString("color", mcp.Description("Color of the project"), mcp.Enum(ProjectColors...)),
 		mcp.WithToolAnnotation(util.WriteAnnotations))
 	s.AddTool(createProjectTool, t.create)
 
 	updateProjectTool := mcp.NewTool("update_project",
 		mcp.WithDescription("updates an existing project in Devaulty"),
-		mcp.WithInputSchema[dto.UpdateProjectCommand](),
+		mcp.WithString("project_id", mcp.Required(), mcp.Description("UUID of the project")),
+		mcp.WithString("name", mcp.Description("Name of the project"),
+			mcp.MinLength(2), mcp.MaxLength(255)),
+		mcp.WithString("description", mcp.Description("Description of the project"),
+			mcp.MinLength(1), mcp.MaxLength(255)),
+		mcp.WithString("icon", mcp.Description("Icon of the project"), mcp.Enum(ProjectIcons...)),
+		mcp.WithString("color", mcp.Description("Color of the project"), mcp.Enum(ProjectColors...)),
 		mcp.WithToolAnnotation(util.WriteAnnotations))
 	s.AddTool(updateProjectTool, t.update)
 
