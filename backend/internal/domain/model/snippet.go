@@ -97,6 +97,97 @@ const (
 	SnippetLangPlainText SnippetLanguage = "PLAIN_TEXT"
 )
 
+var SnippetTypes = []SnippetType{ // this is used on MCP
+	SnippetTypeCommand,
+	SnippetTypeCode,
+}
+
+var SnippetLanguages = []SnippetLanguage{ // this is used on MCP
+	// Shells / terminal
+	SnippetLangBash,
+	SnippetLangFish,
+	SnippetLangZsh,
+	SnippetLangSh,
+	SnippetLangPowershell,
+	SnippetLangBatch,
+
+	// Code Languages
+	SnippetLangJava,
+	SnippetLangKotlin,
+	SnippetLangJavascript,
+	SnippetLangTypescript,
+	SnippetLangPython,
+	SnippetLangGo,
+	SnippetLangRust,
+	SnippetLangC,
+	SnippetLangCpp,
+	SnippetLangCsharp,
+	SnippetLangPhp,
+	SnippetLangRuby,
+	SnippetLangSwift,
+	SnippetLangDart,
+	SnippetLangScala,
+	SnippetLangLua,
+	SnippetLangPerl,
+	SnippetLangR,
+	SnippetLangElixir,
+	SnippetLangHaskell,
+	SnippetLangClojure,
+	SnippetLangGroovy,
+
+	// Web / frontend
+	SnippetLangHtml,
+	SnippetLangCss,
+	SnippetLangScss,
+	SnippetLangLess,
+	SnippetLangJsx,
+	SnippetLangTsx,
+	SnippetLangVue,
+	SnippetLangSvelte,
+
+	// Data / config / markup
+	SnippetLangJson,
+	SnippetLangYaml,
+	SnippetLangXml,
+	SnippetLangToml,
+	SnippetLangIni,
+	SnippetLangEnv,
+	SnippetLangCsv,
+	SnippetLangMarkdown,
+	SnippetLangProperties,
+
+	// Infra / DevOps
+	SnippetLangDockerfile,
+	SnippetLangDockerCompose,
+	SnippetLangNginx,
+	SnippetLangApache,
+	SnippetLangTerraform,
+	SnippetLangAnsible,
+	SnippetLangKubernetesYaml,
+	SnippetLangHelm,
+	SnippetLangMakefile,
+	SnippetLangCmake,
+	SnippetLangGradle,
+	SnippetLangMavenPom,
+
+	// Databases
+	SnippetLangSql,
+	SnippetLangPlsql,
+	SnippetLangGraphql,
+	SnippetLangMongodb,
+
+	// CI/CD
+	SnippetLangGithubActions,
+	SnippetLangGitlabCi,
+	SnippetLangJenkinsfile,
+
+	// Others / Generics
+	SnippetLangRegex,
+	SnippetLangDiff,
+	SnippetLangLog,
+	SnippetLangPlainText,
+}
+
 type Snippet struct {
 	ID          uuid.UUID        `json:"id" db:"id"`
 	ProjectID   uuid.UUID        `json:"projectId" db:"project_id"`

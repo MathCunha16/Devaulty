@@ -81,14 +81,14 @@ func main() {
 	projectUseCase := usecase.NewProjectUseCase(projectRepo)
 	projectHandler := handler.NewProjectHandler(projectUseCase)
 
-	if len(os.Args) > 1 && os.Args[1] == "mcp" {
-		runMCPServer(projectUseCase)
-		return
-	}
-
 	snippetRepo := persistence.NewSnippetRepository(db)
 	snippetUseCase := usecase.NewSnippetUseCase(snippetRepo, projectRepo, itemTagRepo)
 	snippetHandler := handler.NewSnippetHandler(snippetUseCase)
+
+	if len(os.Args) > 1 && os.Args[1] == "mcp" {
+		runMCPServer(projectUseCase, snippetUseCase)
+		return
+	}
 
 	cryptoAdapter := security.NewAESGCMCrypto()
 	credentialRepo := persistence.NewCredentialRepository(db)
@@ -168,7 +168,7 @@ func main() {
 	}
 }
 
-func runMCPServer(projectUseCase *usecase.ProjectUseCase) {
+func runMCPServer(projectUseCase *usecase.ProjectUseCase, snippetUseCase *usecase.SnippetUseCase) {
 	fs := flag.NewFlagSet("mcp", flag.ExitOnError)
 	readOnly := fs.Bool("readonly", false, "only register ready-only tools")
 	disableDelete := fs.Bool("disable-delete", false, "disable delete tool")
@@ -181,7 +181,7 @@ func runMCPServer(projectUseCase *usecase.ProjectUseCase) {
 		DisableDelete: *disableDelete,
 	}
 
-	adapter := mcp.NewMCPServerAdapter(opts, projectUseCase)
+	adapter := mcp.NewMCPServerAdapter(opts, projectUseCase, snippetUseCase)
 	if err := adapter.Serve(); err != nil {
 		log.Fatalf("Failed to start MCP server: %v", err)
 	}

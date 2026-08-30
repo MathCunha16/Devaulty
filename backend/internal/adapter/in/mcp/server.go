@@ -10,12 +10,14 @@ import (
 type MCPServerAdapter struct {
 	opts           Options
 	projectUseCase *usecase.ProjectUseCase
+	snippetUseCase *usecase.SnippetUseCase
 }
 
-func NewMCPServerAdapter(opts Options, projectUseCase *usecase.ProjectUseCase) *MCPServerAdapter {
+func NewMCPServerAdapter(opts Options, projectUseCase *usecase.ProjectUseCase, snippetUseCase *usecase.SnippetUseCase) *MCPServerAdapter {
 	return &MCPServerAdapter{
 		opts:           opts,
 		projectUseCase: projectUseCase,
+		snippetUseCase: snippetUseCase,
 	}
 }
 
@@ -30,6 +32,7 @@ func (m *MCPServerAdapter) Serve() error {
 		server.WithToolCapabilities(false))
 
 	NewProjectTools(m.projectUseCase).Register(mcpServer, m.opts)
+	NewSnippetTools(m.snippetUseCase).Register(mcpServer, m.opts)
 
 	return server.ServeStdio(mcpServer)
 }
