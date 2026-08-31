@@ -23,7 +23,7 @@ func NewProblemTools(problemUseCase *usecase.ProblemUseCase) *ProblemTools {
 func (t *ProblemTools) Register(s *server.MCPServer, opts Options) {
 
 	listProblemTool := mcp.NewTool("list_problems",
-		mcp.WithDescription("(paginated) lists all problems in a Devaulty project"),
+		mcp.WithDescription("(paginated) lists all problems in a Devaulty project. Returns a summary view of the problems"),
 		mcp.WithInputSchema[util.ProjectPaginationQuery](),
 		mcp.WithToolAnnotation(util.ReadOnlyAnnotations))
 	s.AddTool(listProblemTool, t.list)

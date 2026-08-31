@@ -13,6 +13,7 @@ type MCPServerAdapter struct {
 	snippetUseCase *usecase.SnippetUseCase
 	problemUseCase *usecase.ProblemUseCase
 	linkUseCase    *usecase.LinkUseCase
+	noteUseCase    *usecase.NoteUseCase
 }
 
 func NewMCPServerAdapter(
@@ -21,6 +22,7 @@ func NewMCPServerAdapter(
 	snippetUseCase *usecase.SnippetUseCase,
 	problemUseCase *usecase.ProblemUseCase,
 	linkUseCase *usecase.LinkUseCase,
+	noteUseCase *usecase.NoteUseCase,
 ) *MCPServerAdapter {
 	return &MCPServerAdapter{
 		opts:           opts,
@@ -28,6 +30,7 @@ func NewMCPServerAdapter(
 		snippetUseCase: snippetUseCase,
 		problemUseCase: problemUseCase,
 		linkUseCase:    linkUseCase,
+		noteUseCase:    noteUseCase,
 	}
 }
 
@@ -45,6 +48,7 @@ func (m *MCPServerAdapter) Serve() error {
 	NewSnippetTools(m.snippetUseCase).Register(mcpServer, m.opts)
 	NewProblemTools(m.problemUseCase).Register(mcpServer, m.opts)
 	NewLinkTools(m.linkUseCase).Register(mcpServer, m.opts)
+	NewNoteTools(m.noteUseCase).Register(mcpServer, m.opts)
 
 	return server.ServeStdio(mcpServer)
 }

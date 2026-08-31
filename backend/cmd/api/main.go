@@ -83,18 +83,14 @@ func main() {
 	problemUseCase := usecase.NewProblemUseCase(problemRepo, projectRepo, itemTagRepo)
 	problemHandler := handler.NewProblemHandler(problemUseCase)
 
-	if len(os.Args) > 1 && os.Args[1] == "mcp" {
-		runMCPServer(projectUseCase, snippetUseCase, problemUseCase, linkUseCase)
-		return
-	}
-
-	tagRepo := persistence.NewTagRepository(db)
-	tagUseCase := usecase.NewTagUseCase(tagRepo, projectRepo)
-	tagHandler := handler.NewTagHandler(tagUseCase)
-
 	noteRepo := persistence.NewNoteRepository(db)
 	noteUseCase := usecase.NewNoteUseCase(noteRepo, projectRepo, itemTagRepo)
 	noteHandler := handler.NewNoteHandler(noteUseCase)
+
+	if len(os.Args) > 1 && os.Args[1] == "mcp" {
+		runMCPServer(projectUseCase, snippetUseCase, problemUseCase, linkUseCase, noteUseCase)
+		return
+	}
 
 	boardRepo := persistence.NewBoardRepository(db)
 	boardColumnRepo := persistence.NewBoardColumnRepository(db)
@@ -112,6 +108,10 @@ func main() {
 	credentialRepo := persistence.NewCredentialRepository(db)
 	credentialUseCase := usecase.NewCredentialUseCase(credentialRepo, projectRepo, itemTagRepo, cryptoAdapter, masterKeySession, *vaultUseCase)
 	credentialHandler := handler.NewCredentialHandler(credentialUseCase)
+
+	tagRepo := persistence.NewTagRepository(db)
+	tagUseCase := usecase.NewTagUseCase(tagRepo, projectRepo)
+	tagHandler := handler.NewTagHandler(tagUseCase)
 
 	itemTagUseCase := usecase.NewItemTagUseCase(itemTagRepo, tagRepo, projectRepo, snippetRepo, credentialRepo, linkRepo, problemRepo, noteRepo, boardRepo, cardRepo)
 	itemTagHandler := handler.NewItemTagHandler(itemTagUseCase, tagUseCase, projectUseCase)
@@ -163,7 +163,8 @@ func runMCPServer(
 	projectUseCase *usecase.ProjectUseCase,
 	snippetUseCase *usecase.SnippetUseCase,
 	problemUseCase *usecase.ProblemUseCase,
-	linkUseCase *usecase.LinkUseCase) {
+	linkUseCase *usecase.LinkUseCase,
+	noteUseCase *usecase.NoteUseCase) {
 	fs := flag.NewFlagSet("mcp", flag.ExitOnError)
 	readOnly := fs.Bool("readonly", false, "only register ready-only tools")
 	disableDelete := fs.Bool("disable-delete", false, "disable delete tool")
@@ -176,7 +177,7 @@ func runMCPServer(
 		DisableDelete: *disableDelete,
 	}
 
-	adapter := mcp.NewMCPServerAdapter(opts, projectUseCase, snippetUseCase, problemUseCase, linkUseCase)
+	adapter := mcp.NewMCPServerAdapter(opts, projectUseCase, snippetUseCase, problemUseCase, linkUseCase, noteUseCase)
 	if err := adapter.Serve(); err != nil {
 		log.Fatalf("Failed to start MCP server: %v", err)
 	}
