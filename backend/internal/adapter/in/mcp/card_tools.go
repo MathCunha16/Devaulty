@@ -47,18 +47,18 @@ func (t *CardTools) Register(s *server.MCPServer, opts Options) {
 		mcp.WithString("boardID", mcp.Required(), mcp.Description("The boardID (UUID) of the board")),
 		mcp.WithString("columnID", mcp.Required(), mcp.Description("The columnID (UUID) of the column")),
 		mcp.WithString("title", mcp.Required(), mcp.Description("The title of the card")),
-		mcp.WithString("description", mcp.Description("The description of the card in Markdown. If you want to reference a linked item inside the description, attach it first in `linkedItems` and then use the mention format `@[Item Title](item:TYPE:UUID)`, e.g. `@[Login API](item:SNIPPET:123e4567-e89b-12d3-a456-426614174000)` for a snippet or `@[Vault Secret](item:CREDENTIAL:...)` for a credential. Only items added to `linkedItems` can be mentioned here.")),
+		mcp.WithString("description", mcp.Description("The description of the card in Markdown. If you want to reference a linked item inside the description, attach it first in `linkedItems` and then use the mention format `@[Item Title](item:TYPE:UUID)`, e.g. `@[Login API](item:SNIPPET:123e4567-e89b-12d3-a456-426614174000)` for a snippet or `@[API bug](item:PROBLEM:...)` for a problem. Only items added to `linkedItems` can be mentioned here.")),
 		mcp.WithString("priority", mcp.Description("The priority of the card"), mcp.Enum(util.ToStrings(model.CardPriorities)...)),
 		mcp.WithString("dueDate", mcp.Description("The Due date in RFC3339/ISO 8601 format, e.g. 2026-08-31T23:59:59Z. Omit if there's no due date.")),
 		mcp.WithArray("linkedItems",
-			mcp.Description("Optional list of items (snippets, notes, problems, credentials, links, etc.) to attach to this card. These are the only items that can be referenced from the card description with `@[Title](item:TYPE:UUID)`. Add the item here before referencing it in the markdown."),
+			mcp.Description("Optional list of items (snippets, notes, problems, links, etc.) to attach to this card. These are the only items that can be referenced from the card description with `@[Title](item:TYPE:UUID)`. Add the item here before referencing it in the markdown."),
 			mcp.Items(map[string]any{
 				"type": "object",
 				"properties": map[string]any{
 					"itemType": map[string]any{
 						"type":        "string",
 						"enum":        util.ToStrings(model.ItemTypes),
-						"description": "Type of the linked item. Use the same value later in the markdown mention, for example `SNIPPET`, `NOTE`, `PROBLEM`, `CREDENTIAL`, or `LINK`.",
+						"description": "Type of the linked item. Use the same value later in the markdown mention, for example `SNIPPET`, `NOTE`, `PROBLEM`, `LINK`, or `BOARD`.",
 					},
 					"itemId": map[string]any{
 						"type":        "string",
@@ -77,18 +77,18 @@ func (t *CardTools) Register(s *server.MCPServer, opts Options) {
 		mcp.WithString("projectID", mcp.Required(), mcp.Description("The projectID (UUID) of the project")),
 		mcp.WithString("boardID", mcp.Required(), mcp.Description("The boardID (UUID) of the board")),
 		mcp.WithString("title", mcp.Description("The title of the card")),
-		mcp.WithString("description", mcp.Description("The description of the card in Markdown. If you want to reference a linked item inside the description, attach it first in `linkedItems` and then use the mention format `@[Item Title](item:TYPE:UUID)`, e.g. `@[Login API](item:SNIPPET:123e4567-e89b-12d3-a456-426614174000)` for a snippet or `@[Vault Secret](item:CREDENTIAL:...)` for a credential. Only items added to `linkedItems` can be mentioned here.")),
+		mcp.WithString("description", mcp.Description("The description of the card in Markdown. If you want to reference a linked item inside the description, attach it first in `linkedItems` and then use the mention format `@[Item Title](item:TYPE:UUID)`, e.g. `@[Login API](item:SNIPPET:123e4567-e89b-12d3-a456-426614174000)` for a snippet or `@[API bug](item:PROBLEM:...)` for a problem. Only items added to `linkedItems` can be mentioned here.")),
 		mcp.WithString("priority", mcp.Description("The priority of the card"), mcp.Enum(util.ToStrings(model.CardPriorities)...)),
 		mcp.WithString("dueDate", mcp.Description("The Due date in RFC3339/ISO 8601 format, e.g. 2026-08-31T23:59:59Z. Omit if there's no due date.")),
 		mcp.WithArray("linkedItems",
-			mcp.Description("Optional list of items (snippets, notes, problems, credentials, links, etc.) to attach to this card. These are the only items that can be referenced from the card description with `@[Title](item:TYPE:UUID)`. Add the item here before referencing it in the markdown."),
+			mcp.Description("Optional list of items (snippets, notes, problems, links, etc.) to attach to this card. These are the only items that can be referenced from the card description with `@[Title](item:TYPE:UUID)`. Add the item here before referencing it in the markdown."),
 			mcp.Items(map[string]any{
 				"type": "object",
 				"properties": map[string]any{
 					"itemType": map[string]any{
 						"type":        "string",
 						"enum":        util.ToStrings(model.ItemTypes),
-						"description": "Type of the linked item. Use the same value later in the markdown mention, for example `SNIPPET`, `NOTE`, `PROBLEM`, `CREDENTIAL`, or `LINK`.",
+						"description": "Type of the linked item. Use the same value later in the markdown mention, for example `SNIPPET`, `NOTE`, `PROBLEM`, `LINK`, or `BOARD`.",
 					},
 					"itemId": map[string]any{
 						"type":        "string",

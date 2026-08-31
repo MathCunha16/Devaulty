@@ -67,6 +67,49 @@ To reduce the retention window of sensitive data in RAM:
 
 ---
 
+## 🤖 MCP Server
+
+The backend includes a standard MCP server exposed through the same Go entrypoint as the REST API. It is not started automatically as a system daemon; instead, an MCP host/client must launch it explicitly.
+
+The runtime entrypoint is:
+
+```bash
+go run ./cmd/api mcp
+```
+
+or, when using a built binary:
+
+```bash
+./devaulty-backend mcp
+```
+
+The server runs over **stdio**, which is the normal MCP transport for local desktop clients. In practice, the host starts the process, sends tool calls, and keeps the process alive while the session is active. There is no public HTTP endpoint for MCP by default.
+
+### Supported MCP modes
+
+- `mcp` — starts the full MCP server
+- `mcp --readonly` — only registers read-only tools
+- `mcp --disable-delete` — hides destructive delete tools
+
+### Client configuration pattern
+
+Most MCP clients are configured with a command and arguments. The exact binary path is installation-dependent, but the pattern is the same:
+
+```json
+{
+  "mcpServers": {
+    "devaulty": {
+      "command": "/path/to/your/devaulty-backend",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+In the packaged Tauri desktop app, the backend binary is bundled in the app resources and resolved dynamically by the desktop shell, rather than being a fixed global path. If the user wants to connect Devaulty to an LLM client, the client must be configured to launch the backend MCP server and communicate over stdio. The project documentation for MCP conventions lives in **[docs/architecture/mcp.md](../docs/architecture/mcp.md)**.
+
+---
+
 ## 💾 Database & Embedded Migrations
 
 - **Database**: SQLite3 managed via `jmoiron/sqlx` for fast, lightweight local persistence.

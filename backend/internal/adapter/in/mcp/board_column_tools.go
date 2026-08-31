@@ -45,7 +45,7 @@ func (t *BoardColumnTools) Register(s *server.MCPServer, opts Options) {
 		mcp.WithString("projectID", mcp.Required(), mcp.Description("The projectID (UUID) of the project")),
 		mcp.WithString("boardID", mcp.Required(), mcp.Description("The boardID (UUID) of the board")),
 		mcp.WithString("name", mcp.Required(), mcp.Description("The name of the column")),
-		mcp.WithInteger("wipLimit", mcp.Description("The WIP limit (uint16) of the column. Mark as null to disable WIP limit")),
+		mcp.WithInteger("wipLimit", mcp.Description("Optional WIP limit for the column. Omit this field to disable the limit.")),
 		mcp.WithToolAnnotation(util.WriteAnnotations))
 	s.AddTool(createBoardColumnTool, t.create)
 

@@ -54,6 +54,7 @@ func (m *MCPServerAdapter) Serve() error {
 		"Devaulty MCP Server",
 		model.AppVersion,
 		server.WithRecovery(),
+		server.WithInputSchemaValidation(),
 		server.WithInstructions("Devaulty MCP Server — provides tools to read and write project data"+
 			" (boards, cards, notes, snippets, problems, tags) in the user's local Devaulty app."+
 			" Does not have access to the Vault/credentials module"),

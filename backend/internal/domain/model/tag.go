@@ -14,7 +14,7 @@ const (
 	ItemTypeCard       ItemType = "CARD"
 )
 
-var ItemTypes = []ItemType{ItemTypeSnippet, ItemTypeNote, ItemTypeLink, ItemTypeProblem, ItemTypeCredential, ItemTypeBoard, ItemTypeCard}
+var ItemTypes = []ItemType{ItemTypeSnippet, ItemTypeNote, ItemTypeLink, ItemTypeProblem, ItemTypeBoard, ItemTypeCard}
 
 type Tag struct {
 	ID        uuid.UUID `json:"id" db:"id"`

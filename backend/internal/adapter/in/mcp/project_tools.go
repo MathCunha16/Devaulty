@@ -57,7 +57,7 @@ func (t *ProjectTools) Register(s *server.MCPServer, opts Options) {
 
 	updateProjectTool := mcp.NewTool("update_project",
 		mcp.WithDescription("updates an existing project in Devaulty"),
-		mcp.WithString("project_id", mcp.Required(), mcp.Description("UUID of the project")),
+		mcp.WithString("id", mcp.Required(), mcp.Description("UUID of the project")),
 		mcp.WithString("name", mcp.Description("Name of the project"),
 			mcp.MinLength(2), mcp.MaxLength(255)),
 		mcp.WithString("description", mcp.Description("Description of the project"),

@@ -123,7 +123,7 @@ Important rule:
 - After that, the same `itemType` and `itemId` may be used in the Markdown mention
 - The mention syntax is only valid for items that are already linked to the card
 
-This is enforced in the MCP description strings for `create_card` and `update_card`, and is part of the tool contract used by clients building card content.
+This is a client contract used when building card content: the Markdown reference should only be emitted after the item is already present in the card's `linkedItems`, and the same `itemType` / `itemId` pair must be reused in the mention.
 
 ## Tag system conventions
 
@@ -131,7 +131,7 @@ Tags are cross-cutting and follow the same architecture described in `docs/archi
 
 Some rules relevant to MCP:
 
-- `ItemType` values are uppercase domain constants such as `SNIPPET`, `NOTE`, `PROBLEM`, `LINK`, `CREDENTIAL`, `BOARD`, and `CARD`
+- `ItemType` values are uppercase domain constants such as `SNIPPET`, `NOTE`, `PROBLEM`, `LINK`, `BOARD`, and `CARD`
 - Tag association tools must accept the item type and normalize values consistently before the use case layer
 - Search support exists in MCP for tag lookup by name using `search_tags_by_name`
 

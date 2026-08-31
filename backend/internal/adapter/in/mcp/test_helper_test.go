@@ -136,65 +136,6 @@ func (a *mcpTestApp) createSnippet(t *testing.T, projectID uuid.UUID, title stri
 	return snippet
 }
 
-func (a *mcpTestApp) createNote(t *testing.T, projectID uuid.UUID, title, content string) *dto.NoteView {
-	t.Helper()
-
-	note, err := a.noteUseCase.Create(context.Background(), dto.CreateNoteCommand{
-		ProjectID: projectID,
-		Title:     title,
-		Content:   content,
-	})
-	require.NoError(t, err)
-	return note
-}
-
-func (a *mcpTestApp) createLink(t *testing.T, projectID uuid.UUID, title, url string) *dto.LinkView {
-	t.Helper()
-
-	description := "Link description"
-	link, err := a.linkUseCase.Create(context.Background(), dto.CreateLinkCommand{
-		ProjectID:   projectID,
-		Title:       title,
-		URL:         url,
-		Description: &description,
-	})
-	require.NoError(t, err)
-	return link
-}
-
-func (a *mcpTestApp) createProblem(t *testing.T, projectID uuid.UUID, title string) *dto.ProblemView {
-	t.Helper()
-
-	solution := "Check the environment"
-	problem, err := a.problemUseCase.Create(context.Background(), dto.CreateProblemCommand{
-		ProjectID:        projectID,
-		Title:            title,
-		ErrorDescription: "Stack trace example",
-		Solution:         &solution,
-		Status:           model.ProblemStatusOpen,
-		Severity:         model.ProblemSeverityHigh,
-	})
-	require.NoError(t, err)
-	return problem
-}
-
-func (a *mcpTestApp) createCard(t *testing.T, projectID, boardID, columnID uuid.UUID, title string) *dto.CardView {
-	t.Helper()
-
-	description := "Card description"
-	priority := model.CardPriorityMedium
-	card, err := a.cardUseCase.Create(context.Background(), dto.CreateCardCommand{
-		ProjectID:   projectID,
-		BoardID:     boardID,
-		ColumnID:    columnID,
-		Title:       title,
-		Description: &description,
-		Priority:    &priority,
-	})
-	require.NoError(t, err)
-	return card
-}
-
 func textFromResult(t *testing.T, result *mcpgo.CallToolResult) string {
 	t.Helper()
 	require.NotNil(t, result)
