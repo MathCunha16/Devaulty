@@ -31,7 +31,7 @@ func (t *SnippetTools) Register(s *server.MCPServer, opts Options) {
 	getSnippetTool := mcp.NewTool("get_snippet",
 		mcp.WithDescription("gets a snippet by ID (uuid)"),
 		mcp.WithString("projectID", mcp.Required(), mcp.Description("The projectID (UUID) of the project")),
-		mcp.WithString("snippetID", mcp.Required(), mcp.Description("The snippetID (UUID) of the snippet")),
+		mcp.WithString("id", mcp.Required(), mcp.Description("The id (UUID) of the snippet")),
 		mcp.WithToolAnnotation(util.ReadOnlyAnnotations))
 	s.AddTool(getSnippetTool, t.get)
 
@@ -60,7 +60,7 @@ func (t *SnippetTools) Register(s *server.MCPServer, opts Options) {
 	updateSnippetTool := mcp.NewTool("update_snippet",
 		mcp.WithDescription("updates an existing snippet in a Devaulty project"),
 		mcp.WithString("projectID", mcp.Required(), mcp.Description("The projectID (UUID) of the project where you want to update a snippet")),
-		mcp.WithString("snippetID", mcp.Required(), mcp.Description("The snippetID (UUID) of the snippet")),
+		mcp.WithString("id", mcp.Required(), mcp.Description("The id (UUID) of the snippet")),
 		mcp.WithString("title", mcp.Description("The title of the snippet"),
 			mcp.MinLength(2), mcp.MaxLength(255)),
 		mcp.WithString("description", mcp.Description("The description of the snippet"),
@@ -78,7 +78,7 @@ func (t *SnippetTools) Register(s *server.MCPServer, opts Options) {
 	deleteSnippetTool := mcp.NewTool("delete_snippet",
 		mcp.WithDescription("deletes an existing snippet in a Devaulty project"),
 		mcp.WithString("projectID", mcp.Required(), mcp.Description("The projectID (UUID) of the project where you want to delete a snippet")),
-		mcp.WithString("snippetID", mcp.Required(), mcp.Description("The snippetID (UUID) of the snippet")),
+		mcp.WithString("id", mcp.Required(), mcp.Description("The id (UUID) of the snippet")),
 		mcp.WithToolAnnotation(util.DeleteAnnotations))
 	s.AddTool(deleteSnippetTool, t.delete)
 }
@@ -118,7 +118,7 @@ func (t *SnippetTools) get(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 	if err != nil {
 		return mcp.NewToolResultError(err.Error()), nil
 	}
-	snippetID, err := util.ExtractUUID(req, "snippetID")
+	snippetID, err := util.ExtractUUID(req, "id")
 	if err != nil {
 		return mcp.NewToolResultError(err.Error()), nil
 	}
@@ -151,7 +151,7 @@ func (t *SnippetTools) delete(ctx context.Context, req mcp.CallToolRequest) (*mc
 	if err != nil {
 		return mcp.NewToolResultError(err.Error()), nil
 	}
-	snippetID, err := util.ExtractUUID(req, "snippetID")
+	snippetID, err := util.ExtractUUID(req, "id")
 	if err != nil {
 		return mcp.NewToolResultError(err.Error()), nil
 	}

@@ -9,7 +9,7 @@ import (
 )
 
 type CreateProblemCommand struct {
-	ProjectID        uuid.UUID             `json:"-"`
+	ProjectID        uuid.UUID             `json:"projectID"`
 	Title            string                `json:"title" binding:"required,min=2,max=255"`
 	ErrorDescription string                `json:"errorDescription" binding:"required,min=2,max=255"`
 	Solution         *string               `json:"solution,omitempty" binding:"omitempty,min=2,max=255"`
@@ -18,8 +18,8 @@ type CreateProblemCommand struct {
 }
 
 type UpdateProblemCommand struct {
-	ProjectID        uuid.UUID              `json:"-"`
-	ID               uuid.UUID              `json:"-"`
+	ProjectID        uuid.UUID              `json:"projectID"`
+	ID               uuid.UUID              `json:"id"`
 	Title            *string                `json:"title,omitempty" binding:"omitempty,min=2,max=255"`
 	ErrorDescription *string                `json:"errorDescription,omitempty" binding:"omitempty,min=2,max=255"`
 	Solution         *string                `json:"solution,omitempty" binding:"omitempty,min=2,max=255"`
@@ -27,8 +27,8 @@ type UpdateProblemCommand struct {
 }
 
 type UpdateProblemStatusCommand struct {
-	ProjectID uuid.UUID           `json:"-"`
-	ID        uuid.UUID           `json:"-"`
+	ProjectID uuid.UUID           `json:"projectID"`
+	ID        uuid.UUID           `json:"id"`
 	Status    model.ProblemStatus `json:"status" binding:"required"`
 }
 
