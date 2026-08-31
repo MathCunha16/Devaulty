@@ -100,7 +100,7 @@ func main() {
 	cardHandler := handler.NewCardHandler(cardUseCase)
 
 	if len(os.Args) > 1 && os.Args[1] == "mcp" {
-		runMCPServer(projectUseCase, snippetUseCase, problemUseCase, linkUseCase, noteUseCase, boardUseCase)
+		runMCPServer(projectUseCase, snippetUseCase, problemUseCase, linkUseCase, noteUseCase, boardUseCase, boardColumnUseCase)
 		return
 	}
 
@@ -165,7 +165,8 @@ func runMCPServer(
 	problemUseCase *usecase.ProblemUseCase,
 	linkUseCase *usecase.LinkUseCase,
 	noteUseCase *usecase.NoteUseCase,
-	boardUseCase *usecase.BoardUseCase) {
+	boardUseCase *usecase.BoardUseCase,
+	boardColumnUseCase *usecase.BoardColumnUseCase) {
 	fs := flag.NewFlagSet("mcp", flag.ExitOnError)
 	readOnly := fs.Bool("readonly", false, "only register ready-only tools")
 	disableDelete := fs.Bool("disable-delete", false, "disable delete tool")
@@ -178,7 +179,7 @@ func runMCPServer(
 		DisableDelete: *disableDelete,
 	}
 
-	adapter := mcp.NewMCPServerAdapter(opts, projectUseCase, snippetUseCase, problemUseCase, linkUseCase, noteUseCase, boardUseCase)
+	adapter := mcp.NewMCPServerAdapter(opts, projectUseCase, snippetUseCase, problemUseCase, linkUseCase, noteUseCase, boardUseCase, boardColumnUseCase)
 	if err := adapter.Serve(); err != nil {
 		log.Fatalf("Failed to start MCP server: %v", err)
 	}

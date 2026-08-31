@@ -8,13 +8,14 @@ import (
 )
 
 type MCPServerAdapter struct {
-	opts           Options
-	projectUseCase *usecase.ProjectUseCase
-	snippetUseCase *usecase.SnippetUseCase
-	problemUseCase *usecase.ProblemUseCase
-	linkUseCase    *usecase.LinkUseCase
-	noteUseCase    *usecase.NoteUseCase
-	boardUseCase   *usecase.BoardUseCase
+	opts               Options
+	projectUseCase     *usecase.ProjectUseCase
+	snippetUseCase     *usecase.SnippetUseCase
+	problemUseCase     *usecase.ProblemUseCase
+	linkUseCase        *usecase.LinkUseCase
+	noteUseCase        *usecase.NoteUseCase
+	boardUseCase       *usecase.BoardUseCase
+	boardColumnUseCase *usecase.BoardColumnUseCase
 }
 
 func NewMCPServerAdapter(
@@ -25,15 +26,17 @@ func NewMCPServerAdapter(
 	linkUseCase *usecase.LinkUseCase,
 	noteUseCase *usecase.NoteUseCase,
 	boardUseCase *usecase.BoardUseCase,
+	boardColumnUseCase *usecase.BoardColumnUseCase,
 ) *MCPServerAdapter {
 	return &MCPServerAdapter{
-		opts:           opts,
-		projectUseCase: projectUseCase,
-		snippetUseCase: snippetUseCase,
-		problemUseCase: problemUseCase,
-		linkUseCase:    linkUseCase,
-		noteUseCase:    noteUseCase,
-		boardUseCase:   boardUseCase,
+		opts:               opts,
+		projectUseCase:     projectUseCase,
+		snippetUseCase:     snippetUseCase,
+		problemUseCase:     problemUseCase,
+		linkUseCase:        linkUseCase,
+		noteUseCase:        noteUseCase,
+		boardUseCase:       boardUseCase,
+		boardColumnUseCase: boardColumnUseCase,
 	}
 }
 
@@ -53,6 +56,7 @@ func (m *MCPServerAdapter) Serve() error {
 	NewLinkTools(m.linkUseCase).Register(mcpServer, m.opts)
 	NewNoteTools(m.noteUseCase).Register(mcpServer, m.opts)
 	NewBoardTools(m.boardUseCase).Register(mcpServer, m.opts)
+	NewBoardColumnTools(m.boardColumnUseCase).Register(mcpServer, m.opts)
 
 	return server.ServeStdio(mcpServer)
 }
