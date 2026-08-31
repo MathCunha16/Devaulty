@@ -13,9 +13,9 @@ type CreateCardItemCommand struct {
 }
 
 type CreateCardCommand struct {
-	ProjectID   uuid.UUID               `json:"-"`
-	BoardID     uuid.UUID               `json:"-"`
-	ColumnID    uuid.UUID               `json:"-"`
+	ProjectID   uuid.UUID               `json:"projectID"`
+	BoardID     uuid.UUID               `json:"boardID"`
+	ColumnID    uuid.UUID               `json:"columnID"`
 	Title       string                  `json:"title" binding:"required,min=2,max=255"`
 	Description *string                 `json:"description,omitempty" binding:"omitempty,min=1"`
 	Priority    *model.CardPriority     `json:"priority,omitempty"`
@@ -24,9 +24,9 @@ type CreateCardCommand struct {
 }
 
 type UpdateCardCommand struct {
-	ID          uuid.UUID               `json:"-"`
-	ProjectID   uuid.UUID               `json:"-"`
-	BoardID     uuid.UUID               `json:"-"`
+	ID          uuid.UUID               `json:"id"`
+	ProjectID   uuid.UUID               `json:"projectID"`
+	BoardID     uuid.UUID               `json:"boardID"`
 	Title       *string                 `json:"title,omitempty" binding:"omitempty,min=2,max=255"`
 	Description *string                 `json:"description,omitempty" binding:"omitempty,min=1"`
 	Priority    *model.CardPriority     `json:"priority,omitempty"`
@@ -35,9 +35,9 @@ type UpdateCardCommand struct {
 }
 
 type MoveCardCommand struct {
-	ID             uuid.UUID `json:"-"`
-	ProjectID      uuid.UUID `json:"-"`
-	BoardID        uuid.UUID `json:"-"`
+	ID             uuid.UUID `json:"id"`
+	ProjectID      uuid.UUID `json:"projectID"`
+	BoardID        uuid.UUID `json:"boardID"`
 	TargetColumnID uuid.UUID `json:"targetColumnId" binding:"required"`
 	Position       *uint16   `json:"position" binding:"required"`
 }

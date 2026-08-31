@@ -16,6 +16,7 @@ type MCPServerAdapter struct {
 	noteUseCase        *usecase.NoteUseCase
 	boardUseCase       *usecase.BoardUseCase
 	boardColumnUseCase *usecase.BoardColumnUseCase
+	cardUseCase        *usecase.CardUseCase
 }
 
 func NewMCPServerAdapter(
@@ -27,6 +28,7 @@ func NewMCPServerAdapter(
 	noteUseCase *usecase.NoteUseCase,
 	boardUseCase *usecase.BoardUseCase,
 	boardColumnUseCase *usecase.BoardColumnUseCase,
+	cardUseCase *usecase.CardUseCase,
 ) *MCPServerAdapter {
 	return &MCPServerAdapter{
 		opts:               opts,
@@ -37,6 +39,7 @@ func NewMCPServerAdapter(
 		noteUseCase:        noteUseCase,
 		boardUseCase:       boardUseCase,
 		boardColumnUseCase: boardColumnUseCase,
+		cardUseCase:        cardUseCase,
 	}
 }
 
@@ -57,6 +60,7 @@ func (m *MCPServerAdapter) Serve() error {
 	NewNoteTools(m.noteUseCase).Register(mcpServer, m.opts)
 	NewBoardTools(m.boardUseCase).Register(mcpServer, m.opts)
 	NewBoardColumnTools(m.boardColumnUseCase).Register(mcpServer, m.opts)
+	NewCardTools(m.cardUseCase).Register(mcpServer, m.opts)
 
 	return server.ServeStdio(mcpServer)
 }

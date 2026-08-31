@@ -15,6 +15,8 @@ const (
 	CardPriorityExtremelyHigh CardPriority = "EXTREMELY_HIGH"
 )
 
+var CardPriorities = []CardPriority{CardPriorityLow, CardPriorityMedium, CardPriorityHigh, CardPriorityExtremelyHigh}
+
 type CardItem struct {
 	CardID   uuid.UUID `json:"cardId" db:"card_id"`
 	ItemID   uuid.UUID `json:"itemId" db:"item_id"`
