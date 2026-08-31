@@ -18,6 +18,7 @@ type MCPServerAdapter struct {
 	boardColumnUseCase *usecase.BoardColumnUseCase
 	cardUseCase        *usecase.CardUseCase
 	tagUseCase         *usecase.TagUseCase
+	itemTagUseCase     *usecase.ItemTagUseCase
 }
 
 func NewMCPServerAdapter(
@@ -31,6 +32,7 @@ func NewMCPServerAdapter(
 	boardColumnUseCase *usecase.BoardColumnUseCase,
 	cardUseCase *usecase.CardUseCase,
 	tagUseCase *usecase.TagUseCase,
+	itemTagUseCase *usecase.ItemTagUseCase,
 ) *MCPServerAdapter {
 	return &MCPServerAdapter{
 		opts:               opts,
@@ -43,6 +45,7 @@ func NewMCPServerAdapter(
 		boardColumnUseCase: boardColumnUseCase,
 		cardUseCase:        cardUseCase,
 		tagUseCase:         tagUseCase,
+		itemTagUseCase:     itemTagUseCase,
 	}
 }
 
@@ -65,6 +68,7 @@ func (m *MCPServerAdapter) Serve() error {
 	NewBoardColumnTools(m.boardColumnUseCase).Register(mcpServer, m.opts)
 	NewCardTools(m.cardUseCase).Register(mcpServer, m.opts)
 	NewTagTools(m.tagUseCase).Register(mcpServer, m.opts)
+	NewItemTagTools(m.itemTagUseCase).Register(mcpServer, m.opts)
 
 	return server.ServeStdio(mcpServer)
 }

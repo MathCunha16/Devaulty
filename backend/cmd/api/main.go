@@ -112,7 +112,7 @@ func main() {
 	itemTagHandler := handler.NewItemTagHandler(itemTagUseCase, tagUseCase, projectUseCase)
 
 	if len(os.Args) > 1 && os.Args[1] == "mcp" {
-		runMCPServer(projectUseCase, snippetUseCase, problemUseCase, linkUseCase, noteUseCase, boardUseCase, boardColumnUseCase, cardUseCase, tagUseCase)
+		runMCPServer(projectUseCase, snippetUseCase, problemUseCase, linkUseCase, noteUseCase, boardUseCase, boardColumnUseCase, cardUseCase, tagUseCase, itemTagUseCase)
 		return
 	}
 
@@ -168,7 +168,8 @@ func runMCPServer(
 	boardUseCase *usecase.BoardUseCase,
 	boardColumnUseCase *usecase.BoardColumnUseCase,
 	cardUseCase *usecase.CardUseCase,
-	tagUseCase *usecase.TagUseCase) {
+	tagUseCase *usecase.TagUseCase,
+	itemTagUseCase *usecase.ItemTagUseCase) {
 	fs := flag.NewFlagSet("mcp", flag.ExitOnError)
 	readOnly := fs.Bool("readonly", false, "only register ready-only tools")
 	disableDelete := fs.Bool("disable-delete", false, "disable delete tool")
@@ -181,7 +182,7 @@ func runMCPServer(
 		DisableDelete: *disableDelete,
 	}
 
-	adapter := mcp.NewMCPServerAdapter(opts, projectUseCase, snippetUseCase, problemUseCase, linkUseCase, noteUseCase, boardUseCase, boardColumnUseCase, cardUseCase, tagUseCase)
+	adapter := mcp.NewMCPServerAdapter(opts, projectUseCase, snippetUseCase, problemUseCase, linkUseCase, noteUseCase, boardUseCase, boardColumnUseCase, cardUseCase, tagUseCase, itemTagUseCase)
 	if err := adapter.Serve(); err != nil {
 		log.Fatalf("Failed to start MCP server: %v", err)
 	}
