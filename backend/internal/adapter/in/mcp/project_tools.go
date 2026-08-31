@@ -12,8 +12,8 @@ import (
 )
 
 var ( // This is determined by the Frontend, here we are just providing the same defaults
-	ProjectIcons  = []string{"Folder", "Terminal", "Database", "Globe", "Cpu", "Activity", "BookOpen", "Code"}
-	ProjectColors = []string{"#ef4444", "#f97316", "#facc15", "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899"}
+	projectIcons  = []string{"Folder", "Terminal", "Database", "Globe", "Cpu", "Activity", "BookOpen", "Code"}
+	projectColors = []string{"#ef4444", "#f97316", "#facc15", "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899"}
 )
 
 type ProjectTools struct {
@@ -50,8 +50,8 @@ func (t *ProjectTools) Register(s *server.MCPServer, opts Options) {
 			mcp.MinLength(2), mcp.MaxLength(255)),
 		mcp.WithString("description", mcp.Description("Description of the project"),
 			mcp.MinLength(1), mcp.MaxLength(255)),
-		mcp.WithString("icon", mcp.Description("Icon of the project"), mcp.Enum(ProjectIcons...)),
-		mcp.WithString("color", mcp.Description("Color of the project"), mcp.Enum(ProjectColors...)),
+		mcp.WithString("icon", mcp.Description("Icon of the project"), mcp.Enum(projectIcons...)),
+		mcp.WithString("color", mcp.Description("Color of the project"), mcp.Enum(projectColors...)),
 		mcp.WithToolAnnotation(util.WriteAnnotations))
 	s.AddTool(createProjectTool, t.create)
 
@@ -62,8 +62,8 @@ func (t *ProjectTools) Register(s *server.MCPServer, opts Options) {
 			mcp.MinLength(2), mcp.MaxLength(255)),
 		mcp.WithString("description", mcp.Description("Description of the project"),
 			mcp.MinLength(1), mcp.MaxLength(255)),
-		mcp.WithString("icon", mcp.Description("Icon of the project"), mcp.Enum(ProjectIcons...)),
-		mcp.WithString("color", mcp.Description("Color of the project"), mcp.Enum(ProjectColors...)),
+		mcp.WithString("icon", mcp.Description("Icon of the project"), mcp.Enum(projectIcons...)),
+		mcp.WithString("color", mcp.Description("Color of the project"), mcp.Enum(projectColors...)),
 		mcp.WithToolAnnotation(util.WriteAnnotations))
 	s.AddTool(updateProjectTool, t.update)
 
