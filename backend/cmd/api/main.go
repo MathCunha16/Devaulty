@@ -87,11 +87,6 @@ func main() {
 	noteUseCase := usecase.NewNoteUseCase(noteRepo, projectRepo, itemTagRepo)
 	noteHandler := handler.NewNoteHandler(noteUseCase)
 
-	if len(os.Args) > 1 && os.Args[1] == "mcp" {
-		runMCPServer(projectUseCase, snippetUseCase, problemUseCase, linkUseCase, noteUseCase)
-		return
-	}
-
 	boardRepo := persistence.NewBoardRepository(db)
 	boardColumnRepo := persistence.NewBoardColumnRepository(db)
 	boardUseCase := usecase.NewBoardUseCase(boardRepo, boardColumnRepo, projectRepo, itemTagRepo)
@@ -103,6 +98,11 @@ func main() {
 	cardRepo := persistence.NewCardRepository(db)
 	cardUseCase := usecase.NewCardUseCase(cardRepo, boardRepo, boardColumnRepo, projectRepo, itemTagRepo)
 	cardHandler := handler.NewCardHandler(cardUseCase)
+
+	if len(os.Args) > 1 && os.Args[1] == "mcp" {
+		runMCPServer(projectUseCase, snippetUseCase, problemUseCase, linkUseCase, noteUseCase, boardUseCase)
+		return
+	}
 
 	cryptoAdapter := security.NewAESGCMCrypto()
 	credentialRepo := persistence.NewCredentialRepository(db)
@@ -164,7 +164,8 @@ func runMCPServer(
 	snippetUseCase *usecase.SnippetUseCase,
 	problemUseCase *usecase.ProblemUseCase,
 	linkUseCase *usecase.LinkUseCase,
-	noteUseCase *usecase.NoteUseCase) {
+	noteUseCase *usecase.NoteUseCase,
+	boardUseCase *usecase.BoardUseCase) {
 	fs := flag.NewFlagSet("mcp", flag.ExitOnError)
 	readOnly := fs.Bool("readonly", false, "only register ready-only tools")
 	disableDelete := fs.Bool("disable-delete", false, "disable delete tool")
@@ -177,7 +178,7 @@ func runMCPServer(
 		DisableDelete: *disableDelete,
 	}
 
-	adapter := mcp.NewMCPServerAdapter(opts, projectUseCase, snippetUseCase, problemUseCase, linkUseCase, noteUseCase)
+	adapter := mcp.NewMCPServerAdapter(opts, projectUseCase, snippetUseCase, problemUseCase, linkUseCase, noteUseCase, boardUseCase)
 	if err := adapter.Serve(); err != nil {
 		log.Fatalf("Failed to start MCP server: %v", err)
 	}
