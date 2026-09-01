@@ -30,6 +30,7 @@ backend/
 │   ├── usecase/        # Application business logic & workflow orchestrators
 │   ├── adapter/
 │   │   ├── in/web/     # HTTP Handlers (Gin), Routers & Middleware
+│   │   ├── in/mcp/     # MCP tools (Model Context Protocol), one file per domain
 │   │   ├── in/scheduler/# Background cron/autolock tickers
 │   │   └── out/        # Persistence (SQLite/sqlx) & Security (Argon2id, AES-GCM)
 │   └── dto/            # Data Transfer Objects & JSON serialization rules
@@ -67,6 +68,63 @@ To reduce the retention window of sensitive data in RAM:
 
 ---
 
+## 🤖 MCP Server
+
+The backend includes a standard MCP server exposed through the same Go entrypoint as the REST API. It is not started automatically as a system daemon; instead, an MCP host/client must launch it explicitly.
+
+The MCP adapter runs **standalone**: it opens its own SQLite connection (WAL mode + busy timeout) directly, independent of the HTTP server, and has **no access to the Vault/credentials module**. It works whether the Devaulty desktop app is open or closed.
+
+The runtime entrypoint is:
+
+```bash
+go run ./cmd/api mcp
+```
+
+or, when using a built binary:
+
+```bash
+./devaulty-backend mcp
+```
+
+The server runs over **stdio**, which is the normal MCP transport for local desktop clients. In practice, the host starts the process, sends tool calls, and keeps the process alive while the session is active. There is no public HTTP endpoint for MCP by default.
+
+### Supported MCP modes
+
+- `mcp` — starts the full MCP server
+- `mcp --readonly` — only registers read-only tools
+- `mcp --disable-delete` — hides destructive delete tools
+
+### Locating the binary
+
+Running from a built binary or from source (`go run ./cmd/api mcp`), the process resolves its data directory the same way as the REST API: via `DEVAULTY_DATA_DIR` if set, falling back to the OS user config directory (`os.UserConfigDir()/devaulty`) otherwise — so it always reads/writes the same database as the desktop app, even when launched independently.
+
+In the packaged Tauri desktop app, the backend binary itself is bundled in the app resources (not a fixed global path). To give MCP clients a stable command to point to, the desktop shell writes a small wrapper script at a fixed, predictable path on every launch — pointing to the real bundled binary for that install. This step only requires the app to have been opened at least once; after that, the wrapper works independently of the app being open.
+
+| OS | Wrapper path |
+|---|---|
+| Linux | `${XDG_CONFIG_HOME:-$HOME/.config}/devaulty/bin/devaulty-backend` |
+| macOS | `~/Library/Application Support/devaulty/bin/devaulty-backend` |
+| Windows | `%APPDATA%\devaulty\bin\devaulty-backend.bat` |
+
+### Client configuration pattern
+
+Most MCP clients are configured with a command and arguments:
+
+```json
+{
+  "mcpServers": {
+    "devaulty": {
+      "command": "/home/<user>/.config/devaulty/bin/devaulty-backend",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+If the user wants to connect Devaulty to an LLM client, the client must be configured to launch the backend MCP server and communicate over stdio. The project documentation for MCP conventions lives in **[docs/architecture/mcp.md](../docs/architecture/mcp.md)**.
+
+---
+
 ## 💾 Database & Embedded Migrations
 
 - **Database**: SQLite3 managed via `jmoiron/sqlx` for fast, lightweight local persistence.
@@ -92,6 +150,7 @@ Powered by **Scalar API Reference**, it dynamically parses `docs/openapi.yaml` t
 - **[sqlx](https://github.com/jmoiron/sqlx)** + **[go-sqlite3](https://github.com/mattn/go-sqlite3)** — SQLite database driver and extensions.
 - **[golang.org/x/crypto](https://pkg.go.dev/golang.org/x/crypto)** — Argon2id key derivation & cryptographic primitives.
 - **[go-scalar-api-reference](https://github.com/MarceloPetrucio/go-scalar-api-reference)** — Embedded OpenAPI documentation renderer.
+- **[mark3labs/mcp-go](https://github.com/mark3labs/mcp-go)** — MCP server implementation.
 
 ---
 

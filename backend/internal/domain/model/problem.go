@@ -11,6 +11,8 @@ const (
 	ProblemStatusWontFix     ProblemStatus = "WONT_FIX"
 )
 
+var ProblemStatuses = []ProblemStatus{ProblemStatusOpen, ProblemStatusWorkingOnIt, ProblemStatusResolved, ProblemStatusWontFix}
+
 type ProblemSeverity string
 
 const (
@@ -19,6 +21,8 @@ const (
 	ProblemSeverityHigh     ProblemSeverity = "HIGH"
 	ProblemSeverityCritical ProblemSeverity = "CRITICAL"
 )
+
+var ProblemSeverities = []ProblemSeverity{ProblemSeverityLow, ProblemSeverityMedium, ProblemSeverityHigh, ProblemSeverityCritical}
 
 type Problem struct {
 	ID               uuid.UUID       `json:"id" db:"id"`

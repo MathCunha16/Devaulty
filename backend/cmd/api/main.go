@@ -1,11 +1,13 @@
 package main
 
 import (
+	"devaulty-backend/internal/adapter/in/mcp"
 	"devaulty-backend/internal/adapter/in/scheduler"
 	"devaulty-backend/internal/adapter/in/web"
 	"devaulty-backend/internal/adapter/in/web/handler"
 	"devaulty-backend/internal/usecase"
 	"devaulty-backend/migrations"
+	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -18,16 +20,6 @@ import (
 
 	"github.com/jmoiron/sqlx"
 )
-
-// resolveDataDir returns the absolute path to the application data directory.
-// In production, Tauri sets DEVAULTY_DATA_DIR to the OS user config path.
-// In development, it falls back to a relative "data" directory.
-func resolveDataDir() string {
-	if dir := os.Getenv("DEVAULTY_DATA_DIR"); dir != "" {
-		return dir
-	}
-	return "data"
-}
 
 func main() {
 	if os.Getenv("APP_ENV") != "dev" {
@@ -83,11 +75,6 @@ func main() {
 	snippetUseCase := usecase.NewSnippetUseCase(snippetRepo, projectRepo, itemTagRepo)
 	snippetHandler := handler.NewSnippetHandler(snippetUseCase)
 
-	cryptoAdapter := security.NewAESGCMCrypto()
-	credentialRepo := persistence.NewCredentialRepository(db)
-	credentialUseCase := usecase.NewCredentialUseCase(credentialRepo, projectRepo, itemTagRepo, cryptoAdapter, masterKeySession, *vaultUseCase)
-	credentialHandler := handler.NewCredentialHandler(credentialUseCase)
-
 	linkRepo := persistence.NewLinkRepository(db)
 	linkUseCase := usecase.NewLinkUseCase(linkRepo, projectRepo, itemTagRepo)
 	linkHandler := handler.NewLinkHandler(linkUseCase)
@@ -95,10 +82,6 @@ func main() {
 	problemRepo := persistence.NewProblemRepository(db)
 	problemUseCase := usecase.NewProblemUseCase(problemRepo, projectRepo, itemTagRepo)
 	problemHandler := handler.NewProblemHandler(problemUseCase)
-
-	tagRepo := persistence.NewTagRepository(db)
-	tagUseCase := usecase.NewTagUseCase(tagRepo, projectRepo)
-	tagHandler := handler.NewTagHandler(tagUseCase)
 
 	noteRepo := persistence.NewNoteRepository(db)
 	noteUseCase := usecase.NewNoteUseCase(noteRepo, projectRepo, itemTagRepo)
@@ -116,8 +99,22 @@ func main() {
 	cardUseCase := usecase.NewCardUseCase(cardRepo, boardRepo, boardColumnRepo, projectRepo, itemTagRepo)
 	cardHandler := handler.NewCardHandler(cardUseCase)
 
+	cryptoAdapter := security.NewAESGCMCrypto()
+	credentialRepo := persistence.NewCredentialRepository(db)
+	credentialUseCase := usecase.NewCredentialUseCase(credentialRepo, projectRepo, itemTagRepo, cryptoAdapter, masterKeySession, *vaultUseCase)
+	credentialHandler := handler.NewCredentialHandler(credentialUseCase)
+
+	tagRepo := persistence.NewTagRepository(db)
+	tagUseCase := usecase.NewTagUseCase(tagRepo, projectRepo)
+	tagHandler := handler.NewTagHandler(tagUseCase)
+
 	itemTagUseCase := usecase.NewItemTagUseCase(itemTagRepo, tagRepo, projectRepo, snippetRepo, credentialRepo, linkRepo, problemRepo, noteRepo, boardRepo, cardRepo)
 	itemTagHandler := handler.NewItemTagHandler(itemTagUseCase, tagUseCase, projectUseCase)
+
+	if len(os.Args) > 1 && os.Args[1] == "mcp" {
+		runMCPServer(projectUseCase, snippetUseCase, problemUseCase, linkUseCase, noteUseCase, boardUseCase, boardColumnUseCase, cardUseCase, tagUseCase, itemTagUseCase)
+		return
+	}
 
 	handlers := &web.Handlers{
 		Project:     projectHandler,
@@ -159,4 +156,48 @@ func main() {
 	if err := r.RunListener(listener); err != nil {
 		log.Fatalf("Critical error while starting Devaulty API: %v", err)
 	}
+}
+
+// runMCPServer starts the MCP server.
+func runMCPServer(
+	projectUseCase *usecase.ProjectUseCase,
+	snippetUseCase *usecase.SnippetUseCase,
+	problemUseCase *usecase.ProblemUseCase,
+	linkUseCase *usecase.LinkUseCase,
+	noteUseCase *usecase.NoteUseCase,
+	boardUseCase *usecase.BoardUseCase,
+	boardColumnUseCase *usecase.BoardColumnUseCase,
+	cardUseCase *usecase.CardUseCase,
+	tagUseCase *usecase.TagUseCase,
+	itemTagUseCase *usecase.ItemTagUseCase) {
+	fs := flag.NewFlagSet("mcp", flag.ExitOnError)
+	readOnly := fs.Bool("readonly", false, "only register ready-only tools")
+	disableDelete := fs.Bool("disable-delete", false, "disable delete tool")
+	if err := fs.Parse(os.Args[2:]); err != nil {
+		log.Fatalf("Failed to parse command line arguments: %v", err)
+	}
+
+	opts := mcp.Options{
+		ReadOnly:      *readOnly,
+		DisableDelete: *disableDelete,
+	}
+
+	adapter := mcp.NewMCPServerAdapter(opts, projectUseCase, snippetUseCase, problemUseCase, linkUseCase, noteUseCase, boardUseCase, boardColumnUseCase, cardUseCase, tagUseCase, itemTagUseCase)
+	if err := adapter.Serve(); err != nil {
+		log.Fatalf("Failed to start MCP server: %v", err)
+	}
+}
+
+// resolveDataDir returns the absolute path to the application data directory.
+// In production, Tauri sets DEVAULTY_DATA_DIR to the OS user config path.
+// In development, it falls back to a relative "data" directory.
+func resolveDataDir() string {
+	if dir := os.Getenv("DEVAULTY_DATA_DIR"); dir != "" {
+		return dir
+	}
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return "data" // last-resort fallback
+	}
+	return filepath.Join(configDir, "devaulty")
 }

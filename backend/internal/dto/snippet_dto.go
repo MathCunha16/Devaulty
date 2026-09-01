@@ -9,19 +9,19 @@ import (
 )
 
 type CreateSnippetCommand struct {
-	ProjectID   uuid.UUID             `json:"-"`
+	ProjectID   uuid.UUID             `json:"projectID"`
 	Title       string                `json:"title" binding:"required,min=2,max=255"`
-	Description *string               `json:"description,omitempty" binding:"omitempty,min=1,max=255"`
+	Description *string               `json:"description,omitempty" binding:"omitempty,min=1"`
 	Content     string                `json:"content" binding:"required,min=1"`
 	Language    model.SnippetLanguage `json:"language" binding:"required"`
 	SnippetType model.SnippetType     `json:"snippetType" binding:"required"`
 }
 
 type UpdateSnippetCommand struct {
-	ProjectID   uuid.UUID              `json:"-"`
-	ID          uuid.UUID              `json:"-"`
+	ProjectID   uuid.UUID              `json:"projectID"`
+	ID          uuid.UUID              `json:"id"`
 	Title       *string                `json:"title,omitempty" binding:"omitempty,min=2,max=255"`
-	Description *string                `json:"description,omitempty" binding:"omitempty,min=1,max=255"`
+	Description *string                `json:"description,omitempty" binding:"omitempty,min=1"`
 	Content     *string                `json:"content,omitempty" binding:"omitempty,min=1"`
 	Language    *model.SnippetLanguage `json:"language,omitempty" binding:"omitempty"`
 	SnippetType *model.SnippetType     `json:"snippetType,omitempty" binding:"omitempty"`

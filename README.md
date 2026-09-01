@@ -67,6 +67,51 @@ If you want to contribute, inspect the codebase, or build Devaulty from source, 
 - ⚙️ **[Backend Documentation](backend/README.md)** — Go architecture (Hexagonal), SQLite persistence, embedded migrations, and security handlers.
 - 🎨 **[Frontend Documentation](frontend/README.md)** — React, Vite, TypeScript, and Tauri v2 shell integration.
 
+## MCP Integration
+
+Devaulty exposes an MCP (Model Context Protocol) server through the backend binary, letting AI agents (Claude, Cursor, etc.) read and write project data — boards, cards, notes, snippets, problems, tags. It has **no access to the Vault/credentials module**.
+
+The MCP server is not a background daemon: an MCP client launches it on demand and talks to it over stdio. It runs standalone — it does **not** require the Devaulty app to be open.
+
+### 1. Open Devaulty at least once
+
+On first launch, the app installs a small stable command at a fixed path, pointing to the backend binary bundled with your installation. This step is required once per install/update — after that, the MCP server works whether the app is open or closed.
+
+### 2. Point your MCP client to that path
+
+| OS | Path |
+|---|---|
+| Linux | `${XDG_CONFIG_HOME:-$HOME/.config}/devaulty/bin/devaulty-backend` |
+| macOS | `~/Library/Application Support/devaulty/bin/devaulty-backend` |
+| Windows | `%APPDATA%\devaulty\bin\devaulty-backend.bat` |
+
+Example configuration:
+
+```json
+{
+  "mcpServers": {
+    "devaulty": {
+      "command": "/home/<user>/.config/devaulty/bin/devaulty-backend",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+Optional flags, appended to `args`:
+- `--readonly` — only register read-only tools.
+- `--disable-delete` — disable destructive delete tools.
+
+### Running from source
+
+If you're building from source instead of using a packaged install:
+
+```bash
+go run ./backend/cmd/api mcp
+```
+
+This is the standard MCP pattern: the client starts the server when needed; the app itself does not expose a public network endpoint for MCP.
+
 ---
 
 ## License
