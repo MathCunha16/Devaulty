@@ -37,12 +37,6 @@ func main() {
 		log.Fatalf("Critical error while creating data directory %s: %v", dataDir, err)
 	}
 
-	lockFile, err := acquireSingleInstanceLock(dataDir)
-	if err != nil {
-		log.Fatalf("Another Devaulty instance is already using the same data directory %s: %v", dataDir, err)
-	}
-	defer releaseSingleInstanceLock(lockFile)
-
 	dbPath := filepath.Join(dataDir, "devaulty.db")
 
 	// Use embedded migrations in production for a self-contained binary.
