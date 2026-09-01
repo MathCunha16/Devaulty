@@ -9,6 +9,17 @@ use crate::session::{BackendInfo, SessionState};
 // startup experience even when the Go backend initializes instantly.
 const MIN_SPLASH_DURATION: Duration = Duration::from_secs(2);
 
+fn is_allowed_download_host(host: &str) -> bool {
+  host == "github.com"
+    || host == "objects.githubusercontent.com"
+    || host.ends_with(".github.com")
+    || host.ends_with(".githubusercontent.com")
+}
+
+async fn cleanup_partial_download(target_path: &std::path::Path) {
+  let _ = tokio::fs::remove_file(target_path).await;
+}
+
 // Async IPC command:
 //   - Bundled mode (production): waits up to 30s for Go backend to print [DEVAULTY_SESSION],
 //     then performs a health check, ensuring a minimum 2s splash display.
@@ -194,13 +205,9 @@ pub async fn download_release_file(
   if parsed_url.scheme() != "https" {
     return Err("Only HTTPS URLs are permitted".to_string());
   }
-  let host = parsed_url.host_str().unwrap_or("");
-  let is_allowed_host = host == "github.com"
-    || host == "objects.githubusercontent.com"
-    || host.ends_with(".github.com")
-    || host.ends_with(".githubusercontent.com");
 
-  if !is_allowed_host {
+  let host = parsed_url.host_str().unwrap_or("");
+  if !is_allowed_download_host(host) {
     return Err(format!("Unauthorized download host: {}", host));
   }
 
@@ -226,6 +233,23 @@ pub async fn download_release_file(
     .user_agent("Devaulty-Updater")
     .connect_timeout(Duration::from_secs(15))
     .read_timeout(Duration::from_secs(60))
+    .redirect(reqwest::redirect::Policy::custom(|attempt| {
+      let next_url = attempt.url();
+      if next_url.scheme() != "https" {
+        return attempt.stop();
+      }
+
+      let next_host = next_url.host_str().unwrap_or("");
+      if !is_allowed_download_host(next_host) {
+        return attempt.stop();
+      }
+
+      if attempt.previous().len() >= 5 {
+        return attempt.stop();
+      }
+
+      attempt.follow()
+    }))
     .build()
     .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
@@ -251,18 +275,27 @@ pub async fn download_release_file(
 
   let mut stream = response.bytes_stream();
 
-  while let Some(chunk) = stream.next().await {
+  while let Some(chunk_result) = stream.next().await {
     if cancel_flag.load(std::sync::atomic::Ordering::Relaxed) {
       drop(file);
-      let _ = tokio::fs::remove_file(&target_path).await;
+      cleanup_partial_download(&target_path).await;
       return Err("Download cancelled by user".to_string());
     }
 
-    let chunk = chunk.map_err(|e| format!("Error downloading chunk: {}", e))?;
-    file
-      .write_all(&chunk)
-      .await
-      .map_err(|e| format!("Error writing chunk to file: {}", e))?;
+    let chunk = match chunk_result {
+      Ok(chunk) => chunk,
+      Err(e) => {
+        drop(file);
+        cleanup_partial_download(&target_path).await;
+        return Err(format!("Error downloading chunk: {}", e));
+      }
+    };
+
+    if let Err(e) = file.write_all(&chunk).await {
+      drop(file);
+      cleanup_partial_download(&target_path).await;
+      return Err(format!("Error writing chunk to file: {}", e));
+    }
 
     downloaded += chunk.len() as u64;
     let percentage = if total_size > 0 {
@@ -281,10 +314,11 @@ pub async fn download_release_file(
     );
   }
 
-  file
-    .flush()
-    .await
-    .map_err(|e| format!("Failed to flush file: {}", e))?;
+  if let Err(e) = file.flush().await {
+    drop(file);
+    cleanup_partial_download(&target_path).await;
+    return Err(format!("Failed to flush file: {}", e));
+  }
 
   #[cfg(unix)]
   if safe_name.ends_with(".AppImage") {

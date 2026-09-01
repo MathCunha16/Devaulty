@@ -74,6 +74,8 @@ The backend includes a standard MCP server exposed through the same Go entrypoin
 
 The MCP adapter runs **standalone**: it opens its own SQLite connection (WAL mode + busy timeout) directly, independent of the HTTP server, and has **no access to the Vault/credentials module**. It works whether the Devaulty desktop app is open or closed.
 
+When the desktop app is running, the tray is the lifecycle boundary: hiding the main window keeps the local backend alive for MCP sessions, while quitting from the tray terminates the process. If the tray session is closed, MCP cannot continue using that local backend instance.
+
 The runtime entrypoint is:
 
 ```bash

@@ -5,7 +5,13 @@ package main
 import (
 	"fmt"
 	"os"
-	"syscall"
+
+	"golang.org/x/sys/windows"
+)
+
+const (
+	lockFileExclusiveLock   = 0x00000002
+	lockFileFailImmediately = 0x00000001
 )
 
 func acquireSingleInstanceLock(dataDir string) (*os.File, error) {
@@ -32,13 +38,20 @@ func releaseSingleInstanceLock(file *os.File) {
 }
 
 func lockFileEx(file *os.File) error {
-	hFile := syscall.Handle(file.Fd())
-	var ov syscall.Overlapped
-	return syscall.LockFileEx(hFile, syscall.LOCKFILE_EXCLUSIVE_LOCK, 0, 1, 0, &ov)
+	hFile := windows.Handle(file.Fd())
+	var ov windows.Overlapped
+	return windows.LockFileEx(
+		hFile,
+		lockFileExclusiveLock|lockFileFailImmediately,
+		0,
+		1,
+		0,
+		&ov,
+	)
 }
 
 func unlockFileEx(file *os.File) error {
-	hFile := syscall.Handle(file.Fd())
-	var ov syscall.Overlapped
-	return syscall.UnlockFileEx(hFile, 0, 1, 0, &ov)
+	hFile := windows.Handle(file.Fd())
+	var ov windows.Overlapped
+	return windows.UnlockFileEx(hFile, 0, 1, 0, &ov)
 }

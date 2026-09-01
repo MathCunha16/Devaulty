@@ -219,12 +219,37 @@ func resolveDataDir() (string, error) {
 		absPath = resolved
 	}
 
-	if strings.Contains(strings.ToLower(absPath), "/tmp/") ||
-		strings.Contains(strings.ToLower(absPath), ".mount_") ||
-		strings.Contains(strings.ToLower(absPath), "/appimage") ||
-		strings.Contains(strings.ToLower(absPath), "\\appimage") {
+	absPath = filepath.Clean(absPath)
+
+	normalizedAbsPath := normalizePathForComparison(absPath)
+	tempDir, err := filepath.Abs(os.TempDir())
+	if err == nil {
+		tempDir = filepath.Clean(tempDir)
+	}
+	normalizedTempDir := normalizePathForComparison(tempDir)
+	if normalizedTempDir != "" {
+		if normalizedAbsPath == normalizedTempDir || strings.HasPrefix(normalizedAbsPath, normalizedTempDir+"/") {
+			return "", fmt.Errorf("refusing to use unstable data directory %q (AppImage mounts and other temp directories are not supported for persistent storage)", absPath)
+		}
+	}
+
+	lowerAbsPath := strings.ToLower(filepath.ToSlash(absPath))
+	if strings.Contains(lowerAbsPath, "/tmp/") ||
+		strings.Contains(lowerAbsPath, ".mount_") ||
+		strings.Contains(lowerAbsPath, "/appimage") ||
+		strings.Contains(lowerAbsPath, "\\appimage") {
 		return "", fmt.Errorf("refusing to use unstable data directory %q (AppImage mounts and other temp directories are not supported for persistent storage)", absPath)
 	}
 
 	return absPath, nil
+}
+
+func normalizePathForComparison(p string) string {
+	cleaned := filepath.Clean(p)
+	cleaned = filepath.ToSlash(cleaned)
+	cleaned = strings.TrimSuffix(cleaned, "/")
+	if cleaned == "." {
+		return ""
+	}
+	return strings.ToLower(cleaned)
 }
