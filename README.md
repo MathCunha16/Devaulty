@@ -81,7 +81,7 @@ On first launch, the app installs a small stable command at a fixed path, pointi
 
 | OS | Path |
 |---|---|
-| Linux | `~/.config/devaulty/bin/devaulty-backend` |
+| Linux | `${XDG_CONFIG_HOME:-$HOME/.config}/devaulty/bin/devaulty-backend` |
 | macOS | `~/Library/Application Support/devaulty/bin/devaulty-backend` |
 | Windows | `%APPDATA%\devaulty\bin\devaulty-backend.bat` |
 

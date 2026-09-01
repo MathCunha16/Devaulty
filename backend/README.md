@@ -102,7 +102,7 @@ In the packaged Tauri desktop app, the backend binary itself is bundled in the a
 
 | OS | Wrapper path |
 |---|---|
-| Linux | `~/.config/devaulty/bin/devaulty-backend` |
+| Linux | `${XDG_CONFIG_HOME:-$HOME/.config}/devaulty/bin/devaulty-backend` |
 | macOS | `~/Library/Application Support/devaulty/bin/devaulty-backend` |
 | Windows | `%APPDATA%\devaulty\bin\devaulty-backend.bat` |
 

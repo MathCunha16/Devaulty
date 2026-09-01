@@ -146,9 +146,13 @@ fn install_standalone_cli(
   #[cfg(unix)]
   {
     let dest = bin_dir.join("devaulty-backend");
-    let script = format!("#!/bin/sh\nexec \"{}\" \"$@\"\n", resource_binary.display());
-    std::fs::write(&dest, script)?;
-    ensure_executable(&dest)?;
+
+    // Remove any stale file/symlink from a previous version before relinking.
+    if dest.symlink_metadata().is_ok() {
+      let _ = std::fs::remove_file(&dest);
+    }
+
+    std::os::unix::fs::symlink(resource_binary, &dest)?;
     Ok(dest)
   }
 
