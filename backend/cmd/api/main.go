@@ -195,5 +195,9 @@ func resolveDataDir() string {
 	if dir := os.Getenv("DEVAULTY_DATA_DIR"); dir != "" {
 		return dir
 	}
-	return "data"
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return "data" // last-resort fallback
+	}
+	return filepath.Join(configDir, "devaulty")
 }

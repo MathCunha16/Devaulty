@@ -132,6 +132,34 @@ fn find_backend_binary(resource_dir: &std::path::Path) -> Option<std::path::Path
   candidates.into_iter().find(|p| p.exists())
 }
 
+// Writes a tiny wrapper script at a fixed, predictable path that execs the
+// real backend binary. This avoids duplicating the binary on disk while
+// giving external tools (MCP clients) a stable path across all package
+// formats (.deb, .rpm, .exe, .dmg, .AppImage).
+fn install_standalone_cli(
+  resource_binary: &std::path::Path,
+  data_dir: &std::path::Path,
+) -> std::io::Result<std::path::PathBuf> {
+  let bin_dir = data_dir.join("bin");
+  std::fs::create_dir_all(&bin_dir)?;
+
+  #[cfg(unix)]
+  {
+    let dest = bin_dir.join("devaulty-backend");
+    let script = format!("#!/bin/sh\nexec \"{}\" \"$@\"\n", resource_binary.display());
+    std::fs::write(&dest, script)?;
+    ensure_executable(&dest)?;
+    Ok(dest)
+  }
+
+  #[cfg(windows)]
+  {
+    let dest = bin_dir.join("devaulty-backend.bat");
+    let script = format!("@echo off\r\n\"{}\" %*\r\n", resource_binary.display());
+    std::fs::write(&dest, script)?;
+    Ok(dest)
+  }
+}
 // Sets executable permission on Unix systems (Linux & macOS).
 // On Windows this is a no-op since executability is determined by file extension.
 #[cfg(unix)]
@@ -465,6 +493,13 @@ pub fn run() {
           if let Err(e) = ensure_executable(&binary_path) {
             log::error!("Failed to set executable permission on backend binary: {}", e);
           }
+
+          // Install a stable wrapper script pointing to the backend binary so external
+          // tools (MCP clients) can reference a fixed path across all package formats.
+          if let Err(e) = install_standalone_cli(&binary_path, &devaulty_data_dir) {
+            log::error!("Failed to install standalone CLI wrapper: {}", e);
+          }
+
 
           // Generate a cryptographically secure random session token.
           // This token is injected exclusively via the child process environment
