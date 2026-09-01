@@ -73,6 +73,8 @@ Devaulty exposes an MCP (Model Context Protocol) server through the backend bina
 
 The MCP server is not a background daemon: an MCP client launches it on demand and talks to it over stdio. It runs standalone — it does **not** require the Devaulty app to be open.
 
+When the desktop app is active, the tray keeps the local backend alive while the main window is hidden. If you want MCP to keep working while the window is closed, the tray session must remain active; quitting from the tray exits the process and ends the local backend session.
+
 ### 1. Open Devaulty at least once
 
 On first launch, the app installs a small stable command at a fixed path, pointing to the backend binary bundled with your installation. This step is required once per install/update — after that, the MCP server works whether the app is open or closed.

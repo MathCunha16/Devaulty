@@ -99,7 +99,11 @@ sequenceDiagram
     Tauri->>Tauri: Show & Maximize Main Window
 ```
 
-### 3. Multi-Platform Packaging
+### 3. Tray lifecycle & local backend continuity
+
+The desktop shell keeps a small tray icon available while the app is running. Closing the main window hides it instead of terminating the backend immediately; the user can explicitly quit from the tray menu. This is important for local MCP continuity, because the tray session keeps the bundled backend alive while the UI is closed.
+
+### 4. Multi-Platform Packaging
 
 The desktop app is packaged using Tauri's cross-platform bundler into native installers:
 

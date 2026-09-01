@@ -7,6 +7,7 @@ import (
 	"devaulty-backend/internal/adapter/in/web/handler"
 	"devaulty-backend/internal/usecase"
 	"devaulty-backend/migrations"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -14,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"strings"
 
 	"devaulty-backend/internal/adapter/out/persistence"
 	"devaulty-backend/internal/adapter/out/security"
@@ -27,17 +29,25 @@ func main() {
 	}
 	log.Println("Starting Devaulty API")
 
-	dataDir := resolveDataDir()
+	dataDir, err := resolveDataDir()
+	if err != nil {
+		log.Fatalf("Refusing to start Devaulty with an invalid or unstable data directory: %v", err)
+	}
 	if err := os.MkdirAll(dataDir, 0700); err != nil {
 		log.Fatalf("Critical error while creating data directory %s: %v", dataDir, err)
 	}
+
+	lockFile, err := acquireSingleInstanceLock(dataDir)
+	if err != nil {
+		log.Fatalf("Another Devaulty instance is already using the same data directory %s: %v", dataDir, err)
+	}
+	defer releaseSingleInstanceLock(lockFile)
 
 	dbPath := filepath.Join(dataDir, "devaulty.db")
 
 	// Use embedded migrations in production for a self-contained binary.
 	// In development (APP_ENV=dev), use file-based migrations for hot-reload convenience.
 	var db *sqlx.DB
-	var err error
 	if os.Getenv("APP_ENV") == "dev" {
 		db, err = persistence.InitDB(dbPath, "migrations")
 	} else {
@@ -188,16 +198,58 @@ func runMCPServer(
 	}
 }
 
-// resolveDataDir returns the absolute path to the application data directory.
-// In production, Tauri sets DEVAULTY_DATA_DIR to the OS user config path.
-// In development, it falls back to a relative "data" directory.
-func resolveDataDir() string {
-	if dir := os.Getenv("DEVAULTY_DATA_DIR"); dir != "" {
-		return dir
+// resolveDataDir returns a stable, absolute app data directory and rejects
+// transient paths derived from AppImage mounts or other ephemeral storage.
+func resolveDataDir() (string, error) {
+	candidate := os.Getenv("DEVAULTY_DATA_DIR")
+	if candidate == "" {
+		configDir, err := os.UserConfigDir()
+		if err != nil {
+			return "", errors.New("failed to resolve user config directory")
+		}
+		candidate = filepath.Join(configDir, "devaulty")
 	}
-	configDir, err := os.UserConfigDir()
+
+	absPath, err := filepath.Abs(candidate)
 	if err != nil {
-		return "data" // last-resort fallback
+		return "", fmt.Errorf("resolve absolute path for %q: %w", candidate, err)
 	}
-	return filepath.Join(configDir, "devaulty")
+
+	if resolved, err := filepath.EvalSymlinks(absPath); err == nil {
+		absPath = resolved
+	}
+
+	absPath = filepath.Clean(absPath)
+
+	normalizedAbsPath := normalizePathForComparison(absPath)
+	tempDir, err := filepath.Abs(os.TempDir())
+	if err == nil {
+		tempDir = filepath.Clean(tempDir)
+	}
+	normalizedTempDir := normalizePathForComparison(tempDir)
+	if normalizedTempDir != "" {
+		if normalizedAbsPath == normalizedTempDir || strings.HasPrefix(normalizedAbsPath, normalizedTempDir+"/") {
+			return "", fmt.Errorf("refusing to use unstable data directory %q (AppImage mounts and other temp directories are not supported for persistent storage)", absPath)
+		}
+	}
+
+	lowerAbsPath := strings.ToLower(filepath.ToSlash(absPath))
+	if strings.Contains(lowerAbsPath, "/tmp/") ||
+		strings.Contains(lowerAbsPath, ".mount_") ||
+		strings.Contains(lowerAbsPath, "/appimage") ||
+		strings.Contains(lowerAbsPath, "\\appimage") {
+		return "", fmt.Errorf("refusing to use unstable data directory %q (AppImage mounts and other temp directories are not supported for persistent storage)", absPath)
+	}
+
+	return absPath, nil
+}
+
+func normalizePathForComparison(p string) string {
+	cleaned := filepath.Clean(p)
+	cleaned = filepath.ToSlash(cleaned)
+	cleaned = strings.TrimSuffix(cleaned, "/")
+	if cleaned == "." {
+		return ""
+	}
+	return strings.ToLower(cleaned)
 }

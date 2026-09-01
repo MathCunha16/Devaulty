@@ -9,8 +9,8 @@ import (
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
-	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -50,7 +50,7 @@ func InitDBWithFS(dbPath string, migrationsFS fs.FS) (*sqlx.DB, error) {
 }
 
 func openDB(dbPath string) (*sqlx.DB, error) {
-	dsn := fmt.Sprintf("%s?_foreign_keys=on", dbPath)
+	dsn := fmt.Sprintf("%s?_foreign_keys=on&_busy_timeout=5000", dbPath)
 	db, err := sqlx.Open("sqlite3", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("error trying to open Sqlite connection: %w", err)
@@ -59,6 +59,11 @@ func openDB(dbPath string) (*sqlx.DB, error) {
 	if err := db.Ping(); err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("error to connect to Sqlite: %w", err)
+	}
+
+	if _, err := db.Exec("PRAGMA journal_mode=WAL;"); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("error enabling SQLite WAL mode: %w", err)
 	}
 
 	return db, nil
