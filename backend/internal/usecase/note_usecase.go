@@ -14,7 +14,9 @@ import (
 )
 
 var (
-	ErrNoteNotFound = errors.New("note not found")
+	ErrNoteNotFound          = errors.New("note not found")
+	ErrNoteAlreadyArchived   = errors.New("note already archived")
+	ErrNoteAlreadyUnarchived = errors.New("note already unarchived")
 )
 
 type NoteUseCase struct {
@@ -165,6 +167,58 @@ func (uc *NoteUseCase) Delete(ctx context.Context, projectID, id uuid.UUID) erro
 	}
 	if err := uc.itemTagRepo.RemoveAllTagsFromItem(ctx, model.ItemTypeNote, id); err != nil {
 		log.Printf("warning: failed to remove tags from note %s: %v", id, err)
+	}
+	return nil
+}
+
+func (uc *NoteUseCase) Archive(ctx context.Context, projectID, id uuid.UUID) error {
+	if err := ensureProjectExists(ctx, uc.projectRepo, projectID); err != nil {
+		return err
+	}
+	note, err := uc.noteRepo.FindByIDAndProjectID(ctx, projectID, id)
+	if err != nil {
+		return fmt.Errorf("error trying to find note: %w", err)
+	}
+	if note == nil {
+		return ErrNoteNotFound
+	}
+	if note.Archived {
+		return ErrNoteAlreadyArchived
+	}
+
+	note.Archived = true
+	now := time.Now()
+	note.UpdatedAt = &now
+
+	_, err = uc.noteRepo.Save(ctx, note)
+	if err != nil {
+		return fmt.Errorf("error archiving note: %w", err)
+	}
+	return nil
+}
+
+func (uc *NoteUseCase) Unarchive(ctx context.Context, projectID, id uuid.UUID) error {
+	if err := ensureProjectExists(ctx, uc.projectRepo, projectID); err != nil {
+		return err
+	}
+	note, err := uc.noteRepo.FindByIDAndProjectID(ctx, projectID, id)
+	if err != nil {
+		return fmt.Errorf("error trying to find note: %w", err)
+	}
+	if note == nil {
+		return ErrNoteNotFound
+	}
+	if !note.Archived {
+		return ErrNoteAlreadyUnarchived
+	}
+
+	note.Archived = false
+	now := time.Now()
+	note.UpdatedAt = &now
+
+	_, err = uc.noteRepo.Save(ctx, note)
+	if err != nil {
+		return fmt.Errorf("error unarchiving note: %w", err)
 	}
 	return nil
 }
