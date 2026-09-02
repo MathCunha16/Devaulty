@@ -108,7 +108,7 @@ func (t *SnippetTools) list(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 
 	projectID, err := uuid.Parse(query.ProjectID)
 	if err != nil {
-		return mcp.NewToolResultError("Invalid project UUID" + err.Error()), nil
+		return mcp.NewToolResultError("Invalid project UUID: " + err.Error()), nil
 	}
 
 	pagedSnippets, err := t.snippetUseCase.GetAllByProjectID(ctx, projectID, query.PageNumber, query.PageSize)

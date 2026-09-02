@@ -93,7 +93,7 @@ func (t *NoteTools) list(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 
 	projectID, err := uuid.Parse(query.ProjectID)
 	if err != nil {
-		return mcp.NewToolResultError("Invalid project UUID" + err.Error()), nil
+		return mcp.NewToolResultError("Invalid project UUID: " + err.Error()), nil
 	}
 
 	pagedNotes, err := t.noteUseCase.GetAllByProjectID(ctx, projectID, query.PageNumber, query.PageSize)

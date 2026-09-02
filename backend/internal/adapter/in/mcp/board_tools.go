@@ -100,7 +100,7 @@ func (t *BoardTools) list(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 
 	projectID, err := uuid.Parse(query.ProjectID)
 	if err != nil {
-		return mcp.NewToolResultError("Invalid project UUID" + err.Error()), nil
+		return mcp.NewToolResultError("Invalid project UUID: " + err.Error()), nil
 	}
 
 	pagedBoards, err := t.boardUseCase.GetAllByProjectID(ctx, projectID, query.PageNumber, query.PageSize)

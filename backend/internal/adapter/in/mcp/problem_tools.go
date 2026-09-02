@@ -107,7 +107,7 @@ func (t *ProblemTools) list(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 
 	projectID, err := uuid.Parse(query.ProjectID)
 	if err != nil {
-		return mcp.NewToolResultError("Invalid project UUID" + err.Error()), nil
+		return mcp.NewToolResultError("Invalid project UUID: " + err.Error()), nil
 	}
 
 	pagedProblems, err := t.problemUseCase.GetAllByProjectID(ctx, projectID, query.PageNumber, query.PageSize)

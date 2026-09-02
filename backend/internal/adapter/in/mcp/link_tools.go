@@ -94,7 +94,7 @@ func (t *LinkTools) list(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 
 	projectID, err := uuid.Parse(query.ProjectID)
 	if err != nil {
-		return mcp.NewToolResultError("Invalid project UUID" + err.Error()), nil
+		return mcp.NewToolResultError("Invalid project UUID: " + err.Error()), nil
 	}
 
 	pagedLinks, err := t.linkUseCase.GetAllByProjectID(ctx, projectID, query.PageNumber, query.PageSize)
