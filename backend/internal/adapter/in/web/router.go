@@ -126,6 +126,8 @@ func mapNoteRoutes(rg *gin.RouterGroup, h *handler.NoteHandler) {
 		notes.GET("", h.GetAll)
 		notes.GET("/:note_id", h.Get)
 		notes.PATCH("/:note_id", h.Update)
+		notes.PATCH("/:note_id/archive", h.Archive)
+		notes.PATCH("/:note_id/unarchive", h.Unarchive)
 		notes.DELETE("/:note_id", h.Delete)
 	}
 }
