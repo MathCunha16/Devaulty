@@ -175,3 +175,145 @@ func TestNoteUseCase_Delete(t *testing.T) {
 		assert.ErrorIs(t, err, usecase.ErrNoteNotFound)
 	})
 }
+
+func TestNoteUseCase_Archive(t *testing.T) {
+	ctx := context.Background()
+	projectID := uuid.New()
+	noteID := uuid.New()
+
+	t.Run("Archive_Success", func(t *testing.T) {
+		mockNoteRepo := new(MockNoteRepository)
+		mockProjectRepo := new(MockProjectRepository)
+		mockItemTagRepo := new(MockItemTagRepository)
+		uc := usecase.NewNoteUseCase(mockNoteRepo, mockProjectRepo, mockItemTagRepo)
+
+		existingNote := &model.Note{
+			ID:        noteID,
+			ProjectID: projectID,
+			Title:     "Note to archive",
+			Archived:  false,
+		}
+
+		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		mockNoteRepo.On("FindByIDAndProjectID", ctx, projectID, noteID).Return(existingNote, nil)
+		mockNoteRepo.On("Save", ctx, mock.MatchedBy(func(n *model.Note) bool {
+			return n.Archived == true && n.UpdatedAt != nil
+		})).Return(existingNote, nil)
+
+		err := uc.Archive(ctx, projectID, noteID)
+
+		assert.NoError(t, err)
+		mockProjectRepo.AssertExpectations(t)
+		mockNoteRepo.AssertExpectations(t)
+	})
+
+	t.Run("Archive_AlreadyArchived", func(t *testing.T) {
+		mockNoteRepo := new(MockNoteRepository)
+		mockProjectRepo := new(MockProjectRepository)
+		mockItemTagRepo := new(MockItemTagRepository)
+		uc := usecase.NewNoteUseCase(mockNoteRepo, mockProjectRepo, mockItemTagRepo)
+
+		existingNote := &model.Note{
+			ID:        noteID,
+			ProjectID: projectID,
+			Title:     "Already archived note",
+			Archived:  true,
+		}
+
+		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		mockNoteRepo.On("FindByIDAndProjectID", ctx, projectID, noteID).Return(existingNote, nil)
+
+		err := uc.Archive(ctx, projectID, noteID)
+
+		assert.ErrorIs(t, err, usecase.ErrNoteAlreadyArchived)
+		mockProjectRepo.AssertExpectations(t)
+		mockNoteRepo.AssertExpectations(t)
+	})
+
+	t.Run("Archive_NoteNotFound", func(t *testing.T) {
+		mockNoteRepo := new(MockNoteRepository)
+		mockProjectRepo := new(MockProjectRepository)
+		mockItemTagRepo := new(MockItemTagRepository)
+		uc := usecase.NewNoteUseCase(mockNoteRepo, mockProjectRepo, mockItemTagRepo)
+
+		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		mockNoteRepo.On("FindByIDAndProjectID", ctx, projectID, noteID).Return(nil, nil)
+
+		err := uc.Archive(ctx, projectID, noteID)
+
+		assert.ErrorIs(t, err, usecase.ErrNoteNotFound)
+		mockProjectRepo.AssertExpectations(t)
+		mockNoteRepo.AssertExpectations(t)
+	})
+}
+
+func TestNoteUseCase_Unarchive(t *testing.T) {
+	ctx := context.Background()
+	projectID := uuid.New()
+	noteID := uuid.New()
+
+	t.Run("Unarchive_Success", func(t *testing.T) {
+		mockNoteRepo := new(MockNoteRepository)
+		mockProjectRepo := new(MockProjectRepository)
+		mockItemTagRepo := new(MockItemTagRepository)
+		uc := usecase.NewNoteUseCase(mockNoteRepo, mockProjectRepo, mockItemTagRepo)
+
+		existingNote := &model.Note{
+			ID:        noteID,
+			ProjectID: projectID,
+			Title:     "Archived note",
+			Archived:  true,
+		}
+
+		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		mockNoteRepo.On("FindByIDAndProjectID", ctx, projectID, noteID).Return(existingNote, nil)
+		mockNoteRepo.On("Save", ctx, mock.MatchedBy(func(n *model.Note) bool {
+			return n.Archived == false && n.UpdatedAt != nil
+		})).Return(existingNote, nil)
+
+		err := uc.Unarchive(ctx, projectID, noteID)
+
+		assert.NoError(t, err)
+		mockProjectRepo.AssertExpectations(t)
+		mockNoteRepo.AssertExpectations(t)
+	})
+
+	t.Run("Unarchive_AlreadyUnarchived", func(t *testing.T) {
+		mockNoteRepo := new(MockNoteRepository)
+		mockProjectRepo := new(MockProjectRepository)
+		mockItemTagRepo := new(MockItemTagRepository)
+		uc := usecase.NewNoteUseCase(mockNoteRepo, mockProjectRepo, mockItemTagRepo)
+
+		existingNote := &model.Note{
+			ID:        noteID,
+			ProjectID: projectID,
+			Title:     "Open note",
+			Archived:  false,
+		}
+
+		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		mockNoteRepo.On("FindByIDAndProjectID", ctx, projectID, noteID).Return(existingNote, nil)
+
+		err := uc.Unarchive(ctx, projectID, noteID)
+
+		assert.ErrorIs(t, err, usecase.ErrNoteAlreadyUnarchived)
+		mockProjectRepo.AssertExpectations(t)
+		mockNoteRepo.AssertExpectations(t)
+	})
+
+	t.Run("Unarchive_NoteNotFound", func(t *testing.T) {
+		mockNoteRepo := new(MockNoteRepository)
+		mockProjectRepo := new(MockProjectRepository)
+		mockItemTagRepo := new(MockItemTagRepository)
+		uc := usecase.NewNoteUseCase(mockNoteRepo, mockProjectRepo, mockItemTagRepo)
+
+		mockProjectRepo.On("ExistsByID", ctx, projectID).Return(true, nil)
+		mockNoteRepo.On("FindByIDAndProjectID", ctx, projectID, noteID).Return(nil, nil)
+
+		err := uc.Unarchive(ctx, projectID, noteID)
+
+		assert.ErrorIs(t, err, usecase.ErrNoteNotFound)
+		mockProjectRepo.AssertExpectations(t)
+		mockNoteRepo.AssertExpectations(t)
+	})
+}

@@ -269,6 +269,58 @@ func TestNoteHandler_Update(t *testing.T) {
 	})
 }
 
+func TestNoteHandler_ArchiveAndUnarchive(t *testing.T) {
+	app := SetupTestApp(t)
+	defer app.Server.Close()
+
+	projectBody := []byte(`{"name":"Parent Project"}`)
+	respProject := app.DoRequest(t, http.MethodPost, "/api/v1/projects", projectBody, true)
+	var createdProject map[string]interface{}
+	_ = json.NewDecoder(respProject.Body).Decode(&createdProject)
+	projectID := createdProject["id"].(string)
+
+	noteBody := []byte(`{"title":"Note To Archive","content":"Content"}`)
+	urlCreate := fmt.Sprintf("/api/v1/projects/%s/notes", projectID)
+	respNote := app.DoRequest(t, http.MethodPost, urlCreate, noteBody, true)
+	var createdNote map[string]interface{}
+	_ = json.NewDecoder(respNote.Body).Decode(&createdNote)
+	noteID := createdNote["id"].(string)
+
+	t.Run("Archive success", func(t *testing.T) {
+		urlArchive := fmt.Sprintf("/api/v1/projects/%s/notes/%s/archive", projectID, noteID)
+		resp := app.DoRequest(t, http.MethodPatch, urlArchive, nil, true)
+		assert.Equal(t, http.StatusNoContent, resp.StatusCode)
+	})
+
+	t.Run("Archive failure - already archived", func(t *testing.T) {
+		urlArchive := fmt.Sprintf("/api/v1/projects/%s/notes/%s/archive", projectID, noteID)
+		resp := app.DoRequest(t, http.MethodPatch, urlArchive, nil, true)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("Unarchive success", func(t *testing.T) {
+		urlUnarchive := fmt.Sprintf("/api/v1/projects/%s/notes/%s/unarchive", projectID, noteID)
+		resp := app.DoRequest(t, http.MethodPatch, urlUnarchive, nil, true)
+		assert.Equal(t, http.StatusNoContent, resp.StatusCode)
+	})
+
+	t.Run("Unarchive failure - not archived", func(t *testing.T) {
+		urlUnarchive := fmt.Sprintf("/api/v1/projects/%s/notes/%s/unarchive", projectID, noteID)
+		resp := app.DoRequest(t, http.MethodPatch, urlUnarchive, nil, true)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("Archive failure - invalid project UUID", func(t *testing.T) {
+		resp := app.DoRequest(t, http.MethodPatch, "/api/v1/projects/invalid-uuid/notes/"+noteID+"/archive", nil, true)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+
+	t.Run("Unarchive failure - invalid note UUID", func(t *testing.T) {
+		resp := app.DoRequest(t, http.MethodPatch, "/api/v1/projects/"+projectID+"/notes/invalid-uuid/unarchive", nil, true)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	})
+}
+
 func TestNoteHandler_Delete(t *testing.T) {
 	app := SetupTestApp(t)
 	defer app.Server.Close()

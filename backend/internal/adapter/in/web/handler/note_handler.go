@@ -144,6 +144,66 @@ func (h *NoteHandler) Update(c *gin.Context) {
 	c.JSON(http.StatusOK, note)
 }
 
+func (h *NoteHandler) Archive(c *gin.Context) {
+	projectID, err := common.ExtractUUIDParam(c, "project_id")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	id, err := common.ExtractUUIDParam(c, "note_id")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = h.noteUseCase.Archive(c.Request.Context(), projectID, id)
+	if err != nil {
+		if errors.Is(err, usecase.ErrProjectNotFound) || errors.Is(err, usecase.ErrNoteNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, usecase.ErrNoteAlreadyArchived) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		log.Printf("[NoteHandler.Archive] %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func (h *NoteHandler) Unarchive(c *gin.Context) {
+	projectID, err := common.ExtractUUIDParam(c, "project_id")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	id, err := common.ExtractUUIDParam(c, "note_id")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = h.noteUseCase.Unarchive(c.Request.Context(), projectID, id)
+	if err != nil {
+		if errors.Is(err, usecase.ErrProjectNotFound) || errors.Is(err, usecase.ErrNoteNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, usecase.ErrNoteAlreadyUnarchived) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		log.Printf("[NoteHandler.Unarchive] %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
 func (h *NoteHandler) Delete(c *gin.Context) {
 	projectID, err := common.ExtractUUIDParam(c, "project_id")
 	if err != nil {
