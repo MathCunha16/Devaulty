@@ -14,6 +14,8 @@ import {
   useNotesQuery,
   useNoteQuery,
   useUpdateNoteMutation,
+  useArchiveNoteMutation,
+  useUnarchiveNoteMutation,
   useDeleteNoteMutation,
 } from "../hooks/useNotes";
 import styles from "../../../routes/projects.$projectId.module.css";
@@ -32,6 +34,8 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
   projectColor,
 }) => {
   const { data: notesData } = useNotesQuery(projectId);
+  const archiveNoteMutation = useArchiveNoteMutation(projectId);
+  const unarchiveNoteMutation = useUnarchiveNoteMutation(projectId);
   const deleteNoteMutation = useDeleteNoteMutation(projectId);
 
   const [prevInitialId, setPrevInitialId] = useState(initialSelectedId);
@@ -111,6 +115,24 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
     return matchesSearch && matchesArchived;
   });
 
+
+  const handleArchiveNote = async (noteId: string, title: string) => {
+    try {
+      await archiveNoteMutation.mutateAsync(noteId);
+      toast.success(`Note "${title}" archived`);
+    } catch {
+      toast.error("Failed to archive note");
+    }
+  };
+
+  const handleUnarchiveNote = async (noteId: string, title: string) => {
+    try {
+      await unarchiveNoteMutation.mutateAsync(noteId);
+      toast.success(`Note "${title}" restored`);
+    } catch {
+      toast.error("Failed to restore note");
+    }
+  };
 
   const handleDeleteNote = (noteId: string, title: string) => {
     setConfirmModal({
@@ -362,6 +384,27 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
                     <Icons.Edit3 size={12} />
                     <span>Edit Metadata</span>
                   </button>
+                  {noteDetail.archived ? (
+                    <button
+                      type="button"
+                      onClick={() => handleUnarchiveNote(noteDetail.id, noteDetail.title)}
+                      disabled={unarchiveNoteMutation.isPending || archiveNoteMutation.isPending}
+                      className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5 rounded bg-card transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      <Icons.ArchiveRestore size={12} />
+                      <span>Restore</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleArchiveNote(noteDetail.id, noteDetail.title)}
+                      disabled={archiveNoteMutation.isPending || unarchiveNoteMutation.isPending}
+                      className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 rounded bg-card transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      <Icons.Archive size={12} />
+                      <span>Archive</span>
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => handleDeleteNote(noteDetail.id, noteDetail.title)}

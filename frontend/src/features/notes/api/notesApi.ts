@@ -49,4 +49,12 @@ export const notesApi = {
   delete: async (projectId: string, noteId: string): Promise<void> => {
     await apiClient.delete(`/projects/${projectId}/notes/${noteId}`);
   },
+
+  archive: async (projectId: string, noteId: string): Promise<void> => {
+    await apiClient.patch(`/projects/${projectId}/notes/${noteId}/archive`);
+  },
+
+  unarchive: async (projectId: string, noteId: string): Promise<void> => {
+    await apiClient.patch(`/projects/${projectId}/notes/${noteId}/unarchive`);
+  },
 };

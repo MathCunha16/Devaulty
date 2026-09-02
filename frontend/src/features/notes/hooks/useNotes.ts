@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { notesApi } from "../api/notesApi";
-import type { CreateNoteRequest, UpdateNoteRequest } from "~types/api";
+import type { CreateNoteRequest, NoteViewResponse, UpdateNoteRequest } from "~types/api";
 
 export const notesKeys = {
   all: (projectId: string) => ["projects", projectId, "notes"] as const,
@@ -41,6 +41,36 @@ export const useUpdateNoteMutation = (projectId: string, noteId: string) => {
       queryClient.invalidateQueries({ queryKey: notesKeys.all(projectId) });
       queryClient.invalidateQueries({ queryKey: notesKeys.detail(projectId, noteId) });
       queryClient.setQueryData(notesKeys.detail(projectId, noteId), data);
+    },
+  });
+};
+
+export const useArchiveNoteMutation = (projectId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (noteId: string) => notesApi.archive(projectId, noteId),
+    onSuccess: (_, noteId) => {
+      queryClient.invalidateQueries({ queryKey: notesKeys.all(projectId) });
+      queryClient.invalidateQueries({ queryKey: notesKeys.detail(projectId, noteId) });
+      queryClient.setQueryData(notesKeys.detail(projectId, noteId), (current: NoteViewResponse | undefined) => {
+        if (!current) return current;
+        return { ...current, archived: true };
+      });
+    },
+  });
+};
+
+export const useUnarchiveNoteMutation = (projectId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (noteId: string) => notesApi.unarchive(projectId, noteId),
+    onSuccess: (_, noteId) => {
+      queryClient.invalidateQueries({ queryKey: notesKeys.all(projectId) });
+      queryClient.invalidateQueries({ queryKey: notesKeys.detail(projectId, noteId) });
+      queryClient.setQueryData(notesKeys.detail(projectId, noteId), (current: NoteViewResponse | undefined) => {
+        if (!current) return current;
+        return { ...current, archived: false };
+      });
     },
   });
 };
