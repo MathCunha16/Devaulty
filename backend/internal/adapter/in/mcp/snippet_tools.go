@@ -8,6 +8,7 @@ import (
 	"devaulty-backend/internal/usecase"
 	"log"
 
+	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -23,7 +24,7 @@ func NewSnippetTools(snippetUseCase *usecase.SnippetUseCase) *SnippetTools {
 func (t *SnippetTools) Register(s *server.MCPServer, opts Options) {
 
 	listSnippetTool := mcp.NewTool("list_snippets",
-		mcp.WithDescription("(paginated) lists all snippets in a Devaulty project"),
+		mcp.WithDescription("(paginated) (first page at 0) lists all snippets in a Devaulty project"),
 		mcp.WithInputSchema[util.ProjectPaginationQuery](),
 		mcp.WithToolAnnotation(util.ReadOnlyAnnotations))
 	s.AddTool(listSnippetTool, t.list)
@@ -105,7 +106,12 @@ func (t *SnippetTools) list(ctx context.Context, req mcp.CallToolRequest) (*mcp.
 	}
 	util.ValidateProjectQuery(&query)
 
-	pagedSnippets, err := t.snippetUseCase.GetAllByProjectID(ctx, query.ProjectID, query.PageNumber, query.PageSize)
+	projectID, err := uuid.Parse(query.ProjectID)
+	if err != nil {
+		return mcp.NewToolResultError("Invalid project UUID" + err.Error()), nil
+	}
+
+	pagedSnippets, err := t.snippetUseCase.GetAllByProjectID(ctx, projectID, query.PageNumber, query.PageSize)
 	if err != nil {
 		log.Printf("[SnippetTools.list] %v", err)
 		return mcp.NewToolResultError(err.Error()), nil

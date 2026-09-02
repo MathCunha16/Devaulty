@@ -7,6 +7,7 @@ import (
 	"devaulty-backend/internal/usecase"
 	"log"
 
+	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -22,7 +23,7 @@ func NewLinkTools(linkUseCase *usecase.LinkUseCase) *LinkTools {
 func (t *LinkTools) Register(s *server.MCPServer, opts Options) {
 
 	listLinkTool := mcp.NewTool("list_links",
-		mcp.WithDescription("(paginated) lists all links in a Devaulty project"),
+		mcp.WithDescription("(paginated) (first page at 0) lists all links in a Devaulty project"),
 		mcp.WithInputSchema[util.ProjectPaginationQuery](),
 		mcp.WithToolAnnotation(util.ReadOnlyAnnotations))
 	s.AddTool(listLinkTool, t.list)
@@ -91,7 +92,12 @@ func (t *LinkTools) list(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 	}
 	util.ValidateProjectQuery(&query)
 
-	pagedLinks, err := t.linkUseCase.GetAllByProjectID(ctx, query.ProjectID, query.PageNumber, query.PageSize)
+	projectID, err := uuid.Parse(query.ProjectID)
+	if err != nil {
+		return mcp.NewToolResultError("Invalid project UUID" + err.Error()), nil
+	}
+
+	pagedLinks, err := t.linkUseCase.GetAllByProjectID(ctx, projectID, query.PageNumber, query.PageSize)
 	if err != nil {
 		log.Printf("[LinkTools.list] %v", err)
 		return mcp.NewToolResultError(err.Error()), nil

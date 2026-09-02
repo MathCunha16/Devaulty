@@ -7,6 +7,7 @@ import (
 	"devaulty-backend/internal/usecase"
 	"log"
 
+	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -22,7 +23,7 @@ func NewBoardTools(boardUseCase *usecase.BoardUseCase) *BoardTools {
 func (t *BoardTools) Register(s *server.MCPServer, opts Options) {
 
 	listBoardTool := mcp.NewTool("list_boards",
-		mcp.WithDescription("(paginated) lists all boards in a Devaulty project"),
+		mcp.WithDescription("(paginated) (first page at 0) lists all boards in a Devaulty project"),
 		mcp.WithInputSchema[util.ProjectPaginationQuery](),
 		mcp.WithToolAnnotation(util.ReadOnlyAnnotations))
 	s.AddTool(listBoardTool, t.list)
@@ -97,7 +98,12 @@ func (t *BoardTools) list(ctx context.Context, req mcp.CallToolRequest) (*mcp.Ca
 	}
 	util.ValidateProjectQuery(&query)
 
-	pagedBoards, err := t.boardUseCase.GetAllByProjectID(ctx, query.ProjectID, query.PageNumber, query.PageSize)
+	projectID, err := uuid.Parse(query.ProjectID)
+	if err != nil {
+		return mcp.NewToolResultError("Invalid project UUID" + err.Error()), nil
+	}
+
+	pagedBoards, err := t.boardUseCase.GetAllByProjectID(ctx, projectID, query.PageNumber, query.PageSize)
 	if err != nil {
 		log.Printf("[BoardTools.list] %v", err)
 		return mcp.NewToolResultError(err.Error()), nil

@@ -7,6 +7,7 @@ import (
 	"devaulty-backend/internal/usecase"
 	"log"
 
+	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -22,7 +23,7 @@ func NewNoteTools(noteUseCase *usecase.NoteUseCase) *NoteTools {
 func (t *NoteTools) Register(s *server.MCPServer, opts Options) {
 
 	listNoteTool := mcp.NewTool("list_notes",
-		mcp.WithDescription("(paginated) lists all notes in a Devaulty project. Return a summary view of the notes"),
+		mcp.WithDescription("(paginated) (first page at 0) lists all notes in a Devaulty project. Return a summary view of the notes"),
 		mcp.WithInputSchema[util.ProjectPaginationQuery](),
 		mcp.WithToolAnnotation(util.ReadOnlyAnnotations))
 	s.AddTool(listNoteTool, t.list)
@@ -90,7 +91,12 @@ func (t *NoteTools) list(ctx context.Context, req mcp.CallToolRequest) (*mcp.Cal
 	}
 	util.ValidateProjectQuery(&query)
 
-	pagedNotes, err := t.noteUseCase.GetAllByProjectID(ctx, query.ProjectID, query.PageNumber, query.PageSize)
+	projectID, err := uuid.Parse(query.ProjectID)
+	if err != nil {
+		return mcp.NewToolResultError("Invalid project UUID" + err.Error()), nil
+	}
+
+	pagedNotes, err := t.noteUseCase.GetAllByProjectID(ctx, projectID, query.PageNumber, query.PageSize)
 	if err != nil {
 		log.Printf("[NoteTools.list] %v", err)
 		return mcp.NewToolResultError(err.Error()), nil

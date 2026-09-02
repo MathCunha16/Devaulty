@@ -13,7 +13,7 @@ type MCPPaginationQuery struct {
 }
 
 type ProjectPaginationQuery struct {
-	ProjectID uuid.UUID `json:"projectID"`
+	ProjectID string `json:"projectID"`
 	MCPPaginationQuery
 }
 
