@@ -57,6 +57,20 @@ func (t *NoteTools) Register(s *server.MCPServer, opts Options) {
 		mcp.WithToolAnnotation(util.WriteAnnotations))
 	s.AddTool(updateNoteTool, t.update)
 
+	archiveNoteTool := mcp.NewTool("archive_note",
+		mcp.WithDescription("Archives an existing note in a Devaulty project"),
+		mcp.WithString("projectID", mcp.Required(), mcp.Description("The projectID (UUID) of the project")),
+		mcp.WithString("id", mcp.Required(), mcp.Description("The id (UUID) of the note")),
+		mcp.WithToolAnnotation(util.WriteAnnotations))
+	s.AddTool(archiveNoteTool, t.archive)
+
+	unarchiveNoteTool := mcp.NewTool("unarchive_note",
+		mcp.WithDescription("Unarchives an existing note in a Devaulty project"),
+		mcp.WithString("projectID", mcp.Required(), mcp.Description("The projectID (UUID) of the project")),
+		mcp.WithString("id", mcp.Required(), mcp.Description("The id (UUID) of the note")),
+		mcp.WithToolAnnotation(util.WriteAnnotations))
+	s.AddTool(unarchiveNoteTool, t.unarchive)
+
 	if opts.DisableDelete {
 		return
 	}
@@ -137,6 +151,44 @@ func (t *NoteTools) update(ctx context.Context, req mcp.CallToolRequest) (*mcp.C
 	}
 
 	return mcp.NewToolResultJSON(note)
+}
+
+func (t *NoteTools) archive(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	projectID, err := util.ExtractUUID(req, "projectID")
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+	noteID, err := util.ExtractUUID(req, "id")
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	err = t.noteUseCase.Archive(ctx, projectID, noteID)
+	if err != nil {
+		log.Printf("[NoteTools.archive] %v", err)
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	return mcp.NewToolResultText("Note Archived!"), nil
+}
+
+func (t *NoteTools) unarchive(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	projectID, err := util.ExtractUUID(req, "projectID")
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+	noteID, err := util.ExtractUUID(req, "id")
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	err = t.noteUseCase.Unarchive(ctx, projectID, noteID)
+	if err != nil {
+		log.Printf("[NoteTools.unarchive] %v", err)
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	return mcp.NewToolResultText("Note Unarchived!"), nil
 }
 
 func (t *NoteTools) delete(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {

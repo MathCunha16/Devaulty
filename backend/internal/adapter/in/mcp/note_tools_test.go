@@ -59,6 +59,32 @@ func TestNoteTools_CreateListGetUpdateDelete(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "Updated daily notes", updated.Title)
 
+	archiveResult, err := tools.archive(context.Background(), newToolRequest("archive_note", map[string]any{
+		"projectID": project.ID.String(),
+		"id":        created.ID.String(),
+	}))
+	require.NoError(t, err)
+	require.False(t, archiveResult.IsError)
+	require.Equal(t, "Note Archived!", textFromResult(t, archiveResult))
+
+	getArchivedResult, err := tools.get(context.Background(), newToolRequest("get_note", map[string]any{
+		"projectID": project.ID.String(),
+		"id":        created.ID.String(),
+	}))
+	require.NoError(t, err)
+	require.False(t, getArchivedResult.IsError)
+	archivedNote, ok := getArchivedResult.StructuredContent.(*dto.NoteView)
+	require.True(t, ok)
+	require.True(t, archivedNote.Archived)
+
+	unarchiveResult, err := tools.unarchive(context.Background(), newToolRequest("unarchive_note", map[string]any{
+		"projectID": project.ID.String(),
+		"id":        created.ID.String(),
+	}))
+	require.NoError(t, err)
+	require.False(t, unarchiveResult.IsError)
+	require.Equal(t, "Note Unarchived!", textFromResult(t, unarchiveResult))
+
 	deleteResult, err := tools.delete(context.Background(), newToolRequest("delete_note", map[string]any{
 		"projectID": project.ID.String(),
 		"id":        created.ID.String(),
