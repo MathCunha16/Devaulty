@@ -18,7 +18,7 @@ import {
 } from "~features/releases/hooks/useReleases";
 import { UpdateModal } from "~features/releases/components/UpdateModal";
 import { formatVersionTag } from "../utils/versionUtils";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { AppUpdateInfoResponse } from "~types/api";
 
 
@@ -290,35 +290,77 @@ const RootLayoutInner: React.FC = () => {
 // RootLayoutInner's children rendered immediately while the session
 // handshake was still in flight, so the first queries hit the
 // hardcoded fallback base URL (wrong port in production).
+//
+// Inside Tauri, a failed handshake is a real error: RootLayoutInner
+// is never mounted with an invalid/absent session, since that would
+// silently fall back to a wrong base URL in production. Instead we
+// show a retry screen. Outside Tauri (e.g. plain browser dev), the
+// existing dev fallback behavior is preserved.
 // ──────────────────────────────────────────────────────────────
 export const RootLayout: React.FC = () => {
-  const [sessionReady, setSessionReady] = useState(false);
+  // Para ambiente de navegador/dev, define como pronto já na inicialização do estado.
+  const [sessionReady, setSessionReady] = useState(() => !isTauri());
+  const [sessionError, setSessionError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    const initNativeSession = async () => {
+    // Fora do Tauri, o estado já foi iniciado como pronto
+    if (!isTauri()) return;
+
+    let isMounted = true;
+
+    const initSession = async () => {
       try {
         const info = await invoke<{ port: number; token: string }>("get_backend_info");
-        if (info) {
-          window.DEVAULTY_INTERNAL_TOKEN = info.token;
-          // Use 127.0.0.1, not "localhost": the backend only binds IPv4,
-          // and on Windows "localhost" can resolve to ::1 first.
-          window.DEVAULTY_API_BASE_URL = `http://127.0.0.1:${info.port}/api/v1`;
+        if (!info) {
+          throw new Error("get_backend_info returned no session info");
         }
+
+        window.DEVAULTY_INTERNAL_TOKEN = info.token;
+        window.DEVAULTY_API_BASE_URL = `http://127.0.0.1:${info.port}/api/v1`;
+
+        if (isMounted) {
+          setSessionReady(true);
+        }
+        await invoke("close_splash").catch(() => {});
       } catch (err) {
         console.error("Failed to initialize backend native session:", err);
-        // Fallback for non-Tauri or dev environment — proceed with
-        // whatever default getApiBaseUrl() resolves to.
-      } finally {
-        setSessionReady(true);
+        if (isMounted) {
+          setSessionError(
+            err instanceof Error ? err.message : "Failed to connect to the Devaulty backend."
+          );
+        }
         await invoke("close_splash").catch(() => {});
       }
     };
 
-    void initNativeSession();
-  }, []);
+    void initSession();
 
-  // Splash window is still covering the screen at this point, so there's
-  // nothing to render here — just wait until the session is resolved.
+    return () => {
+      isMounted = false;
+    };
+  }, [retryCount]);
+
+  const handleRetry = () => {
+    setSessionError(null);
+    setRetryCount((c) => c + 1);
+  };
+
+  if (sessionError) {
+    return (
+      <div
+        className={styles.appContainer}
+        style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+      >
+        <div style={{ textAlign: "center", maxWidth: 360 }}>
+          <p style={{ marginBottom: 12 }}>Couldn't connect to the Devaulty backend.</p>
+          <p style={{ marginBottom: 16, fontSize: 12, opacity: 0.7 }}>{sessionError}</p>
+          <button onClick={handleRetry}>Retry</button>
+        </div>
+      </div>
+    );
+  }
+
   if (!sessionReady) {
     return null;
   }
