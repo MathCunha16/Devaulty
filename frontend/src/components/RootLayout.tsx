@@ -18,7 +18,7 @@ import {
 } from "~features/releases/hooks/useReleases";
 import { UpdateModal } from "~features/releases/components/UpdateModal";
 import { formatVersionTag } from "../utils/versionUtils";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { AppUpdateInfoResponse } from "~types/api";
 
 
@@ -32,9 +32,6 @@ const SidebarEdgeButton: React.FC = () => {
   const SIDEBAR_WIDTH = 300;
   const BUTTON_HALF = 18; // half of the 36px button
 
-  // When open:  button centre sits at the right edge → left = 300 - 18 = 282px
-  // When closed: button centre sits at left screen edge → left = -18px (half off-screen)
-  //              This matches "wall-hugging" pattern used by Linear / Notion.
   const leftPx = isOpen ? SIDEBAR_WIDTH - BUTTON_HALF : -BUTTON_HALF;
 
   return (
@@ -85,12 +82,10 @@ const NavigationSidebar: React.FC<{
   };
 
   return (
-    // wrapper: transitions the visible width
     <div
       className={`${styles.sidebarWrapper} ${isOpen ? "" : styles.sidebarWrapperClosed}`}
       inert={!isOpen ? true : undefined}
     >
-      {/* inner sidebar: always 300px, fades in/out */}
       <aside
         className={`${styles.sidebar} ${isOpen ? styles.sidebarOpen : styles.sidebarClosed}`}
       >
@@ -203,31 +198,15 @@ const NavigationSidebar: React.FC<{
 };
 
 // ──────────────────────────────────────────────────────────────
-// Root layout inner — consumes theme & sidebar context
+// Root layout inner — consumes theme & sidebar context.
+// By the time this mounts, the native session is already ready
+// (gated by RootLayout below), so it's safe for its children to
+// fire API queries immediately.
 // ──────────────────────────────────────────────────────────────
 const RootLayoutInner: React.FC = () => {
   const { theme } = useTheme();
   const { isOpen } = useSidebar();
   const { data: autoUpdateData } = useCheckUpdatesQuery(true);
-
-  useEffect(() => {
-    const initNativeSession = async () => {
-      try {
-        const info = await invoke<{ port: number; token: string }>("get_backend_info");
-        if (info) {
-          window.DEVAULTY_INTERNAL_TOKEN = info.token;
-          window.DEVAULTY_API_BASE_URL = `http://localhost:${info.port}/api/v1`;
-          await invoke("close_splash").catch(() => {});
-        }
-      } catch (err) {
-        console.error("Failed to initialize backend native session:", err);
-        // Fallback for non-Tauri or dev environment
-        await invoke("close_splash").catch(() => {});
-      }
-    };
-
-    void initNativeSession();
-  }, []);
 
   const [dismissedVersion, setDismissedVersion] = useState<string | null>(null);
   const [manualUpdateInfo, setManualUpdateInfo] = useState<AppUpdateInfoResponse | null>(null);
@@ -252,7 +231,6 @@ const RootLayoutInner: React.FC = () => {
 
   return (
     <div className={styles.appContainer}>
-      {/* Sidebar (with loading suspense) */}
       <Suspense
         fallback={
           <div className={styles.sidebarWrapper}>
@@ -272,12 +250,9 @@ const RootLayoutInner: React.FC = () => {
         <NavigationSidebar onOpenUpdateModal={handleOpenUpdateModal} />
       </Suspense>
 
-      {/* Edge toggle button — always rendered, transitions in sync with sidebar */}
       <SidebarEdgeButton />
 
-      {/* Main content column */}
       <main className={styles.mainLayout}>
-        {/* Centered logo top bar — appears when sidebar is closed */}
         <div className={`${styles.topBar} ${isOpen ? styles.topBarHidden : ""}`}>
           <Link to="/" className={styles.appLogo} title="Devaulty Home">
             <HackerLogo height={44} />
@@ -309,9 +284,87 @@ const RootLayoutInner: React.FC = () => {
 };
 
 // ──────────────────────────────────────────────────────────────
-// Entry point — wraps with providers
+// Entry point — resolves the native backend session (port + token)
+// BEFORE mounting any provider/component that fires API queries.
+// This is the fix for the Windows startup race: previously,
+// RootLayoutInner's children rendered immediately while the session
+// handshake was still in flight, so the first queries hit the
+// hardcoded fallback base URL (wrong port in production).
+//
+// Inside Tauri, a failed handshake is a real error: RootLayoutInner
+// is never mounted with an invalid/absent session, since that would
+// silently fall back to a wrong base URL in production. Instead we
+// show a retry screen. Outside Tauri (e.g. plain browser dev), the
+// existing dev fallback behavior is preserved.
 // ──────────────────────────────────────────────────────────────
 export const RootLayout: React.FC = () => {
+  // Para ambiente de navegador/dev, define como pronto já na inicialização do estado.
+  const [sessionReady, setSessionReady] = useState(() => !isTauri());
+  const [sessionError, setSessionError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+
+  useEffect(() => {
+    // Fora do Tauri, o estado já foi iniciado como pronto
+    if (!isTauri()) return;
+
+    let isMounted = true;
+
+    const initSession = async () => {
+      try {
+        const info = await invoke<{ port: number; token: string }>("get_backend_info");
+        if (!info) {
+          throw new Error("get_backend_info returned no session info");
+        }
+
+        window.DEVAULTY_INTERNAL_TOKEN = info.token;
+        window.DEVAULTY_API_BASE_URL = `http://127.0.0.1:${info.port}/api/v1`;
+
+        if (isMounted) {
+          setSessionReady(true);
+        }
+        await invoke("close_splash").catch(() => {});
+      } catch (err) {
+        console.error("Failed to initialize backend native session:", err);
+        if (isMounted) {
+          setSessionError(
+            err instanceof Error ? err.message : "Failed to connect to the Devaulty backend."
+          );
+        }
+        await invoke("close_splash").catch(() => {});
+      }
+    };
+
+    void initSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [retryCount]);
+
+  const handleRetry = () => {
+    setSessionError(null);
+    setRetryCount((c) => c + 1);
+  };
+
+  if (sessionError) {
+    return (
+      <div
+        className={styles.appContainer}
+        style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+      >
+        <div style={{ textAlign: "center", maxWidth: 360 }}>
+          <p style={{ marginBottom: 12 }}>Couldn't connect to the Devaulty backend.</p>
+          <p style={{ marginBottom: 16, fontSize: 12, opacity: 0.7 }}>{sessionError}</p>
+          <button onClick={handleRetry}>Retry</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!sessionReady) {
+    return null;
+  }
+
   return (
     <ThemeProvider>
       <SidebarProvider>

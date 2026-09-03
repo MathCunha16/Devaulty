@@ -39,10 +39,11 @@ export const getApiBaseUrl = (): string => {
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL;
   }
-  // Always fall back to localhost:8080 — never use window.location.origin
-  // because in a Tauri webview that would return "tauri://localhost" which
-  // is not a valid HTTP base URL for fetch/axios requests.
-  return "http://localhost:8080/api/v1";
+  // Always fall back to 127.0.0.1:8080 — never "localhost" (can resolve to
+  // ::1 on Windows while the backend only binds IPv4) — and never
+  // window.location.origin, because in a Tauri webview that returns
+  // "tauri://localhost", which is not a valid HTTP base URL for fetch/axios.
+  return "http://127.0.0.1:8080/api/v1";
 };
 
 export const apiClient = axios.create({
