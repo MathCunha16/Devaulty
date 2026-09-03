@@ -105,14 +105,25 @@ pub fn spawn_backend(app: &tauri::AppHandle, devaulty_data_dir: &std::path::Path
       // Spawn the native Go backend process.
       // Migrations are embedded in the Go binary via go:embed,
       // so no external migration files need to be shipped.
-      match Command::new(&binary_path)
+      let mut command = Command::new(&binary_path);
+      command
         .env("APP_ENV", "prod")
         .env("DEVAULTY_INTERNAL_TOKEN", &session_token)
         .env("DEVAULTY_DATA_DIR", &data_dir_str)
         .stdout(Stdio::piped())
-        .stderr(Stdio::inherit())
-        .spawn()
+        .stderr(Stdio::inherit());
+
+      // Prevents a visible console window from flashing up when spawning
+      // the Go backend on Windows (Go binaries default to console subsystem,
+      // independent of the Tauri process's own windows_subsystem attribute).
+      #[cfg(windows)]
       {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        command.creation_flags(CREATE_NO_WINDOW);
+      }
+
+      match command.spawn() {
         Ok(mut child) => {
           // Mark as bundled production mode only after successful process spawn
           *state.is_bundled_mode.lock().unwrap() = true;
