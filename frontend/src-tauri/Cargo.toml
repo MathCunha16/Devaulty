@@ -1,6 +1,6 @@
 [package]
 name = "devaulty"
-version = "0.1.18-alpha"
+version = "0.1.19-alpha"
 description = "Devaulty Desktop Client"
 authors = ["Matheus Cunha"]
 license = ""
