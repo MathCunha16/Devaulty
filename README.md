@@ -71,6 +71,7 @@ If you want to contribute, inspect the codebase, or build Devaulty from source, 
 
 - ⚙️ **[Backend Documentation](backend/README.md)** — Go architecture (Hexagonal), SQLite persistence, embedded migrations, and security handlers.
 - 🎨 **[Frontend Documentation](frontend/README.md)** — React, Vite, TypeScript, and Tauri v2 shell integration.
+- 🤝 **[Contributing Guide](CONTRIBUTING.md)** — How to report bugs, prepare pull requests, and work safely with AI-assisted development.
 
 ## MCP Integration
 
