@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/logo.png" alt="Devaulty Logo" width="380" />
+  <img src="docs/assets/logo.png" alt="Devaulty Logo" width="380" style="margin-bottom: -70px;" />
 </p>
 
 <p align="center">
@@ -7,6 +7,7 @@
 </p>
 
 <p align="center">
+  <a href="#overview">Overview</a> •
   <a href="#installation">Download</a> •
   <a href="#key-features">Features</a> •
   <a href="#security--privacy">Security</a> •
@@ -20,6 +21,10 @@
 Devaulty is a desktop application designed to help software developers organize projects, store sensitive credentials, track ongoing issues, and manage code snippets — all in one place.
 
 Built with a **local-first** philosophy, Devaulty operates entirely offline. Your data never leaves your machine and is never sent to external servers or cloud services.
+
+<p align="center">
+  <img src="docs/assets/demo-showcase-opt.gif" alt="Devaulty Showcase" width="800" />
+</p>
 
 ---
 
@@ -66,6 +71,7 @@ If you want to contribute, inspect the codebase, or build Devaulty from source, 
 
 - ⚙️ **[Backend Documentation](backend/README.md)** — Go architecture (Hexagonal), SQLite persistence, embedded migrations, and security handlers.
 - 🎨 **[Frontend Documentation](frontend/README.md)** — React, Vite, TypeScript, and Tauri v2 shell integration.
+- 🤝 **[Contributing Guide](CONTRIBUTING.md)** — How to report bugs, prepare pull requests, and work safely with AI-assisted development.
 
 ## MCP Integration
 
