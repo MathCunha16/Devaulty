@@ -27,9 +27,9 @@ Describe the commands and scenarios used to validate the change.
 - [ ] I ran the relevant existing checks locally.
 - [ ] I did not include secrets, credentials, personal data, or generated build artifacts.
 - [ ] I understand the code I am submitting and reviewed all AI-assisted output, if any.
+- [ ] I disclosed significant AI assistance that affected the design or implementation, if applicable.
 
 ## Screenshots or recordings
 
 Add screenshots or recordings for visual changes. Remove sensitive information
 before posting.
-
