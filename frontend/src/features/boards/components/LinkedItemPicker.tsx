@@ -150,17 +150,17 @@ export const LinkedItemPicker: React.FC<LinkedItemPickerProps> = ({
             return (
               <div
                 key={`${item.itemType}-${item.itemId}-${index}`}
-                className={`group inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono border transition-all ${meta.bgColor} ${meta.borderColor} ${meta.textColor}`}
+                className={`group inline-flex items-center gap-1 min-w-0 max-w-full px-2 py-1 rounded text-xs font-mono border transition-all ${meta.bgColor} ${meta.borderColor} ${meta.textColor}`}
               >
                 {/* Clickable Icon & Title to Navigate to Item */}
                 <button
                   type="button"
                   onClick={() => handleNavigateToItem(item.itemType, item.itemId)}
-                  className="inline-flex items-center gap-1.5 hover:underline cursor-pointer text-left"
+                  className="inline-flex items-center gap-1 min-w-0 hover:underline cursor-pointer text-left overflow-hidden"
                   title={`Open ${meta.label}: ${title}`}
                 >
                   <Icon size={12} className="shrink-0" />
-                  <span className="max-w-[160px] truncate font-medium">{title}</span>
+                  <span className="truncate font-medium" style={{ maxWidth: "90px" }}>{title}</span>
                   <Icons.ExternalLink size={10} className="opacity-60 group-hover:opacity-100 transition-opacity shrink-0" />
                 </button>
 
@@ -171,7 +171,7 @@ export const LinkedItemPicker: React.FC<LinkedItemPickerProps> = ({
                     e.stopPropagation();
                     handleRemoveItem(index);
                   }}
-                  className="hover:bg-destructive/20 hover:text-destructive rounded p-0.5 cursor-pointer ml-1 transition-colors"
+                  className="hover:bg-destructive/20 hover:text-destructive rounded p-0.5 cursor-pointer shrink-0 ml-0.5 transition-colors"
                   title="Remove from card"
                 >
                   <Icons.X size={11} />
