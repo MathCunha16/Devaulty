@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, Code2, Eye } from "lucide-react";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
 import { toast } from "sonner";
 import {
   useCreateNoteMutation,
@@ -41,8 +43,21 @@ const NoteFormInner: React.FC<NoteFormInnerProps> = ({
 }) => {
   const [formTitle, setFormTitle] = useState(initialValues?.title || "");
   const [content, setContent] = useState(initialValues?.content || "");
+  const [contentTab, setContentTab] = useState<"write" | "preview">(
+    initialValues?.content ? "preview" : "write"
+  );
 
   const contentRef = useAutoResize(content, 180);
+
+  const renderPreviewHtml = () => {
+    if (!content.trim()) return "";
+    try {
+      const rawHtml = marked.parse(content, { breaks: true, gfm: true }) as string;
+      return DOMPurify.sanitize(rawHtml);
+    } catch {
+      return DOMPurify.sanitize(content);
+    }
+  };
 
   // Focus trap refs
   const previousActiveElement = useRef<HTMLElement | null>(null);
@@ -153,16 +168,57 @@ const NoteFormInner: React.FC<NoteFormInnerProps> = ({
           </div>
 
           <div className={styles.field}>
-            <label htmlFor="note-content" className={styles.label}>Content / Body</label>
-            <textarea
-              id="note-content"
-              ref={contentRef}
-              className={styles.textarea}
-              placeholder="Write your markdown notes, reminders, or document outlines here..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              disabled={isSubmitting}
-            />
+            <div className={styles.fieldHeader}>
+              <label htmlFor="note-content" className={styles.label}>Content / Body</label>
+              <div className="flex items-center gap-1 p-0.5 rounded-md bg-secondary/80 border border-border/80">
+                <button
+                  type="button"
+                  onClick={() => setContentTab("write")}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono transition-colors cursor-pointer ${
+                    contentTab === "write"
+                      ? "bg-card text-foreground font-semibold shadow-sm border border-border/60"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Code2 size={12} />
+                  <span>Write / Code</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setContentTab("preview")}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono transition-colors cursor-pointer ${
+                    contentTab === "preview"
+                      ? "bg-card text-foreground font-semibold shadow-sm border border-border/60"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Eye size={12} />
+                  <span>Preview</span>
+                </button>
+              </div>
+            </div>
+
+            {contentTab === "write" ? (
+              <textarea
+                id="note-content"
+                ref={contentRef}
+                className={styles.textarea}
+                placeholder="Write your markdown notes, reminders, or document outlines here..."
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                disabled={isSubmitting}
+              />
+            ) : (
+              <div className={styles.previewContainer}>
+                {content.trim() ? (
+                  <div dangerouslySetInnerHTML={{ __html: renderPreviewHtml() }} />
+                ) : (
+                  <span className="text-muted-foreground italic text-xs font-mono">
+                    No content written yet. Switch to "Write / Code" to add markdown details.
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           <div className={styles.footer}>
