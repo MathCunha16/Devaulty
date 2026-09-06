@@ -90,9 +90,10 @@ export const CodeViewer: React.FC<CodeViewerProps> = ({
       ref={scrollContainerRef}
       className={`relative font-mono text-xs overflow-auto bg-[#0b0b0c] text-foreground rounded border border-border/50 select-text ${className}`}
       style={{ maxHeight, height }}
-      onScroll={(event) =>
-        setScrollState((previous) => ({ ...previous, top: event.currentTarget.scrollTop }))
-      }
+      onScroll={(event) => {
+        const top = event.currentTarget.scrollTop;
+        setScrollState((previous) => ({ ...previous, top }));
+      }}
     >
       {wrapLines ? (
         <div
