@@ -76,6 +76,29 @@ pub fn ensure_executable(_path: &std::path::Path) -> std::io::Result<()> {
   Ok(())
 }
 
+// Asks the kernel to send SIGTERM to the backend child if this (parent)
+// process dies for any reason without going through tray::quit_app - crash,
+// `kill -9`, session logout, etc. Without this, the Go backend is left as an
+// orphan still holding its SQLite lock and HTTP port.
+#[cfg(unix)]
+fn die_with_parent() -> impl FnMut() -> std::io::Result<()> + Send + Sync + 'static {
+  let parent_pid = std::process::id() as libc::pid_t;
+  move || {
+    unsafe {
+      libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGTERM);
+    }
+    // Guards the fork/prctl race: if the parent already died between fork()
+    // and this prctl() call, getppid() no longer matches, so terminate
+    // immediately instead of running on as an orphan anyway.
+    if unsafe { libc::getppid() } != parent_pid {
+      unsafe {
+        libc::raise(libc::SIGTERM);
+      }
+    }
+    Ok(())
+  }
+}
+
 // Locates, prepares, and spawns the bundled Go backend as a child process,
 // wiring its stdout session handshake into the shared SessionState.
 // Straight extraction of the logic that used to live inline in run()'s
@@ -121,6 +144,16 @@ pub fn spawn_backend(app: &tauri::AppHandle, devaulty_data_dir: &std::path::Path
         use std::os::windows::process::CommandExt;
         const CREATE_NO_WINDOW: u32 = 0x08000000;
         command.creation_flags(CREATE_NO_WINDOW);
+      }
+
+      // Ties the backend's lifetime to this process on Unix so it can never
+      // outlive Devaulty as an orphan holding the DB lock / port open.
+      #[cfg(unix)]
+      {
+        use std::os::unix::process::CommandExt;
+        unsafe {
+          command.pre_exec(die_with_parent());
+        }
       }
 
       match command.spawn() {

@@ -25,8 +25,12 @@ tauri = { version = "2.11.3", features = ["tray-icon", "image-png"] }
 tauri-plugin-log = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
+tauri-plugin-single-instance = "2"
 dirs = "6.0"
 tokio = { version = "1", features = ["time", "fs", "io-util"] }
 uuid = { version = "1", features = ["v4"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
 futures-util = "0.3"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

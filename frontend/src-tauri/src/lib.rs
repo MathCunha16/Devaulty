@@ -27,6 +27,13 @@ pub fn run() {
   let state_clone = Arc::clone(&session_state);
 
   tauri::Builder::default()
+    // Must be registered before other plugins: if Devaulty is launched again
+    // while an instance is already running (double-click, launcher, CLI),
+    // this intercepts the second launch and just brings the existing window
+    // forward instead of spawning a whole new process + Go backend.
+    .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+      tray::show_main_window(app);
+    }))
     .plugin(tauri_plugin_updater::Builder::new().build())
     .plugin(tauri_plugin_process::init())
     .manage(session_state)
@@ -58,11 +65,25 @@ pub fn run() {
     .on_window_event(|window, event| {
       if let tauri::WindowEvent::CloseRequested { api, .. } = event {
         if window.label() == "main" {
+          // Real close, not a hide: destroys the WebView (WebKitGTK /
+          // WebView2 / WKWebView) so it stops holding onto RAM while parked
+          // in the tray. Rebuilt from scratch in tray::show_main_window()
+          // when the user reopens it.
           api.prevent_close();
-          let _ = window.hide();
+          let _ = window.destroy();
         }
       }
     })
-    .run(tauri::generate_context!())
-    .expect("error while running tauri application");
+    .build(tauri::generate_context!())
+    .expect("error while building tauri application")
+    .run(|_app_handle, event| {
+      // Destroying the "main" window above would otherwise make Tauri quit
+      // the whole process once no windows are left. We only want to exit
+      // when the user explicitly picks "Quit" from the tray (which calls
+      // app.exit(0) itself in tray::quit_app), so swallow the automatic
+      // exit-on-last-window-closed request here.
+      if let tauri::RunEvent::ExitRequested { api, .. } = event {
+        api.prevent_exit();
+      }
+    });
 }
