@@ -85,15 +85,21 @@ pub fn run() {
           let app_handle = window.app_handle().clone();
           let state = app_handle.state::<Arc<SessionState>>().inner().clone();
 
-          // Stamp this hide with the current epoch. tray::show_main_window
-          // bumps the epoch on every reopen, so if the epoch has moved by
-          // the time this timer fires, someone already reopened the window
-          // and the destroy below is silently skipped.
-          let my_epoch = state.hide_epoch.fetch_add(1, Ordering::SeqCst) + 1;
+          // Stamp this hide with the current epoch under the shared lock.
+          let my_epoch = {
+            let mut epoch = state.hide_epoch.lock().unwrap();
+            *epoch += 1;
+            *epoch
+          };
 
           tauri::async_runtime::spawn(async move {
             tokio::time::sleep(TRAY_DESTROY_GRACE_PERIOD).await;
-            if state.hide_epoch.load(Ordering::SeqCst) == my_epoch {
+
+            // Hold the lock across the whole check-and-destroy sequence so a
+            // concurrent reopen (tray::show_main_window) can't slip in
+            // between the epoch check and the destroy() call.
+            let epoch = state.hide_epoch.lock().unwrap();
+            if *epoch == my_epoch {
               if let Some(w) = app_handle.get_webview_window("main") {
                 let _ = w.destroy();
               }

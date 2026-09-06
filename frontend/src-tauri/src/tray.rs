@@ -44,14 +44,16 @@ pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
 // (port/token resolved on first launch), so get_backend_info on the
 // frontend resolves almost immediately here.
 pub fn show_main_window(app: &AppHandle) {
+  let state = app.state::<Arc<SessionState>>();
+
+  // Hold the same lock the destroy timer uses. Bumping the epoch here is
+  // what invalidates a pending timer, but only holding the lock for the
+  // *entire* reopen/recreate sequence (not just the bump) guarantees no
+  // destroy() can run concurrently and undo this reopen.
+  let mut epoch = state.hide_epoch.lock().unwrap();
+  *epoch += 1;
+
   if let Some(window) = app.get_webview_window("main") {
-    // Fast path: still within the grace period, window was only hidden.
-    // Bump the epoch so lib.rs's pending destroy timer (if any) sees it no
-    // longer matches and skips tearing the WebView down.
-    app
-      .state::<Arc<SessionState>>()
-      .hide_epoch
-      .fetch_add(1, Ordering::SeqCst);
     let _ = window.show();
     let _ = window.set_focus();
     return;

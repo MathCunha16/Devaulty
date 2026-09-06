@@ -80,7 +80,9 @@ pub fn ensure_executable(_path: &std::path::Path) -> std::io::Result<()> {
 // process dies for any reason without going through tray::quit_app - crash,
 // `kill -9`, session logout, etc. Without this, the Go backend is left as an
 // orphan still holding its SQLite lock and HTTP port.
-#[cfg(unix)]
+// PR_SET_PDEATHSIG is a Linux-only prctl; libc doesn't expose it for macOS,
+// so this must stay behind target_os = "linux", not the broader cfg(unix).
+#[cfg(target_os = "linux")]
 fn die_with_parent() -> impl FnMut() -> std::io::Result<()> + Send + Sync + 'static {
   let parent_pid = std::process::id() as libc::pid_t;
   move || {
@@ -146,9 +148,11 @@ pub fn spawn_backend(app: &tauri::AppHandle, devaulty_data_dir: &std::path::Path
         command.creation_flags(CREATE_NO_WINDOW);
       }
 
-      // Ties the backend's lifetime to this process on Unix so it can never
+      // Ties the backend's lifetime to this process on Linux so it can never
       // outlive Devaulty as an orphan holding the DB lock / port open.
-      #[cfg(unix)]
+      // macOS has no PR_SET_PDEATHSIG equivalent in libc, so this is skipped
+      // there for now.
+      #[cfg(target_os = "linux")]
       {
         use std::os::unix::process::CommandExt;
         unsafe {
