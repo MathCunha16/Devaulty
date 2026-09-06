@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -7,6 +7,8 @@ import {
   useLinkQuery,
 } from "../hooks/useLinks";
 import { useAutoResize } from "../../../hooks/useAutoResize";
+import { useDiscardGuard } from "../../../hooks/useDiscardGuard";
+import { DiscardConfirmModal } from "../../../components/DiscardConfirmModal";
 import styles from "./LinkForm.module.css";
 
 interface LinkFormProps {
@@ -46,6 +48,25 @@ const LinkFormInner: React.FC<LinkFormInnerProps> = ({
 
   const descRef = useAutoResize(description, 100);
 
+  const isDirty = useMemo(() => {
+    const initTitle = initialValues?.title || "";
+    const initUrl = initialValues?.url || "";
+    const initDesc = initialValues?.description || "";
+
+    return (
+      formTitle.trim() !== initTitle.trim() ||
+      url.trim() !== initUrl.trim() ||
+      description.trim() !== initDesc.trim()
+    );
+  }, [formTitle, url, description, initialValues]);
+
+  const {
+    isConfirmDiscardOpen,
+    handleRequestClose,
+    handleConfirmDiscard,
+    handleCancelDiscard,
+  } = useDiscardGuard({ isDirty, onClose });
+
   // Focus trap refs
   const previousActiveElement = useRef<HTMLElement | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -69,8 +90,10 @@ const LinkFormInner: React.FC<LinkFormInnerProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (!isSubmitting) {
-          onClose();
+        if (isConfirmDiscardOpen) {
+          handleCancelDiscard();
+        } else if (!isSubmitting) {
+          handleRequestClose();
         }
         return;
       }
@@ -102,7 +125,7 @@ const LinkFormInner: React.FC<LinkFormInnerProps> = ({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, isSubmitting]);
+  }, [handleCancelDiscard, handleRequestClose, isConfirmDiscardOpen, isSubmitting]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,7 +147,7 @@ const LinkFormInner: React.FC<LinkFormInnerProps> = ({
   return (
     <div
       className={styles.overlay}
-      onClick={() => !isSubmitting && onClose()}
+      onClick={() => !isSubmitting && handleRequestClose()}
       style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
     >
       <div
@@ -137,7 +160,7 @@ const LinkFormInner: React.FC<LinkFormInnerProps> = ({
       >
         <div className={styles.header}>
           <h2 id="link-form-title" className={styles.title}>{title}</h2>
-          <button className={styles.closeBtn} onClick={onClose} disabled={isSubmitting} aria-label="Close modal">
+          <button className={styles.closeBtn} onClick={handleRequestClose} disabled={isSubmitting} aria-label="Close modal">
             <X size={16} />
           </button>
         </div>
@@ -190,7 +213,7 @@ const LinkFormInner: React.FC<LinkFormInnerProps> = ({
             <button
               type="button"
               className={styles.btn}
-              onClick={onClose}
+              onClick={handleRequestClose}
               disabled={isSubmitting}
             >
               Cancel
@@ -205,6 +228,13 @@ const LinkFormInner: React.FC<LinkFormInnerProps> = ({
           </div>
         </form>
       </div>
+
+      <DiscardConfirmModal
+        isOpen={isConfirmDiscardOpen}
+        onClose={handleCancelDiscard}
+        onDiscard={handleConfirmDiscard}
+        itemName="link"
+      />
     </div>
   );
 };

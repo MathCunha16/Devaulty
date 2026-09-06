@@ -1,4 +1,4 @@
-import React, { useState, Suspense } from "react";
+import React, { useState, useEffect, useRef, useMemo, Suspense } from "react";
 import { X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -8,6 +8,8 @@ import {
 } from "../hooks/useProblems";
 import type { ProblemStatus, ProblemSeverity } from "~types/api";
 import { useAutoResize } from "../../../hooks/useAutoResize";
+import { useDiscardGuard } from "../../../hooks/useDiscardGuard";
+import { DiscardConfirmModal } from "../../../components/DiscardConfirmModal";
 import styles from "./ProblemForm.module.css";
 
 interface ProblemFormProps {
@@ -52,6 +54,87 @@ const ProblemFormInner: React.FC<ProblemFormInnerProps> = ({
   const errorDescRef = useAutoResize(errorDescription, 100);
   const solutionRef = useAutoResize(solution, 100);
 
+  const previousActiveElement = useRef<HTMLElement | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const firstInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    previousActiveElement.current = document.activeElement as HTMLElement;
+    const timer = setTimeout(() => {
+      firstInputRef.current?.focus();
+    }, 50);
+
+    return () => {
+      clearTimeout(timer);
+      if (previousActiveElement.current) {
+        previousActiveElement.current.focus();
+      }
+    };
+  }, []);
+
+  const isDirty = useMemo(() => {
+    const initTitle = initialValues?.title || "";
+    const initErr = initialValues?.errorDescription || "";
+    const initSol = initialValues?.solution || "";
+    const initStatus = initialValues?.status || "OPEN";
+    const initSev = initialValues?.severity || "MEDIUM";
+
+    return (
+      formTitle.trim() !== initTitle.trim() ||
+      errorDescription.trim() !== initErr.trim() ||
+      solution.trim() !== initSol.trim() ||
+      status !== initStatus ||
+      severity !== initSev
+    );
+  }, [formTitle, errorDescription, solution, status, severity, initialValues]);
+
+  const {
+    isConfirmDiscardOpen,
+    handleRequestClose,
+    handleConfirmDiscard,
+    handleCancelDiscard,
+  } = useDiscardGuard({ isDirty, onClose });
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (isConfirmDiscardOpen) {
+          handleCancelDiscard();
+        } else if (!isSubmitting) {
+          handleRequestClose();
+        }
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      const modal = modalRef.current;
+      if (!modal) return;
+
+      const focusables = modal.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length === 0) return;
+
+      const firstElement = focusables[0];
+      const lastElement = focusables[focusables.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+          lastElement.focus();
+          e.preventDefault();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          firstElement.focus();
+          e.preventDefault();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleRequestClose, handleCancelDiscard, isConfirmDiscardOpen, isSubmitting]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formTitle.trim()) {
@@ -70,13 +153,26 @@ const ProblemFormInner: React.FC<ProblemFormInnerProps> = ({
   return (
     <div
       className={styles.overlay}
-      onClick={onClose}
+      onClick={() => !isSubmitting && handleRequestClose()}
       style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
     >
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={modalRef}
+        className={styles.modal}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="problem-form-title"
+      >
         <div className={styles.header}>
-          <h2 className={styles.title}>{title}</h2>
-          <button className={styles.closeBtn} onClick={onClose} disabled={isSubmitting}>
+          <h2 id="problem-form-title" className={styles.title}>{title}</h2>
+          <button
+            type="button"
+            className={styles.closeBtn}
+            onClick={handleRequestClose}
+            disabled={isSubmitting}
+            aria-label="Close modal"
+          >
             <X size={16} />
           </button>
         </div>
@@ -85,6 +181,7 @@ const ProblemFormInner: React.FC<ProblemFormInnerProps> = ({
           <div className={styles.field}>
             <label htmlFor="problem-title" className={styles.label}>Title</label>
             <input
+              ref={firstInputRef}
               id="problem-title"
               type="text"
               className={styles.input}
@@ -161,7 +258,7 @@ const ProblemFormInner: React.FC<ProblemFormInnerProps> = ({
             <button
               type="button"
               className={styles.btn}
-              onClick={onClose}
+              onClick={handleRequestClose}
               disabled={isSubmitting}
             >
               Cancel
@@ -176,6 +273,13 @@ const ProblemFormInner: React.FC<ProblemFormInnerProps> = ({
           </div>
         </form>
       </div>
+
+      <DiscardConfirmModal
+        isOpen={isConfirmDiscardOpen}
+        onClose={handleCancelDiscard}
+        onDiscard={handleConfirmDiscard}
+        itemName="problem"
+      />
     </div>
   );
 };

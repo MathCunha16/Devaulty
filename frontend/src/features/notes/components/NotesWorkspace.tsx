@@ -89,6 +89,7 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
     message: string;
     itemName?: string;
     warningText?: string;
+    confirmLabel?: string;
     onConfirm: () => Promise<void>;
     isLoading: boolean;
   }>({
@@ -159,6 +160,47 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
       },
       isLoading: false,
     });
+  };
+
+  const handleSelectNote = (noteId: string) => {
+    if (noteId === selectedNoteId) return;
+    if (isDirty) {
+      setConfirmModal({
+        isOpen: true,
+        title: "Discard Unsaved Changes",
+        message: "You have unsaved modifications on the current note. Are you sure you want to discard them and switch to another note?",
+        warningText: "Any unsaved note content will be permanently lost.",
+        confirmLabel: "Discard Changes",
+        onConfirm: async () => {
+          setSelectedNoteId(noteId);
+          closeConfirmModal();
+        },
+        isLoading: false,
+      });
+    } else {
+      setSelectedNoteId(noteId);
+    }
+  };
+
+  const handleAddNoteClick = () => {
+    if (isDirty) {
+      setConfirmModal({
+        isOpen: true,
+        title: "Discard Unsaved Changes",
+        message: "You have unsaved modifications on the current note. Are you sure you want to discard them and create a new note?",
+        warningText: "Any unsaved note content will be permanently lost.",
+        confirmLabel: "Discard Changes",
+        onConfirm: async () => {
+          closeConfirmModal();
+          setEditingNoteId(undefined);
+          setIsNoteFormOpen(true);
+        },
+        isLoading: false,
+      });
+    } else {
+      setEditingNoteId(undefined);
+      setIsNoteFormOpen(true);
+    }
   };
 
   const handleSaveInlineContent = async () => {
@@ -250,10 +292,7 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
         <button
           type="button"
           className={styles.newSnippetBtn}
-          onClick={() => {
-            setEditingNoteId(undefined);
-            setIsNoteFormOpen(true);
-          }}
+          onClick={handleAddNoteClick}
         >
           <Icons.Plus size={14} />
           <span>Add Note</span>
@@ -304,7 +343,7 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
               <button
                 key={n.id}
                 className={`${styles.snippetItem} ${selectedNoteId === n.id ? styles.snippetItemActive : ""}`}
-                onClick={() => setSelectedNoteId(n.id)}
+                onClick={() => handleSelectNote(n.id)}
               >
                 <div className={styles.snippetItemHeader}>
                   <span className={styles.snippetItemTitle}>{n.title}</span>
@@ -560,6 +599,7 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
         itemName={confirmModal.itemName}
         warningText={confirmModal.warningText}
         isLoading={confirmModal.isLoading}
+        confirmLabel={confirmModal.confirmLabel}
       />
     </>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { X, Loader2, Code2, Eye } from "lucide-react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
@@ -9,6 +9,8 @@ import {
   useNoteQuery,
 } from "../hooks/useNotes";
 import { useAutoResize } from "../../../hooks/useAutoResize";
+import { useDiscardGuard } from "../../../hooks/useDiscardGuard";
+import { DiscardConfirmModal } from "../../../components/DiscardConfirmModal";
 import styles from "./NoteForm.module.css";
 
 interface NoteFormProps {
@@ -49,6 +51,23 @@ const NoteFormInner: React.FC<NoteFormInnerProps> = ({
 
   const contentRef = useAutoResize(content, 180);
 
+  const isDirty = useMemo(() => {
+    const initTitle = initialValues?.title || "";
+    const initContent = initialValues?.content || "";
+
+    return (
+      formTitle.trim() !== initTitle.trim() ||
+      content !== initContent
+    );
+  }, [formTitle, content, initialValues]);
+
+  const {
+    isConfirmDiscardOpen,
+    handleRequestClose,
+    handleConfirmDiscard,
+    handleCancelDiscard,
+  } = useDiscardGuard({ isDirty, onClose });
+
   const renderPreviewHtml = () => {
     if (!content.trim()) return "";
     try {
@@ -82,8 +101,10 @@ const NoteFormInner: React.FC<NoteFormInnerProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (!isSubmitting) {
-          onClose();
+        if (isConfirmDiscardOpen) {
+          handleCancelDiscard();
+        } else if (!isSubmitting) {
+          handleRequestClose();
         }
         return;
       }
@@ -115,7 +136,7 @@ const NoteFormInner: React.FC<NoteFormInnerProps> = ({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, isSubmitting]);
+  }, [handleCancelDiscard, handleRequestClose, isConfirmDiscardOpen, isSubmitting]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,7 +153,7 @@ const NoteFormInner: React.FC<NoteFormInnerProps> = ({
   return (
     <div
       className={styles.overlay}
-      onClick={() => !isSubmitting && onClose()}
+      onClick={() => !isSubmitting && handleRequestClose()}
       style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
     >
       <div
@@ -145,7 +166,7 @@ const NoteFormInner: React.FC<NoteFormInnerProps> = ({
       >
         <div className={styles.header}>
           <h2 id="note-form-title" className={styles.title}>{title}</h2>
-          <button className={styles.closeBtn} onClick={onClose} disabled={isSubmitting} aria-label="Close modal">
+          <button className={styles.closeBtn} onClick={handleRequestClose} disabled={isSubmitting} aria-label="Close modal">
             <X size={16} />
           </button>
         </div>
@@ -225,7 +246,7 @@ const NoteFormInner: React.FC<NoteFormInnerProps> = ({
             <button
               type="button"
               className={styles.btn}
-              onClick={onClose}
+              onClick={handleRequestClose}
               disabled={isSubmitting}
             >
               Cancel
@@ -240,6 +261,13 @@ const NoteFormInner: React.FC<NoteFormInnerProps> = ({
           </div>
         </form>
       </div>
+
+      <DiscardConfirmModal
+        isOpen={isConfirmDiscardOpen}
+        onClose={handleCancelDiscard}
+        onDiscard={handleConfirmDiscard}
+        itemName="note"
+      />
     </div>
   );
 };
