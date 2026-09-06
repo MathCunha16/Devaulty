@@ -3,9 +3,19 @@ mod commands;
 mod session;
 mod tray;
 
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use std::time::Duration;
+
+use tauri::Manager;
 
 use session::SessionState;
+
+// How long the main window is kept alive (hidden, not destroyed) after being
+// sent to the tray before its WebView is actually torn down to reclaim RAM.
+// Reopening within this window is instant (just an unhide); reopening after
+// it has elapsed goes through the full splash + rebuild flow, same as boot.
+const TRAY_DESTROY_GRACE_PERIOD: Duration = Duration::from_secs(180);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -65,25 +75,46 @@ pub fn run() {
     .on_window_event(|window, event| {
       if let tauri::WindowEvent::CloseRequested { api, .. } = event {
         if window.label() == "main" {
-          // Real close, not a hide: destroys the WebView (WebKitGTK /
-          // WebView2 / WKWebView) so it stops holding onto RAM while parked
-          // in the tray. Rebuilt from scratch in tray::show_main_window()
-          // when the user reopens it.
+          // Real close, not a permanent one: hide immediately so reopening
+          // right away (the common case) is instant, then schedule the
+          // actual WebView teardown after a grace period so idle time in
+          // the tray still gets its RAM back. See TRAY_DESTROY_GRACE_PERIOD.
           api.prevent_close();
-          let _ = window.destroy();
+          let _ = window.hide();
+
+          let app_handle = window.app_handle().clone();
+          let state = app_handle.state::<Arc<SessionState>>().inner().clone();
+
+          // Stamp this hide with the current epoch. tray::show_main_window
+          // bumps the epoch on every reopen, so if the epoch has moved by
+          // the time this timer fires, someone already reopened the window
+          // and the destroy below is silently skipped.
+          let my_epoch = state.hide_epoch.fetch_add(1, Ordering::SeqCst) + 1;
+
+          tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(TRAY_DESTROY_GRACE_PERIOD).await;
+            if state.hide_epoch.load(Ordering::SeqCst) == my_epoch {
+              if let Some(w) = app_handle.get_webview_window("main") {
+                let _ = w.destroy();
+              }
+            }
+          });
         }
       }
     })
     .build(tauri::generate_context!())
     .expect("error while building tauri application")
-    .run(|_app_handle, event| {
+    .run(|app_handle, event| {
       // Destroying the "main" window above would otherwise make Tauri quit
       // the whole process once no windows are left. We only want to exit
-      // when the user explicitly picks "Quit" from the tray (which calls
-      // app.exit(0) itself in tray::quit_app), so swallow the automatic
-      // exit-on-last-window-closed request here.
+      // when the user explicitly picks "Quit" from the tray (tray::quit_app
+      // sets state.quitting before calling app.exit(0)), so only swallow
+      // the exit request when it wasn't an intentional quit.
       if let tauri::RunEvent::ExitRequested { api, .. } = event {
-        api.prevent_exit();
+        let state = app_handle.state::<Arc<SessionState>>();
+        if !state.quitting.load(Ordering::SeqCst) {
+          api.prevent_exit();
+        }
       }
     });
 }
