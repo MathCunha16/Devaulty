@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import Editor from "@monaco-editor/react";
 import { useTheme } from "../../../hooks/useTheme";
 import { useAutoResize } from "../../../hooks/useAutoResize";
+import { useDiscardGuard } from "../../../hooks/useDiscardGuard";
+import { DiscardConfirmModal } from "../../../components/DiscardConfirmModal";
 import { LanguageSelect } from "./LanguageSelect";
 import {
   useCreateSnippetMutation,
@@ -60,6 +62,29 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
 
   const descRef = useAutoResize(formDescription, 60);
 
+  const isDirty = useMemo(() => {
+    const initTitle = initialValues?.title || "";
+    const initDesc = initialValues?.description || "";
+    const initContent = initialValues?.content || "";
+    const initLang = initialValues?.language || "PLAIN_TEXT";
+    const initType = initialValues?.snippetType || "CODE";
+
+    return (
+      formTitle.trim() !== initTitle.trim() ||
+      formDescription.trim() !== initDesc.trim() ||
+      formContent !== initContent ||
+      formLanguage !== initLang ||
+      formSnippetType !== initType
+    );
+  }, [formTitle, formDescription, formContent, formLanguage, formSnippetType, initialValues]);
+
+  const {
+    isConfirmDiscardOpen,
+    handleRequestClose,
+    handleConfirmDiscard,
+    handleCancelDiscard,
+  } = useDiscardGuard({ isDirty, onClose });
+
   const previousActiveElement = useRef<HTMLElement | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
@@ -112,7 +137,11 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (!isSubmitting) onClose();
+        if (isConfirmDiscardOpen) {
+          handleCancelDiscard();
+        } else if (!isSubmitting) {
+          handleRequestClose();
+        }
         return;
       }
       if (e.key === "Tab") {
@@ -146,7 +175,7 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, isSubmitting]);
+  }, [handleCancelDiscard, handleRequestClose, isConfirmDiscardOpen, isSubmitting]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,7 +195,7 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
   return (
     <div
       className={styles.overlay}
-      onClick={() => !isSubmitting && onClose()}
+      onClick={() => !isSubmitting && handleRequestClose()}
       style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
     >
       <div
@@ -184,7 +213,7 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
           <button
             type="button"
             className={styles.closeBtn}
-            onClick={onClose}
+            onClick={handleRequestClose}
             disabled={isSubmitting}
             aria-label="Close modal"
           >
@@ -300,7 +329,7 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
             <button
               type="button"
               className={styles.btn}
-              onClick={onClose}
+              onClick={handleRequestClose}
               disabled={isSubmitting}
             >
               Cancel
@@ -315,6 +344,13 @@ const SnippetFormInner: React.FC<SnippetFormInnerProps> = ({
           </div>
         </form>
       </div>
+
+      <DiscardConfirmModal
+        isOpen={isConfirmDiscardOpen}
+        onClose={handleCancelDiscard}
+        onDiscard={handleConfirmDiscard}
+        itemName="snippet"
+      />
     </div>
   );
 };

@@ -53,29 +53,33 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
   const [isNoteFormOpen, setIsNoteFormOpen] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | undefined>(undefined);
 
-  // Track which note is currently having its content edited inline
-  const [editingNoteContentId, setEditingNoteContentId] = useState<string | null>(null);
   const [inlineContent, setInlineContent] = useState("");
-  const isEditingContent = editingNoteContentId === selectedNoteId && !!selectedNoteId;
+  const [contentTab, setContentTab] = useState<"write" | "preview">("preview");
 
   const updateNoteMutation = useUpdateNoteMutation(projectId, selectedNoteId || "");
   const { data: noteDetail } = useNoteQuery(projectId, selectedNoteId || "");
 
-  const [useMarkdown, setUseMarkdown] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem("devaulty_notes_markdown_preview");
-      return saved !== "false";
-    } catch {
-      return true;
-    }
-  });
+  const [prevNoteId, setPrevNoteId] = useState<string | undefined>(undefined);
+  if (noteDetail && noteDetail.id !== prevNoteId) {
+    setPrevNoteId(noteDetail.id);
+    setInlineContent(noteDetail.content || "");
+    setContentTab(noteDetail.content ? "preview" : "write");
+  }
 
-  const handleToggleMarkdown = (enabled: boolean) => {
-    setUseMarkdown(enabled);
-    try {
-      localStorage.setItem("devaulty_notes_markdown_preview", String(enabled));
-    } catch {
-      // ignore storage errors
+  const isDirty = inlineContent !== (noteDetail?.content || "");
+
+  const handleDiscardContent = () => {
+    if (noteDetail) {
+      setInlineContent(noteDetail.content || "");
+    }
+  };
+
+  const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+      e.preventDefault();
+      if (isDirty && !updateNoteMutation.isPending) {
+        handleSaveInlineContent();
+      }
     }
   };
 
@@ -85,6 +89,7 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
     message: string;
     itemName?: string;
     warningText?: string;
+    confirmLabel?: string;
     onConfirm: () => Promise<void>;
     isLoading: boolean;
   }>({
@@ -157,6 +162,47 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
     });
   };
 
+  const handleSelectNote = (noteId: string) => {
+    if (noteId === selectedNoteId) return;
+    if (isDirty) {
+      setConfirmModal({
+        isOpen: true,
+        title: "Discard Unsaved Changes",
+        message: "You have unsaved modifications on the current note. Are you sure you want to discard them and switch to another note?",
+        warningText: "Any unsaved note content will be permanently lost.",
+        confirmLabel: "Discard Changes",
+        onConfirm: async () => {
+          setSelectedNoteId(noteId);
+          closeConfirmModal();
+        },
+        isLoading: false,
+      });
+    } else {
+      setSelectedNoteId(noteId);
+    }
+  };
+
+  const handleAddNoteClick = () => {
+    if (isDirty) {
+      setConfirmModal({
+        isOpen: true,
+        title: "Discard Unsaved Changes",
+        message: "You have unsaved modifications on the current note. Are you sure you want to discard them and create a new note?",
+        warningText: "Any unsaved note content will be permanently lost.",
+        confirmLabel: "Discard Changes",
+        onConfirm: async () => {
+          closeConfirmModal();
+          setEditingNoteId(undefined);
+          setIsNoteFormOpen(true);
+        },
+        isLoading: false,
+      });
+    } else {
+      setEditingNoteId(undefined);
+      setIsNoteFormOpen(true);
+    }
+  };
+
   const handleSaveInlineContent = async () => {
     if (!noteDetail) return;
     try {
@@ -165,7 +211,6 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
         content: inlineContent,
       });
       toast.success("Note content saved");
-      setEditingNoteContentId(null);
     } catch {
       toast.error("Failed to save note content");
     }
@@ -179,8 +224,9 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
       const container = e.currentTarget;
       const checkboxes = Array.from(container.querySelectorAll('input[type="checkbox"]'));
       const index = checkboxes.indexOf(checkbox);
-      if (index !== -1 && noteDetail?.content) {
-        const lines = noteDetail.content.split("\n");
+      const sourceContent = isDirty ? inlineContent : (noteDetail?.content || "");
+      if (index !== -1 && sourceContent) {
+        const lines = sourceContent.split("\n");
         let inCodeBlock = false;
         let taskListIndex = 0;
         const newLines = lines.map((line) => {
@@ -203,15 +249,18 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
 
         const updatedContent = newLines.join("\n");
 
-        if (updatedContent !== noteDetail.content) {
-          try {
-            await updateNoteMutation.mutateAsync({
-              title: noteDetail.title,
-              content: updatedContent,
-            });
-            toast.success("Checkbox state updated");
-          } catch {
-            toast.error("Failed to update checkbox");
+        if (updatedContent !== sourceContent) {
+          setInlineContent(updatedContent);
+          if (!isDirty && noteDetail) {
+            try {
+              await updateNoteMutation.mutateAsync({
+                title: noteDetail.title,
+                content: updatedContent,
+              });
+              toast.success("Checkbox state updated");
+            } catch {
+              toast.error("Failed to update checkbox");
+            }
           }
         }
       }
@@ -219,8 +268,8 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
   };
 
   const renderMarkdown = (content: string | undefined) => {
-    if (!content) {
-      return '<span class="text-muted-foreground italic">No content documented. Click Edit Content or click here to start writing.</span>';
+    if (!content?.trim()) {
+      return '<span class="text-muted-foreground italic text-xs font-mono cursor-pointer">No content documented. Switch to "Write / Code" to start writing.</span>';
     }
     try {
       const rawHtml = marked.parse(content, { breaks: true, gfm: true }) as string;
@@ -243,10 +292,7 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
         <button
           type="button"
           className={styles.newSnippetBtn}
-          onClick={() => {
-            setEditingNoteId(undefined);
-            setIsNoteFormOpen(true);
-          }}
+          onClick={handleAddNoteClick}
         >
           <Icons.Plus size={14} />
           <span>Add Note</span>
@@ -297,7 +343,7 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
               <button
                 key={n.id}
                 className={`${styles.snippetItem} ${selectedNoteId === n.id ? styles.snippetItemActive : ""}`}
-                onClick={() => setSelectedNoteId(n.id)}
+                onClick={() => handleSelectNote(n.id)}
               >
                 <div className={styles.snippetItemHeader}>
                   <span className={styles.snippetItemTitle}>{n.title}</span>
@@ -352,10 +398,7 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
                   <button
                     type="button"
                     onClick={async () => {
-                      const contentToCopy =
-                        editingNoteContentId === noteDetail.id
-                          ? inlineContent
-                          : noteDetail.content;
+                      const contentToCopy = isDirty ? inlineContent : (noteDetail.content || "");
                       if (!contentToCopy) return;
                       const ok = await copyToClipboard(contentToCopy);
                       if (ok) {
@@ -428,22 +471,29 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
                   title="Tags"
                 />
 
-                {/* Content panel with inline editing & markdown checkbox toggles */}
+                {/* Content panel with Write / Code and Preview tabs */}
                 <div className="flex-grow flex flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
-                      Note Content {isEditingContent ? "(Editing)" : ""}
-                    </span>
                     <div className="flex items-center gap-2">
-                      {isEditingContent ? (
+                      <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
+                        Note Content
+                      </span>
+                      {isDirty && (
+                        <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">
+                          Unsaved Changes
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {isDirty && (
                         <div className="flex items-center gap-1.5">
                           <button
                             type="button"
-                            onClick={() => setEditingNoteContentId(null)}
+                            onClick={handleDiscardContent}
                             className="px-2.5 py-1 text-[11px] font-mono rounded cursor-pointer transition-all border border-border bg-transparent text-muted-foreground hover:text-foreground"
                             disabled={updateNoteMutation.isPending}
                           >
-                            Cancel
+                            Discard
                           </button>
                           <button
                             type="button"
@@ -459,81 +509,61 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
                             <span>Save Content</span>
                           </button>
                         </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setInlineContent(noteDetail.content || "");
-                            setEditingNoteContentId(noteDetail.id);
-                          }}
-                          className="flex items-center gap-1 text-[11px] font-mono text-primary hover:underline bg-transparent border-0 cursor-pointer"
-                        >
-                          <Icons.Edit2 size={11} />
-                          <span>Edit Content</span>
-                        </button>
                       )}
 
-                      <div className="flex items-center gap-1 bg-secondary/40 p-0.5 rounded border border-border">
+                      <div className="flex items-center gap-1 p-0.5 rounded-md bg-secondary/80 border border-border/80">
                         <button
                           type="button"
-                          onClick={() => handleToggleMarkdown(false)}
-                          className={`px-2 py-1 text-[10px] font-mono rounded cursor-pointer transition-all ${
-                            !useMarkdown
-                              ? "bg-primary text-primary-foreground shadow-sm font-bold"
-                              : "text-muted-foreground hover:text-foreground bg-transparent"
+                          onClick={() => setContentTab("write")}
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono transition-colors cursor-pointer ${
+                            contentTab === "write"
+                              ? "bg-card text-foreground font-semibold shadow-sm border border-border/60"
+                              : "text-muted-foreground hover:text-foreground"
                           }`}
-                          style={{ border: "none" }}
                         >
-                          RAW
+                          <Icons.Code2 size={12} />
+                          <span>Write / Code</span>
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleToggleMarkdown(true)}
-                          className={`px-2 py-1 text-[10px] font-mono rounded cursor-pointer transition-all ${
-                            useMarkdown
-                              ? "bg-primary text-primary-foreground shadow-sm font-bold"
-                              : "text-muted-foreground hover:text-foreground bg-transparent"
+                          onClick={() => setContentTab("preview")}
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono transition-colors cursor-pointer ${
+                            contentTab === "preview"
+                              ? "bg-card text-foreground font-semibold shadow-sm border border-border/60"
+                              : "text-muted-foreground hover:text-foreground"
                           }`}
-                          style={{ border: "none" }}
                         >
-                          MARKDOWN
+                          <Icons.Eye size={12} />
+                          <span>Preview</span>
                         </button>
                       </div>
                     </div>
                   </div>
 
-                  {isEditingContent ? (
+                  {contentTab === "write" ? (
                     <div className="flex flex-col gap-2">
                       <textarea
-                        className="bg-background/80 border border-primary/50 rounded p-4 font-mono text-sm leading-relaxed min-h-[320px] focus:outline-none focus:ring-1 focus:ring-primary"
+                        className="bg-background/80 border border-border focus:border-primary rounded p-4 font-mono text-sm leading-relaxed min-h-[350px] focus:outline-none focus:ring-1 focus:ring-primary resize-y"
                         value={inlineContent}
                         onChange={(e) => setInlineContent(e.target.value)}
-                        placeholder="Write your markdown note content here..."
+                        onKeyDown={handleTextareaKeyDown}
+                        placeholder="Write your markdown notes, reminders, checklists, or code snippets here... (Ctrl+S to save)"
                         autoFocus
                       />
                     </div>
-                  ) : useMarkdown ? (
-                    <div
-                      className={`bg-background/50 border border-border rounded p-6 text-sm leading-relaxed overflow-y-auto min-h-[300px] ${styles.markdownContainer}`}
-                      onClick={handleMarkdownClick}
-                      dangerouslySetInnerHTML={{ __html: renderMarkdown(noteDetail.content) }}
-                    />
                   ) : (
                     <div
-                      className="bg-background/50 border border-border rounded p-4 font-mono text-sm whitespace-pre-wrap leading-relaxed overflow-y-auto min-h-[300px] cursor-pointer hover:border-border/80 transition-colors"
-                      onClick={() => {
-                        setInlineContent(noteDetail.content || "");
-                        setEditingNoteContentId(noteDetail.id);
+                      className={`bg-background/50 border border-border rounded p-6 text-sm leading-relaxed overflow-y-auto min-h-[350px] ${styles.markdownContainer}`}
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (!inlineContent.trim() && target.tagName !== "INPUT") {
+                          setContentTab("write");
+                        } else {
+                          handleMarkdownClick(e);
+                        }
                       }}
-                      title="Click to edit content"
-                    >
-
-                      {noteDetail.content || (
-                        <span className="text-muted-foreground italic">
-                          No content documented. Click here to add details.
-                        </span>
-                      )}
-                    </div>
+                      dangerouslySetInnerHTML={{ __html: renderMarkdown(inlineContent) }}
+                    />
                   )}
                 </div>
               </div>
@@ -569,6 +599,7 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
         itemName={confirmModal.itemName}
         warningText={confirmModal.warningText}
         isLoading={confirmModal.isLoading}
+        confirmLabel={confirmModal.confirmLabel}
       />
     </>
   );

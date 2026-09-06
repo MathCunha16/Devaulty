@@ -51,6 +51,8 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
   const [editingProblemId, setEditingProblemId] = useState<string | undefined>(undefined);
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [wrapLogs, setWrapLogs] = useState(true);
+  const [wrapSolution, setWrapSolution] = useState(true);
 
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -427,23 +429,36 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
                       <Icons.Terminal size={14} className="text-rose-500" />
                       <span className={styles.shellTitle}>Stack Trace Log Output</span>
                     </div>
-                    {problemDetail.errorDescription && (
+                    <div className="flex items-center gap-1.5">
                       <button
-                        className={styles.copyButton}
-                        onClick={() =>
-                          handleCopy(
-                            problemDetail.errorDescription || "",
-                            `err-${problemDetail.id}`
-                          )
-                        }
+                        type="button"
+                        className={`${styles.copyButton} ${wrapLogs ? "text-primary border-primary/40 bg-primary/10" : ""}`}
+                        onClick={() => setWrapLogs((prev) => !prev)}
+                        title={wrapLogs ? "Disable line wrapping" : "Enable line wrapping"}
+                        aria-label="Toggle line wrapping"
+                        aria-pressed={wrapLogs}
                       >
-                        {copiedId === `err-${problemDetail.id}` ? (
-                          <Icons.Check size={12} className="text-emerald-500" />
-                        ) : (
-                          <Icons.Copy size={12} />
-                        )}
+                        <Icons.WrapText size={12} />
                       </button>
-                    )}
+                      {problemDetail.errorDescription && (
+                        <button
+                          className={styles.copyButton}
+                          onClick={() =>
+                            handleCopy(
+                              problemDetail.errorDescription || "",
+                              `err-${problemDetail.id}`
+                            )
+                          }
+                          title="Copy Log Output"
+                        >
+                          {copiedId === `err-${problemDetail.id}` ? (
+                            <Icons.Check size={12} className="text-emerald-500" />
+                          ) : (
+                            <Icons.Copy size={12} />
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className={styles.shellEditorWrapper}>
                     {problemDetail.errorDescription ? (
@@ -451,6 +466,7 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
                         height="220px"
                         language="log"
                         code={problemDetail.errorDescription}
+                        wrapLines={wrapLogs}
                       />
                     ) : (
                       <div className="text-xs text-muted-foreground p-8 text-center font-mono">
@@ -469,20 +485,33 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
                       <Icons.CheckSquare size={14} className="text-emerald-500" />
                       <span className={styles.shellTitle}>Solution script / Code fix</span>
                     </div>
-                    {problemDetail.solution && (
+                    <div className="flex items-center gap-1.5">
                       <button
-                        className={styles.copyButton}
-                        onClick={() =>
-                          handleCopy(problemDetail.solution || "", `sol-${problemDetail.id}`)
-                        }
+                        type="button"
+                        className={`${styles.copyButton} ${wrapSolution ? "text-primary border-primary/40 bg-primary/10" : ""}`}
+                        onClick={() => setWrapSolution((prev) => !prev)}
+                        title={wrapSolution ? "Disable line wrapping" : "Enable line wrapping"}
+                        aria-label="Toggle line wrapping"
+                        aria-pressed={wrapSolution}
                       >
-                        {copiedId === `sol-${problemDetail.id}` ? (
-                          <Icons.Check size={12} className="text-emerald-500" />
-                        ) : (
-                          <Icons.Copy size={12} />
-                        )}
+                        <Icons.WrapText size={12} />
                       </button>
-                    )}
+                      {problemDetail.solution && (
+                        <button
+                          className={styles.copyButton}
+                          onClick={() =>
+                            handleCopy(problemDetail.solution || "", `sol-${problemDetail.id}`)
+                          }
+                          title="Copy Solution Code"
+                        >
+                          {copiedId === `sol-${problemDetail.id}` ? (
+                            <Icons.Check size={12} className="text-emerald-500" />
+                          ) : (
+                            <Icons.Copy size={12} />
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className={styles.shellEditorWrapper}>
                     {problemDetail.solution ? (
@@ -490,6 +519,7 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
                         height="220px"
                         language="plaintext"
                         code={problemDetail.solution}
+                        wrapLines={wrapSolution}
                       />
                     ) : (
                       <div className="text-xs text-muted-foreground p-8 text-center font-mono">

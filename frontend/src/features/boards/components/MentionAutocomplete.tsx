@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import * as Icons from "lucide-react";
 import { getItemTypeMeta, type ResolvedMentionItem } from "../utils/boardUtils";
 
@@ -37,13 +38,19 @@ export const MentionAutocomplete: React.FC<MentionAutocompleteProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  const width = 320;
+  const margin = 10;
+  const belowTop = position.top + 24;
+  const estimatedHeight = 230;
+  const top = belowTop + estimatedHeight <= window.innerHeight
+    ? belowTop
+    : Math.max(margin, position.top - estimatedHeight);
+  const left = Math.max(margin, Math.min(position.left, window.innerWidth - width - margin));
+
+  return createPortal(
     <div
-      className="absolute z-50 w-80 rounded-lg bg-card/95 backdrop-blur-xl border border-border shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col"
-      style={{
-        top: position.top + 24, // 24px below caret line
-        left: Math.max(10, Math.min(position.left, 240)), // keep within reasonable bounds
-      }}
+      className="fixed z-[60] w-80 rounded-lg bg-card/95 backdrop-blur-xl border border-border shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col"
+      style={{ top, left }}
     >
       {/* Header / Query indicator */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/80 bg-secondary/40 text-[10px] font-mono text-muted-foreground">
@@ -137,6 +144,7 @@ export const MentionAutocomplete: React.FC<MentionAutocompleteProps> = ({
           })
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

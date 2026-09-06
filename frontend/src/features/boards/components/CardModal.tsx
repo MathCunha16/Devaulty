@@ -252,7 +252,10 @@ const CardModalInner: React.FC<CardModalInnerProps> = ({
         isOpen: true,
         query,
         caretIndex: atPos,
-        coords: { top: coords.top, left: coords.left },
+        coords: {
+          top: (textarea.getBoundingClientRect().top + coords.top),
+          left: (textarea.getBoundingClientRect().left + coords.left),
+        },
         selectedIndex: 0,
       });
     } else {
@@ -435,7 +438,7 @@ const CardModalInner: React.FC<CardModalInnerProps> = ({
       onClick={handleRequestClose}
     >
       <div
-        className="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-xl bg-card border border-border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
+        className="relative w-full max-w-5xl max-h-[95vh] flex flex-col rounded-xl bg-card border border-border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -463,220 +466,226 @@ const CardModalInner: React.FC<CardModalInnerProps> = ({
           </button>
         </div>
 
-        {/* Modal Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
-          {/* Title */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-muted-foreground uppercase font-mono tracking-wider">
-              Title <span className="text-destructive">*</span>
-            </label>
-            <input
-              ref={titleInputRef}
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="What needs to be done?"
-              required
-              className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm font-medium text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-            />
-          </div>
-
-          {/* Markdown Description with Write/Preview Tabs */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+        {/* Modal Form Body — two-column layout: metadata left, description right */}
+        <form
+          onSubmit={handleSubmit}
+          className="flex-1 overflow-hidden flex flex-col"
+        >
+          <div className="flex-1 overflow-hidden flex flex-col md:flex-row min-h-0">
+            {/* ── Left column: metadata ── */}
+            <div className="w-full md:w-56 shrink md:shrink-0 min-h-0 flex flex-col overflow-y-auto border-b md:border-b-0 md:border-r border-border/60 p-5 gap-4">
+              {/* Title */}
+              <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-muted-foreground uppercase font-mono tracking-wider">
-                  Description (Markdown)
+                  Title <span className="text-destructive">*</span>
                 </label>
-                <span className="text-[10px] font-mono text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded border border-border/50">
-                  Type <strong className="text-primary">@</strong> to mention attached items
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1 p-0.5 rounded-md bg-secondary/80 border border-border/80">
-                <button
-                  type="button"
-                  onClick={() => setDescTab("write")}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono transition-colors cursor-pointer ${
-                    descTab === "write"
-                      ? "bg-card text-foreground font-semibold shadow-sm border border-border/60"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Icons.Code2 size={12} />
-                  <span>Write / Code</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDescTab("preview")}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono transition-colors cursor-pointer ${
-                    descTab === "preview"
-                      ? "bg-card text-foreground font-semibold shadow-sm border border-border/60"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Icons.Eye size={12} />
-                  <span>Preview</span>
-                </button>
-              </div>
-            </div>
-
-            {descTab === "write" ? (
-              <div className="relative">
-                <textarea
-                  ref={textareaRef}
-                  value={description}
-                  onChange={(e) => {
-                    setDescription(e.target.value);
-                    handleTextareaInput();
-                  }}
-                  onKeyUp={handleTextareaInput}
-                  onClick={handleTextareaInput}
-                  onKeyDown={handleTextareaKeyDown}
-                  placeholder="Describe requirements, architectural notes, or markdown checklists...&#10;&#10;Type @ to link attached Devaulty items directly in text."
-                  rows={6}
-                  className="w-full p-3 bg-background border border-border rounded-md text-xs font-mono text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-y min-h-[150px] leading-relaxed"
-                />
-
-                {/* In-Textarea Mention Autocomplete Popover (strictly attached items) */}
-                <MentionAutocomplete
-                  isOpen={mentionState.isOpen}
-                  position={mentionState.coords}
-                  items={filteredMentionItems}
-                  hasAttachedItems={resolvedLinkedItems.length > 0}
-                  selectedIndex={mentionState.selectedIndex}
-                  query={mentionState.query}
-                  onSelect={handleSelectMention}
-                  onClose={() => setMentionState((prev) => ({ ...prev, isOpen: false }))}
-                />
-              </div>
-            ) : (
-              <div className="w-full p-4 bg-secondary/30 border border-border/70 rounded-md min-h-[150px] max-h-80 overflow-y-auto">
-                <MarkdownWithMentions
-                  text={description}
-                  projectId={projectId}
-                  linkedItems={linkedItems}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Priority & Due Date Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Priority */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase font-mono tracking-wider">
-                Priority
-              </label>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {(
-                  [
-                    { id: "LOW", label: "Low", color: "text-slate-400 border-slate-500/40 bg-slate-500/10" },
-                    { id: "MEDIUM", label: "Medium", color: "text-blue-500 border-blue-500/40 bg-blue-500/10" },
-                    { id: "HIGH", label: "High", color: "text-amber-500 border-amber-500/40 bg-amber-500/10" },
-                    { id: "EXTREMELY_HIGH", label: "Urgent", color: "text-red-500 border-red-500/40 bg-red-500/10 font-bold" },
-                  ] as const
-                ).map((p) => {
-                  const isSelected = priority === p.id;
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => setPriority(isSelected ? "" : p.id)}
-                      className={`px-2.5 py-1 rounded text-xs font-mono border transition-all cursor-pointer ${
-                        isSelected
-                          ? `${p.color} ring-1 ring-primary/50 shadow-sm font-semibold`
-                          : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {p.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Due Date */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase font-mono tracking-wider">
-                Due Date
-              </label>
-              <div className="flex items-center gap-2">
                 <input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-background border border-border rounded-md text-xs font-mono text-foreground outline-none focus:border-primary"
+                  ref={titleInputRef}
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="What needs to be done?"
+                  required
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm font-medium text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                 />
-                {dueDate && (
+              </div>
+
+              {/* Priority */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-muted-foreground uppercase font-mono tracking-wider">
+                  Priority
+                </label>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {(
+                    [
+                      { id: "LOW", label: "Low", color: "text-slate-400 border-slate-500/40 bg-slate-500/10" },
+                      { id: "MEDIUM", label: "Medium", color: "text-blue-500 border-blue-500/40 bg-blue-500/10" },
+                      { id: "HIGH", label: "High", color: "text-amber-500 border-amber-500/40 bg-amber-500/10" },
+                      { id: "EXTREMELY_HIGH", label: "Urgent", color: "text-red-500 border-red-500/40 bg-red-500/10 font-bold" },
+                    ] as const
+                  ).map((p) => {
+                    const isSelected = priority === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setPriority(isSelected ? "" : p.id)}
+                        className={`px-2.5 py-1 rounded text-xs font-mono border transition-all cursor-pointer ${
+                          isSelected
+                            ? `${p.color} ring-1 ring-primary/50 shadow-sm font-semibold`
+                            : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Due Date */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-muted-foreground uppercase font-mono tracking-wider">
+                  Due Date
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-background border border-border rounded-md text-xs font-mono text-foreground outline-none focus:border-primary"
+                  />
+                  {dueDate && (
+                    <button
+                      type="button"
+                      onClick={() => setDueDate("")}
+                      className="p-1.5 text-muted-foreground hover:text-destructive text-xs transition-colors cursor-pointer"
+                      title="Clear due date"
+                    >
+                      <Icons.X size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase font-mono tracking-wider">
+                    Tags
+                  </label>
+                  {onOpenManageTagsModal && (
+                    <button
+                      type="button"
+                      onClick={onOpenManageTagsModal}
+                      className="text-xs text-primary hover:underline font-mono cursor-pointer"
+                    >
+                      + Manage
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {allTags.length === 0 ? (
+                    <span className="text-xs text-muted-foreground italic">No tags yet.</span>
+                  ) : (
+                    allTags.map((tag) => {
+                      const isSelected = cardTags.some((t) => t.id === tag.id);
+                      return (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          onClick={() => handleToggleTag(tag)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono border transition-all cursor-pointer ${
+                            isSelected
+                              ? "bg-primary/15 border-primary/40 text-primary font-semibold shadow-sm"
+                              : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground"
+                          }`}
+                          style={{
+                            borderColor: isSelected && tag.color ? tag.color : undefined,
+                            color: isSelected && tag.color ? tag.color : undefined,
+                          }}
+                        >
+                          <span>{tag.name}</span>
+                          {isSelected && <Icons.Check size={11} />}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Linked Items */}
+              <LinkedItemPicker
+                projectId={projectId}
+                linkedItems={linkedItems}
+                onChange={setLinkedItems}
+              />
+            </div>
+
+            {/* ── Right column: description ── */}
+            <div className="flex-1 min-w-0 flex flex-col overflow-hidden p-5 gap-3">
+              {/* Tab bar */}
+              <div className="flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase font-mono tracking-wider">
+                    Description (Markdown)
+                  </label>
+                  <span className="text-[10px] font-mono text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded border border-border/50">
+                    Type <strong className="text-primary">@</strong> to mention attached items
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1 p-0.5 rounded-md bg-secondary/80 border border-border/80">
                   <button
                     type="button"
-                    onClick={() => setDueDate("")}
-                    className="p-1.5 text-muted-foreground hover:text-destructive text-xs transition-colors cursor-pointer"
-                    title="Clear due date"
+                    onClick={() => setDescTab("write")}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono transition-colors cursor-pointer ${
+                      descTab === "write"
+                        ? "bg-card text-foreground font-semibold shadow-sm border border-border/60"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
                   >
-                    <Icons.X size={14} />
+                    <Icons.Code2 size={12} />
+                    <span>Write / Code</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setDescTab("preview")}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono transition-colors cursor-pointer ${
+                      descTab === "preview"
+                        ? "bg-card text-foreground font-semibold shadow-sm border border-border/60"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Icons.Eye size={12} />
+                    <span>Preview</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Editor / Preview — fills remaining height */}
+              <div className="flex-1 min-h-0 relative">
+                {descTab === "write" ? (
+                  <div className="relative h-full">
+                    <textarea
+                      ref={textareaRef}
+                      value={description}
+                      onChange={(e) => {
+                        setDescription(e.target.value);
+                        handleTextareaInput();
+                      }}
+                      onKeyUp={handleTextareaInput}
+                      onClick={handleTextareaInput}
+                      onKeyDown={handleTextareaKeyDown}
+                      placeholder={`Describe requirements, architectural notes, or markdown checklists...\n\nType @ to link attached Devaulty items directly in text.`}
+                      className="w-full h-full p-4 bg-background border border-border rounded-md text-xs font-mono text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none leading-relaxed"
+                    />
+                    <MentionAutocomplete
+                      isOpen={mentionState.isOpen}
+                      position={mentionState.coords}
+                      items={filteredMentionItems}
+                      hasAttachedItems={resolvedLinkedItems.length > 0}
+                      selectedIndex={mentionState.selectedIndex}
+                      query={mentionState.query}
+                      onSelect={handleSelectMention}
+                      onClose={() => setMentionState((prev) => ({ ...prev, isOpen: false }))}
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full h-full p-4 bg-secondary/30 border border-border/70 rounded-md overflow-y-auto">
+                    <MarkdownWithMentions
+                      text={description}
+                      projectId={projectId}
+                      linkedItems={linkedItems}
+                    />
+                  </div>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Tags Selection */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-muted-foreground uppercase font-mono tracking-wider">
-                Tags
-              </label>
-              {onOpenManageTagsModal && (
-                <button
-                  type="button"
-                  onClick={onOpenManageTagsModal}
-                  className="text-xs text-primary hover:underline font-mono cursor-pointer"
-                >
-                  + Manage Tags
-                </button>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {allTags.length === 0 ? (
-                <span className="text-xs text-muted-foreground italic">No tags created in project yet.</span>
-              ) : (
-                allTags.map((tag) => {
-                  const isSelected = cardTags.some((t) => t.id === tag.id);
-                  return (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      onClick={() => handleToggleTag(tag)}
-                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono border transition-all cursor-pointer ${
-                        isSelected
-                          ? "bg-primary/15 border-primary/40 text-primary font-semibold shadow-sm"
-                          : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground"
-                      }`}
-                      style={{
-                        borderColor: isSelected && tag.color ? tag.color : undefined,
-                        color: isSelected && tag.color ? tag.color : undefined,
-                      }}
-                    >
-                      <span>{tag.name}</span>
-                      {isSelected && <Icons.Check size={11} />}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          {/* Single Unified Linked Devaulty Items Section */}
-          <LinkedItemPicker
-            projectId={projectId}
-            linkedItems={linkedItems}
-            onChange={setLinkedItems}
-          />
-
           {/* Actions Bottom Bar */}
-          <div className="flex items-center justify-between pt-4 border-t border-border mt-2">
+          <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-secondary/20">
             {isEditing ? (
               <button
                 type="button"

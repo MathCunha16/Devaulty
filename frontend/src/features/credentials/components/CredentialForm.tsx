@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { X, Eye, EyeOff, KeyRound, UserCheck, Code2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -7,6 +7,8 @@ import {
   useCredentialQuery,
 } from "../hooks/useCredentials";
 import type { CredentialSecretType, CreateCredentialRequest, UpdateCredentialRequest } from "~types/api";
+import { useDiscardGuard } from "../../../hooks/useDiscardGuard";
+import { DiscardConfirmModal } from "../../../components/DiscardConfirmModal";
 import styles from "./CredentialForm.module.css";
 
 interface CredentialFormProps {
@@ -57,6 +59,35 @@ const CredentialFormInner: React.FC<CredentialFormInnerProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
 
+  const isDirty = useMemo(() => {
+    const initTitle = initialValues?.title || "";
+    const initType = initialValues?.secretType || "LOGIN";
+    const initUser = initialValues?.username || "";
+    const initPass = initialValues?.password || "";
+    const initApi = initialValues?.apiKey || "";
+    const initRaw = initialValues?.rawTextContent || "";
+    const initNotes = initialValues?.notes || "";
+    const initUrl = initialValues?.relatedUrl || "";
+
+    return (
+      formTitle.trim() !== initTitle.trim() ||
+      secretType !== initType ||
+      username !== initUser ||
+      password !== initPass ||
+      apiKey !== initApi ||
+      rawTextContent !== initRaw ||
+      notes !== initNotes ||
+      relatedUrl !== initUrl
+    );
+  }, [formTitle, secretType, username, password, apiKey, rawTextContent, notes, relatedUrl, initialValues]);
+
+  const {
+    isConfirmDiscardOpen,
+    handleRequestClose,
+    handleConfirmDiscard,
+    handleCancelDiscard,
+  } = useDiscardGuard({ isDirty, onClose });
+
   // Focus trap refs
   const previousActiveElement = useRef<HTMLElement | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -80,7 +111,11 @@ const CredentialFormInner: React.FC<CredentialFormInnerProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        if (isConfirmDiscardOpen) {
+          handleCancelDiscard();
+        } else if (!isSubmitting) {
+          handleRequestClose();
+        }
         return;
       }
       if (e.key !== "Tab") return;
@@ -111,7 +146,7 @@ const CredentialFormInner: React.FC<CredentialFormInnerProps> = ({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  }, [handleCancelDiscard, handleRequestClose, isConfirmDiscardOpen, isSubmitting]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,7 +177,7 @@ const CredentialFormInner: React.FC<CredentialFormInnerProps> = ({
   return (
     <div
       className={styles.overlay}
-      onClick={onClose}
+      onClick={() => !isSubmitting && handleRequestClose()}
       style={{ "--color-primary": projectColor || "#10b981" } as React.CSSProperties}
     >
       <div
@@ -155,7 +190,7 @@ const CredentialFormInner: React.FC<CredentialFormInnerProps> = ({
       >
         <div className={styles.header}>
           <h2 id="credential-form-title" className={styles.title}>{title}</h2>
-          <button className={styles.closeBtn} onClick={onClose} disabled={isSubmitting} aria-label="Close modal">
+          <button className={styles.closeBtn} onClick={handleRequestClose} disabled={isSubmitting} aria-label="Close modal">
             <X size={16} />
           </button>
         </div>
@@ -320,7 +355,7 @@ const CredentialFormInner: React.FC<CredentialFormInnerProps> = ({
             <button
               type="button"
               className={styles.btn}
-              onClick={onClose}
+              onClick={handleRequestClose}
               disabled={isSubmitting}
             >
               Cancel
@@ -335,6 +370,13 @@ const CredentialFormInner: React.FC<CredentialFormInnerProps> = ({
           </div>
         </form>
       </div>
+
+      <DiscardConfirmModal
+        isOpen={isConfirmDiscardOpen}
+        onClose={handleCancelDiscard}
+        onDiscard={handleConfirmDiscard}
+        itemName="credential"
+      />
     </div>
   );
 };
