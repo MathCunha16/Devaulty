@@ -762,7 +762,7 @@ dependencies = [
 
 [[package]]
 name = "devaulty"
-version = "0.1.20-beta"
+version = "0.2.0-beta"
 dependencies = [
  "dirs",
  "futures-util",
