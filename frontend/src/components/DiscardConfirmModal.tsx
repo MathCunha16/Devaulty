@@ -17,17 +17,19 @@ export const DiscardConfirmModal: React.FC<DiscardConfirmModalProps> = ({
   message,
 }) => {
   return (
-    <ConfirmModal
-      isOpen={isOpen}
-      onClose={onClose}
-      onConfirm={onDiscard}
-      title="Discard Unsaved Changes"
-      message={
-        message ||
-        `You have unsaved modifications on this ${itemName}. Are you sure you want to discard your changes and close?`
-      }
-      warningText="Any unsaved changes will be permanently lost."
-      confirmLabel="Discard Changes"
-    />
+    <div onClick={(event) => event.stopPropagation()}>
+      <ConfirmModal
+        isOpen={isOpen}
+        onClose={onClose}
+        onConfirm={onDiscard}
+        title="Discard Unsaved Changes"
+        message={
+          message ||
+          `You have unsaved modifications on this ${itemName}. Are you sure you want to discard your changes and close?`
+        }
+        warningText="Any unsaved changes will be permanently lost."
+        confirmLabel="Discard Changes"
+      />
+    </div>
   );
 };

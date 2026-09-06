@@ -436,6 +436,7 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
                         onClick={() => setWrapLogs((prev) => !prev)}
                         title={wrapLogs ? "Disable line wrapping" : "Enable line wrapping"}
                         aria-label="Toggle line wrapping"
+                        aria-pressed={wrapLogs}
                       >
                         <Icons.WrapText size={12} />
                       </button>
@@ -491,6 +492,7 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
                         onClick={() => setWrapSolution((prev) => !prev)}
                         title={wrapSolution ? "Disable line wrapping" : "Enable line wrapping"}
                         aria-label="Toggle line wrapping"
+                        aria-pressed={wrapSolution}
                       >
                         <Icons.WrapText size={12} />
                       </button>

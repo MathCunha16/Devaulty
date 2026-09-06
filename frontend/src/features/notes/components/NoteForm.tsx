@@ -56,7 +56,7 @@ const NoteFormInner: React.FC<NoteFormInnerProps> = ({
     const initContent = initialValues?.content || "";
 
     return (
-      formTitle.trim() !== initTitle.trim() ||
+      formTitle !== initTitle ||
       content !== initContent
     );
   }, [formTitle, content, initialValues]);

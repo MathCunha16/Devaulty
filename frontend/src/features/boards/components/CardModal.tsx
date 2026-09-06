@@ -252,7 +252,10 @@ const CardModalInner: React.FC<CardModalInnerProps> = ({
         isOpen: true,
         query,
         caretIndex: atPos,
-        coords: { top: coords.top, left: coords.left },
+        coords: {
+          top: (textarea.getBoundingClientRect().top + coords.top),
+          left: (textarea.getBoundingClientRect().left + coords.left),
+        },
         selectedIndex: 0,
       });
     } else {
@@ -468,9 +471,9 @@ const CardModalInner: React.FC<CardModalInnerProps> = ({
           onSubmit={handleSubmit}
           className="flex-1 overflow-hidden flex flex-col"
         >
-          <div className="flex-1 overflow-hidden flex flex-row min-h-0">
+          <div className="flex-1 overflow-hidden flex flex-col md:flex-row min-h-0">
             {/* ── Left column: metadata ── */}
-            <div className="w-56 shrink-0 flex flex-col overflow-y-auto border-r border-border/60 p-5 gap-4">
+            <div className="w-full md:w-56 shrink-0 flex flex-col overflow-y-auto border-b md:border-b-0 md:border-r border-border/60 p-5 gap-4">
               {/* Title */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-muted-foreground uppercase font-mono tracking-wider">
