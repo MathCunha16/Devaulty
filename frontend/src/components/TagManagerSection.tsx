@@ -45,12 +45,25 @@ export const TagManagerSection: React.FC<TagManagerSectionProps> = ({
   const updatePopoverPosition = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    const popoverHeight = 260; // approximate max-height
+    const popoverHeight = 260;
+    const popoverWidth = 220;
+    const viewportMargin = 8;
     const spaceBelow = window.innerHeight - rect.bottom;
-    const top = spaceBelow >= popoverHeight
+    const preferredTop = spaceBelow >= popoverHeight
       ? rect.bottom + 4
       : rect.top - popoverHeight - 4;
-    setPopoverPos({ top, left: rect.left });
+    const maxTop = Math.max(
+      viewportMargin,
+      window.innerHeight - popoverHeight - viewportMargin
+    );
+    const maxLeft = Math.max(
+      viewportMargin,
+      window.innerWidth - popoverWidth - viewportMargin
+    );
+    const top = Math.min(Math.max(preferredTop, viewportMargin), maxTop);
+    const left = Math.min(Math.max(rect.left, viewportMargin), maxLeft);
+
+    setPopoverPos({ top, left });
   }, []);
 
   const openPopover = useCallback(() => {

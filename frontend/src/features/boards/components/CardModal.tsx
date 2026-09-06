@@ -473,7 +473,7 @@ const CardModalInner: React.FC<CardModalInnerProps> = ({
         >
           <div className="flex-1 overflow-hidden flex flex-col md:flex-row min-h-0">
             {/* ── Left column: metadata ── */}
-            <div className="w-full md:w-56 shrink-0 flex flex-col overflow-y-auto border-b md:border-b-0 md:border-r border-border/60 p-5 gap-4">
+            <div className="w-full md:w-56 shrink md:shrink-0 min-h-0 flex flex-col overflow-y-auto border-b md:border-b-0 md:border-r border-border/60 p-5 gap-4">
               {/* Title */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-muted-foreground uppercase font-mono tracking-wider">
