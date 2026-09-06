@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Devaulty",
-  "version": "0.1.19-alpha",
+  "version": "0.1.20-beta",
   "identifier": "com.devaulty.app",
   "build": {
     "frontendDist": "../dist",
