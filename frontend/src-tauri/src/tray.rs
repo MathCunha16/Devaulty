@@ -4,7 +4,7 @@ use tauri::{
   image::Image,
   menu::{Menu, MenuItem},
   tray::TrayIconBuilder,
-  AppHandle, Manager, WebviewUrl, WebviewWindowBuilder,
+  AppHandle, Manager, WebviewWindowBuilder,
 };
 
 use crate::session::SessionState;
@@ -36,12 +36,29 @@ pub fn setup_tray(app: &AppHandle) -> tauri::Result<()> {
   Ok(())
 }
 
+// Rebuilds a window exactly as declared in tauri.conf.json, by label. This
+// is the same construction path Tauri itself uses at boot, so it never
+// drifts from the config file and never needs manual attribute-by-attribute
+// duplication (or the "unstable" cargo feature that comes with calling
+// individual builder methods like .transparent()).
+fn rebuild_from_config(app: &AppHandle, label: &str) -> tauri::Result<()> {
+  let config = app
+    .config()
+    .app
+    .windows
+    .iter()
+    .find(|w| w.label == label)
+    .unwrap_or_else(|| panic!("window '{}' missing from tauri.conf.json", label))
+    .clone();
+
+  WebviewWindowBuilder::from_config(app, &config)?.build()?;
+  Ok(())
+}
+
 // Shows the main window, recreating it from scratch if it was previously
 // destroyed (grace period elapsed after a tray minimize) or doesn't exist
-// yet (second-instance relaunch). Mirrors the "main" window entry in
-// tauri.conf.json so the rebuilt window is indistinguishable from the one
-// created at boot. The Go backend is already running at this point
-// (port/token resolved on first launch), so get_backend_info on the
+// yet (second-instance relaunch). The Go backend is already running at this
+// point (port/token resolved on first launch), so get_backend_info on the
 // frontend resolves almost immediately here.
 pub fn show_main_window(app: &AppHandle) {
   let state = app.state::<Arc<SessionState>>();
@@ -61,41 +78,21 @@ pub fn show_main_window(app: &AppHandle) {
 
   // Cold path: the window was actually destroyed. Recreate the splash
   // window too (it was closed/destroyed by commands::close_splash right
-  // after the last boot) and rebuild "main" hidden, exactly like app
-  // startup. The frontend's normal boot sequence - get_backend_info, then
-  // invoking close_splash once it's ready - takes care of showing "main"
-  // and tearing the splash back down, so reopening after a long idle period
-  // looks the same as first launch instead of a blank window mid-render.
+  // after the last boot) and rebuild "main" from its tauri.conf.json entry,
+  // which already declares visible: false - the frontend's normal boot
+  // sequence (get_backend_info, then invoking close_splash once ready)
+  // shows "main" and tears the splash back down, so reopening after a long
+  // idle period looks the same as first launch instead of a blank window
+  // mid-render.
   if app.get_webview_window("splash").is_none() {
-    if let Err(e) = recreate_splash_window(app) {
+    if let Err(e) = rebuild_from_config(app, "splash") {
       log::error!("Failed to recreate splash window: {}", e);
     }
   }
 
-  if let Err(e) = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
-    .title("Devaulty")
-    .min_inner_size(1000.0, 650.0)
-    .resizable(true)
-    .fullscreen(false)
-    .visible(false)
-    .build()
-  {
+  if let Err(e) = rebuild_from_config(app, "main") {
     log::error!("Failed to recreate main window: {}", e);
   }
-}
-
-// Rebuilds the "splash" window with the same attributes it has in
-// tauri.conf.json (used only at first boot otherwise).
-fn recreate_splash_window(app: &AppHandle) -> tauri::Result<()> {
-  WebviewWindowBuilder::new(app, "splash", WebviewUrl::App("/splash.html".into()))
-    .title("Devaulty")
-    .inner_size(550.0, 400.0)
-    .center()
-    .decorations(false)
-    .transparent(true)
-    .always_on_top(true)
-    .build()?;
-  Ok(())
 }
 
 fn quit_app(app: &AppHandle) {
