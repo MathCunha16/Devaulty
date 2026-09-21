@@ -579,17 +579,14 @@ components:
         title:
           type: string
           minLength: 2
-          maxLength: 255
           example: "Database Connection Failure"
         errorDescription:
           type: string
           minLength: 2
-          maxLength: 255
           example: "Connection refused at localhost:5432"
         solution:
           type: string
           minLength: 2
-          maxLength: 255
           nullable: true
           example: "Restart PostgreSQL database container"
         status:
@@ -603,17 +600,14 @@ components:
         title:
           type: string
           minLength: 2
-          maxLength: 255
           example: "Updated Problem Title"
         errorDescription:
           type: string
           minLength: 2
-          maxLength: 255
           example: "Updated error details"
         solution:
           type: string
           minLength: 2
-          maxLength: 255
           example: "Updated solution steps"
         severity:
           $ref: '#/components/schemas/ProblemSeverity'
@@ -5120,5 +5114,4 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
 
