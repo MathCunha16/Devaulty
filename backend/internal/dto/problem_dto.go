@@ -11,8 +11,8 @@ import (
 type CreateProblemCommand struct {
 	ProjectID        uuid.UUID             `json:"projectID"`
 	Title            string                `json:"title" binding:"required,min=2,max=255"`
-	ErrorDescription string                `json:"errorDescription" binding:"required,min=2,max=255"`
-	Solution         *string               `json:"solution,omitempty" binding:"omitempty,min=2,max=255"`
+	ErrorDescription string                `json:"errorDescription" binding:"required,min=2"`
+	Solution         *string               `json:"solution,omitempty" binding:"omitempty,min=2"`
 	Status           model.ProblemStatus   `json:"status" binding:"required"`
 	Severity         model.ProblemSeverity `json:"severity" binding:"required"`
 }
@@ -21,8 +21,8 @@ type UpdateProblemCommand struct {
 	ProjectID        uuid.UUID              `json:"projectID"`
 	ID               uuid.UUID              `json:"id"`
 	Title            *string                `json:"title,omitempty" binding:"omitempty,min=2,max=255"`
-	ErrorDescription *string                `json:"errorDescription,omitempty" binding:"omitempty,min=2,max=255"`
-	Solution         *string                `json:"solution,omitempty" binding:"omitempty,min=2,max=255"`
+	ErrorDescription *string                `json:"errorDescription,omitempty" binding:"omitempty,min=2"`
+	Solution         *string                `json:"solution,omitempty" binding:"omitempty,min=2"`
 	Severity         *model.ProblemSeverity `json:"severity,omitempty" binding:"omitempty"`
 }
 
