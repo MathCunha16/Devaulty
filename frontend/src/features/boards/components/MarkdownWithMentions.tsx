@@ -16,6 +16,7 @@ import {
   type ProjectTabType,
 } from "../utils/boardUtils";
 import type { ItemType, CreateCardItemCommand } from "~types/api";
+import { openExternalUrl } from "../../../utils/urlUtils";
 import styles from "./KanbanWorkspace.module.css";
 
 interface MarkdownWithMentionsProps {
@@ -180,12 +181,20 @@ export const MarkdownWithMentions: React.FC<MarkdownWithMentionsProps> = ({
 
   const handleClick = useCallback(
     (e: MouseEvent) => {
-      const target = (e.target as HTMLElement).closest(".devaulty-mention-pill") as HTMLElement | null;
-      if (!target) return;
-      e.preventDefault();
-      const itemType = target.dataset.itemType as ItemType;
-      const itemId = target.dataset.itemId;
-      navigateToItem(itemType, itemId);
+      const mentionTarget = (e.target as HTMLElement).closest(".devaulty-mention-pill") as HTMLElement | null;
+      if (mentionTarget) {
+        e.preventDefault();
+        const itemType = mentionTarget.dataset.itemType as ItemType;
+        const itemId = mentionTarget.dataset.itemId;
+        navigateToItem(itemType, itemId);
+        return;
+      }
+
+      const anchor = (e.target as HTMLElement).closest("a") as HTMLAnchorElement | null;
+      if (anchor && anchor.href && !anchor.href.startsWith("javascript:")) {
+        e.preventDefault();
+        openExternalUrl(anchor.href);
+      }
     },
     [navigateToItem]
   );

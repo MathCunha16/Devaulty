@@ -397,3 +397,43 @@ pub fn open_file_path(path: String) -> Result<(), String> {
 
   Ok(())
 }
+
+#[tauri::command]
+pub fn open_external_url(url: String) -> Result<(), String> {
+  let safe_url = if !url.starts_with("http://") && !url.starts_with("https://") {
+    format!("https://{}", url)
+  } else {
+    url
+  };
+
+  let parsed = reqwest::Url::parse(&safe_url).map_err(|e| format!("Invalid URL: {}", e))?;
+  if parsed.scheme() != "http" && parsed.scheme() != "https" {
+    return Err("Only HTTP and HTTPS URLs are permitted".to_string());
+  }
+
+  #[cfg(target_os = "linux")]
+  {
+    Command::new("xdg-open")
+      .arg(&safe_url)
+      .spawn()
+      .map_err(|e| format!("Failed to open URL in browser: {}", e))?;
+  }
+
+  #[cfg(target_os = "windows")]
+  {
+    Command::new("cmd")
+      .args(["/C", "start", "", &safe_url])
+      .spawn()
+      .map_err(|e| format!("Failed to open URL in browser: {}", e))?;
+  }
+
+  #[cfg(target_os = "macos")]
+  {
+    Command::new("open")
+      .arg(&safe_url)
+      .spawn()
+      .map_err(|e| format!("Failed to open URL in browser: {}", e))?;
+  }
+
+  Ok(())
+}

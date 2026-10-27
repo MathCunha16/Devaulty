@@ -194,12 +194,8 @@ export const formatDueDate = (
   if (!year || !month || !day) return null;
 
   const date = new Date(year, month - 1, day);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const isOverdue = date < today;
   return {
     formatted: date.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-    isOverdue,
+    isOverdue: false,
   };
 };

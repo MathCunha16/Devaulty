@@ -85,9 +85,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ card, onOpenCard }) => {
       {/* Meta Row: Due Date & Details Hint */}
       <div className="flex items-center justify-between pt-1 mt-auto text-[11px] text-muted-foreground">
         {due ? (
-          <span
-            className={`${styles.dueDatePill} ${due.isOverdue ? styles.dueDateOverdue : ""}`}
-          >
+          <span className={styles.dueDatePill}>
             <Icons.Calendar size={10} />
             <span>{due.formatted}</span>
           </span>

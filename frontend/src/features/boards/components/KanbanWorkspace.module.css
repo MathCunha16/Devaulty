@@ -517,12 +517,6 @@
   color: var(--color-muted-foreground);
 }
 
-.dueDateOverdue {
-  background-color: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.3);
-  color: #ef4444;
-  font-weight: 600;
-}
 
 /* Bottom Quick Add */
 .columnFooter {

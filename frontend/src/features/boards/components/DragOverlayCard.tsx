@@ -55,9 +55,7 @@ export const DragOverlayCard: React.FC<DragOverlayCardProps> = ({ card }) => {
       {/* Due Date & Meta */}
       {due && (
         <div className="flex items-center gap-1">
-          <span
-            className={`${styles.dueDatePill} ${due.isOverdue ? styles.dueDateOverdue : ""}`}
-          >
+          <span className={styles.dueDatePill}>
             <Icons.Calendar size={10} />
             <span>{due.formatted}</span>
           </span>

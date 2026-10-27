@@ -4,6 +4,7 @@ import * as Icons from "lucide-react";
 import { ConfirmModal } from "../../../components/ConfirmModal";
 import { TagManagerSection } from "../../../components/TagManagerSection";
 import { formatUpdatedDate } from "../../../utils/dateUtils";
+import { openExternalUrl } from "../../../utils/urlUtils";
 import { LinkForm } from "../components/LinkForm";
 import {
   useLinksQuery,
@@ -225,6 +226,10 @@ export const LinksWorkspace: React.FC<LinksWorkspaceProps> = ({
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1.5 text-xs text-primary-foreground bg-primary hover:bg-primary/95 border border-primary px-3.5 py-1.5 rounded transition-colors font-bold decoration-none cursor-pointer"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        openExternalUrl(linkDetail.url);
+                      }}
                     >
                       <span>Open Link</span>
                       <Icons.ExternalLink size={12} />
