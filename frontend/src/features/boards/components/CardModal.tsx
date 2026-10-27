@@ -438,7 +438,7 @@ const CardModalInner: React.FC<CardModalInnerProps> = ({
       onClick={handleRequestClose}
     >
       <div
-        className="relative w-full max-w-5xl max-h-[95vh] flex flex-col rounded-xl bg-card border border-border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
+        className="relative w-full max-w-[95vw] 2xl:max-w-[1550px] xl:max-w-[1380px] lg:max-w-[1180px] md:max-w-4xl max-h-[93vh] flex flex-col rounded-xl bg-card border border-border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -473,7 +473,7 @@ const CardModalInner: React.FC<CardModalInnerProps> = ({
         >
           <div className="flex-1 overflow-hidden flex flex-col md:flex-row min-h-0">
             {/* ── Left column: metadata ── */}
-            <div className="w-full md:w-56 shrink md:shrink-0 min-h-0 flex flex-col overflow-y-auto border-b md:border-b-0 md:border-r border-border/60 p-5 gap-4">
+            <div className="w-full md:w-72 lg:w-80 xl:w-96 shrink-0 min-h-0 flex flex-col overflow-y-auto border-b md:border-b-0 md:border-r border-border/60 p-5 gap-4">
               {/* Title */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-muted-foreground uppercase font-mono tracking-wider">

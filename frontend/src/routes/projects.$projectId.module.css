@@ -5,7 +5,6 @@
   min-height: 0;
   height: 100%;
   width: 100%;
-  gap: 1.5rem;
   overflow: hidden;
 }
 
@@ -14,10 +13,49 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  border-right: 1px solid var(--color-border);
-  padding-right: 1.5rem;
+  padding-right: 1.25rem;
   flex-shrink: 0;
   height: 100%;
+  position: relative;
+  transition: width 0.18s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease;
+}
+
+.leftPanelCollapsed {
+  display: none !important;
+}
+
+.panelResizer {
+  width: 14px;
+  margin-left: -7px;
+  margin-right: -7px;
+  cursor: col-resize;
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+.panelResizer::after {
+  content: "";
+  width: 1px;
+  height: 100%;
+  background-color: var(--color-border);
+  transition: all 0.15s ease;
+}
+
+.panelResizer:hover::after,
+.panelResizerDragging::after {
+  width: 3px;
+  background-color: var(--color-primary);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-primary) 50%, transparent);
+}
+
+.panelResizerCollapsed {
+  display: none !important;
 }
 
 .rightPanel {
@@ -27,6 +65,57 @@
   height: 100%;
   overflow: hidden;
   position: relative;
+  padding-left: 1.25rem;
+  min-width: 0;
+}
+
+.rightPanelFull {
+  padding-left: 0 !important;
+}
+
+.sidebarToggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-sm, 6px);
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  color: var(--color-muted-foreground);
+  font-size: 0.75rem;
+  font-family: var(--font-mono, monospace);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sidebarToggleBtn:hover {
+  color: var(--color-foreground);
+  background-color: var(--color-secondary);
+  border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
+}
+
+.sidebarToggleIconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm, 6px);
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  color: var(--color-muted-foreground);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.sidebarToggleIconBtn:hover {
+  color: var(--color-foreground);
+  background-color: var(--color-secondary);
+  border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
 }
 
 .projectHeader {

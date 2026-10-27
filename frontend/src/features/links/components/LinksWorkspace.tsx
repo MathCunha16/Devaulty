@@ -6,6 +6,7 @@ import { TagManagerSection } from "../../../components/TagManagerSection";
 import { formatUpdatedDate } from "../../../utils/dateUtils";
 import { openExternalUrl } from "../../../utils/urlUtils";
 import { LinkForm } from "../components/LinkForm";
+import { useResizableSidebar } from "../../../hooks/useResizableSidebar";
 import {
   useLinksQuery,
   useLinkQuery,
@@ -26,6 +27,20 @@ export const LinksWorkspace: React.FC<LinksWorkspaceProps> = ({
   initialSelectedId,
   projectColor,
 }) => {
+  const {
+    sidebarWidth,
+    isCollapsed,
+    isDragging,
+    handleMouseDown,
+    handleDoubleClick,
+    toggleCollapse,
+  } = useResizableSidebar({
+    storageKey: "links",
+    defaultWidth: 340,
+    minWidth: 240,
+    maxWidth: 540,
+  });
+
   const { data: linksData } = useLinksQuery(projectId);
   const deleteLinkMutation = useDeleteLinkMutation(projectId);
 
@@ -100,18 +115,31 @@ export const LinksWorkspace: React.FC<LinksWorkspaceProps> = ({
   return (
     <>
       {/* Left Side: Links navigation list */}
-      <div className={styles.leftPanel}>
-        <button
-          type="button"
-          className={styles.newSnippetBtn}
-          onClick={() => {
-            setEditingLinkId(undefined);
-            setIsLinkFormOpen(true);
-          }}
-        >
-          <Icons.Plus size={14} />
-          <span>Add Link</span>
-        </button>
+      <div
+        className={`${styles.leftPanel} ${isCollapsed ? styles.leftPanelCollapsed : ""}`}
+        style={{ width: isCollapsed ? 0 : `${sidebarWidth}px` }}
+      >
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            className={`${styles.newSnippetBtn} flex-1`}
+            onClick={() => {
+              setEditingLinkId(undefined);
+              setIsLinkFormOpen(true);
+            }}
+          >
+            <Icons.Plus size={14} />
+            <span>Add Link</span>
+          </button>
+          <button
+            type="button"
+            onClick={toggleCollapse}
+            className={styles.sidebarToggleIconBtn}
+            title="Collapse links list"
+          >
+            <Icons.PanelLeftClose size={15} />
+          </button>
+        </div>
 
         <div className={styles.searchBar}>
           <Icons.Search className={styles.searchIcon} size={14} />
@@ -174,14 +202,37 @@ export const LinksWorkspace: React.FC<LinksWorkspaceProps> = ({
         </div>
       </div>
 
+      {/* Splitter Resizer */}
+      <div
+        className={`${styles.panelResizer} ${isDragging ? styles.panelResizerDragging : ""} ${
+          isCollapsed ? styles.panelResizerCollapsed : ""
+        }`}
+        onMouseDown={handleMouseDown}
+        onDoubleClick={handleDoubleClick}
+        title="Drag to resize, double click to collapse/expand"
+      />
+
       {/* Right Side: Link Workspace details panel */}
-      <div className={styles.rightPanel}>
+      <div className={`${styles.rightPanel} ${isCollapsed ? styles.rightPanelFull : ""}`}>
         {linkDetail ? (
           <div className={styles.problemDetailScroll}>
             <div className={styles.problemDetailContainer}>
               <div className={styles.detailHeader}>
                 <div className={styles.detailTitleSection}>
-                  <h2 className={styles.detailTitle}>{linkDetail.title}</h2>
+                  <div className="flex items-center gap-2">
+                    {isCollapsed && (
+                      <button
+                        type="button"
+                        onClick={toggleCollapse}
+                        className={styles.sidebarToggleBtn}
+                        title="Show links navigator"
+                      >
+                        <Icons.PanelLeftOpen size={14} />
+                        <span>Links</span>
+                      </button>
+                    )}
+                    <h2 className={styles.detailTitle}>{linkDetail.title}</h2>
+                  </div>
                   <div className={styles.problemMetadataRow}>
                     <span>Created: {new Date(linkDetail.createdAt).toLocaleDateString()}</span>
                     {formatUpdatedDate(linkDetail.updatedAt, linkDetail.createdAt) && (
@@ -193,6 +244,14 @@ export const LinksWorkspace: React.FC<LinksWorkspaceProps> = ({
                 </div>
 
                 <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleCollapse}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-border px-2 py-1.5 rounded bg-card transition-colors cursor-pointer"
+                    title={isCollapsed ? "Show links navigator" : "Collapse links navigator"}
+                  >
+                    {isCollapsed ? <Icons.PanelLeftOpen size={13} /> : <Icons.PanelLeftClose size={13} />}
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
@@ -267,6 +326,16 @@ export const LinksWorkspace: React.FC<LinksWorkspaceProps> = ({
             <div className={styles.placeholderText}>
               No link selected. Select a web link from the navigator or click "Add Link" to register a new destination.
             </div>
+            {isCollapsed && (
+              <button
+                type="button"
+                onClick={toggleCollapse}
+                className={styles.sidebarToggleBtn}
+              >
+                <Icons.PanelLeftOpen size={14} />
+                <span>Show Links List</span>
+              </button>
+            )}
           </div>
         )}
       </div>
