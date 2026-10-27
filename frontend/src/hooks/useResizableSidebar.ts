@@ -42,16 +42,14 @@ export function useResizableSidebar({
   const currentWidthRef = useRef<number>(sidebarWidth);
 
   const toggleCollapse = useCallback(() => {
-    setIsCollapsed((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(`devaulty:sidebar:${storageKey}:collapsed`, String(next));
-      } catch {
-        // ignore
-      }
-      return next;
-    });
-  }, [storageKey]);
+    const next = !isCollapsed;
+    setIsCollapsed(next);
+    try {
+      localStorage.setItem(`devaulty:sidebar:${storageKey}:collapsed`, String(next));
+    } catch {
+      // ignore
+    }
+  }, [isCollapsed, storageKey]);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -67,39 +65,35 @@ export function useResizableSidebar({
     toggleCollapse();
   }, [toggleCollapse]);
 
+  const updateWidth = useCallback(
+    (newWidth: number) => {
+      const clamped = Math.min(Math.max(newWidth, minWidth), maxWidth);
+      setSidebarWidth(clamped);
+      currentWidthRef.current = clamped;
+      try {
+        localStorage.setItem(`devaulty:sidebar:${storageKey}:width`, String(clamped));
+      } catch {
+        // ignore
+      }
+    },
+    [minWidth, maxWidth, storageKey]
+  );
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       const step = 20;
       if (e.key === "ArrowLeft") {
         e.preventDefault();
-        setSidebarWidth((prev) => {
-          const next = Math.max(prev - step, minWidth);
-          currentWidthRef.current = next;
-          try {
-            localStorage.setItem(`devaulty:sidebar:${storageKey}:width`, String(next));
-          } catch {
-            // ignore
-          }
-          return next;
-        });
+        updateWidth(sidebarWidth - step);
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
-        setSidebarWidth((prev) => {
-          const next = Math.min(prev + step, maxWidth);
-          currentWidthRef.current = next;
-          try {
-            localStorage.setItem(`devaulty:sidebar:${storageKey}:width`, String(next));
-          } catch {
-            // ignore
-          }
-          return next;
-        });
+        updateWidth(sidebarWidth + step);
       } else if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         toggleCollapse();
       }
     },
-    [minWidth, maxWidth, storageKey, toggleCollapse]
+    [sidebarWidth, updateWidth, toggleCollapse]
   );
 
   useEffect(() => {
