@@ -17,6 +17,7 @@ import {
 import { CredentialForm } from "../components/CredentialForm";
 import { CredentialDetailModal } from "../components/CredentialDetailModal";
 import { useInactivityAutoLock } from "../../../hooks/useInactivityAutoLock";
+import { openExternalUrl } from "../../../utils/urlUtils";
 import type { CredentialSecretType } from "~types/api";
 import styles from "../../../routes/projects.$projectId.module.css";
 
@@ -251,7 +252,11 @@ export const CredentialsWorkspace: React.FC<CredentialsWorkspaceProps> = ({
                             target="_blank"
                             rel="noopener noreferrer"
                             className={styles.credentialUrl}
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              openExternalUrl(cred.relatedUrl);
+                            }}
                           >
                             <Icons.ExternalLink size={12} />
                             <span>{cred.relatedUrl.replace(/^https?:\/\//, "")}</span>

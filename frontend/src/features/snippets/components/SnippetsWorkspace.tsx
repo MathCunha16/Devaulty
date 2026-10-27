@@ -18,6 +18,7 @@ import {
   useDeleteSnippetMutation,
 } from "../hooks/useSnippets";
 import { mapLanguageToMonaco } from "../utils/languageUtils";
+import { useResizableSidebar } from "../../../hooks/useResizableSidebar";
 import type { SnippetType } from "~types/api";
 import styles from "../../../routes/projects.$projectId.module.css";
 
@@ -37,6 +38,23 @@ export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
 }) => {
   const { data: snippetsData } = useSnippetsQuery(projectId);
   const deleteSnippetMutation = useDeleteSnippetMutation(projectId);
+
+  const {
+    sidebarWidth,
+    isCollapsed,
+    isDragging,
+    minWidth,
+    maxWidth,
+    toggleCollapse,
+    handleMouseDown,
+    handleDoubleClick,
+    handleKeyDown,
+  } = useResizableSidebar({
+    storageKey: "snippets",
+    defaultWidth: 340,
+    minWidth: 240,
+    maxWidth: 540,
+  });
 
   const [prevInitialId, setPrevInitialId] = useState(initialSelectedId);
   const [selectedSnippetId, setSelectedSnippetId] = useState<string | undefined>(initialSelectedId);
@@ -137,11 +155,24 @@ export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
   return (
     <>
       {/* Left Side: Snippets navigation list */}
-      <div className={styles.leftPanel}>
-        <button className={styles.newSnippetBtn} onClick={handleOpenCreateSnippet}>
-          <Icons.Plus size={14} />
-          <span>Add Snippet</span>
-        </button>
+      <div
+        className={`${styles.leftPanel} ${isCollapsed ? styles.leftPanelCollapsed : ""}`}
+        style={{ width: isCollapsed ? 0 : `${sidebarWidth}px` }}
+      >
+        <div className="flex items-center gap-1.5">
+          <button className={`${styles.newSnippetBtn} flex-1`} onClick={handleOpenCreateSnippet}>
+            <Icons.Plus size={14} />
+            <span>Add Snippet</span>
+          </button>
+          <button
+            type="button"
+            onClick={toggleCollapse}
+            className={styles.sidebarToggleIconBtn}
+            title="Collapse snippets list"
+          >
+            <Icons.PanelLeftClose size={15} />
+          </button>
+        </div>
 
         <div className={styles.searchBar}>
           <Icons.Search className={styles.searchIcon} size={14} />
@@ -226,15 +257,46 @@ export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
         </div>
       </div>
 
+      {/* Splitter Resizer */}
+      <div
+        role="separator"
+        tabIndex={0}
+        aria-orientation="vertical"
+        aria-label="Resize snippets sidebar"
+        aria-valuenow={sidebarWidth}
+        aria-valuemin={minWidth}
+        aria-valuemax={maxWidth}
+        className={`${styles.panelResizer} ${isDragging ? styles.panelResizerDragging : ""} ${
+          isCollapsed ? styles.panelResizerCollapsed : ""
+        }`}
+        onMouseDown={handleMouseDown}
+        onDoubleClick={handleDoubleClick}
+        onKeyDown={handleKeyDown}
+        title="Drag or use arrow keys to resize, double click to collapse/expand"
+      />
+
       {/* Right Side: Snippets detail view */}
-      <div className={styles.rightPanel}>
+      <div className={`${styles.rightPanel} ${isCollapsed ? styles.rightPanelFull : ""}`}>
         {selectedSnippet ? (
           <div className={styles.snippetDetailScroll}>
             <div className={styles.snippetDetailContainer}>
               <div className={styles.detailHeader}>
                 <div className={styles.detailTitleSection}>
                   <div className={styles.detailTitleRow}>
-                    <h2 className={styles.detailTitle}>{selectedSnippet.title}</h2>
+                    <div className="flex items-center gap-2">
+                      {isCollapsed && (
+                        <button
+                          type="button"
+                          onClick={toggleCollapse}
+                          className={styles.sidebarToggleBtn}
+                          title="Show snippets navigator"
+                        >
+                          <Icons.PanelLeftOpen size={14} />
+                          <span>Snippets</span>
+                        </button>
+                      )}
+                      <h2 className={styles.detailTitle}>{selectedSnippet.title}</h2>
+                    </div>
                     <div className="flex gap-1.5">
                       <span className={styles.badgeType}>{selectedSnippet.snippetType}</span>
                       <span className={styles.badgeLang}>{selectedSnippet.language}</span>
@@ -255,6 +317,13 @@ export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
 
 
                 <div className={styles.detailActions}>
+                  <button
+                    className={styles.btnIcon}
+                    onClick={toggleCollapse}
+                    title={isCollapsed ? "Show snippets navigator" : "Collapse snippets navigator for full width"}
+                  >
+                    {isCollapsed ? <Icons.PanelLeftOpen size={14} /> : <Icons.PanelLeftClose size={14} />}
+                  </button>
                   <button
                     className={styles.btnIcon}
                     onClick={handleOpenEditSnippet}
@@ -321,6 +390,16 @@ export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
               No snippet selected. Choose a snippet from the list or click "Add Snippet" to create
               a new one.
             </div>
+            {isCollapsed && (
+              <button
+                type="button"
+                onClick={toggleCollapse}
+                className={styles.sidebarToggleBtn}
+              >
+                <Icons.PanelLeftOpen size={14} />
+                <span>Show Snippets List</span>
+              </button>
+            )}
           </div>
         )}
       </div>

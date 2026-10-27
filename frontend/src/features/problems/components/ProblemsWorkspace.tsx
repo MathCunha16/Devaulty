@@ -7,6 +7,7 @@ import { TagManagerSection } from "../../../components/TagManagerSection";
 import { formatUpdatedDate } from "../../../utils/dateUtils";
 import { copyToClipboard } from "../../../utils/clipboardUtils";
 import { ProblemForm } from "../components/ProblemForm";
+import { useResizableSidebar } from "../../../hooks/useResizableSidebar";
 
 import {
   useProblemsQuery,
@@ -30,6 +31,23 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
   initialSelectedId,
   projectColor,
 }) => {
+  const {
+    sidebarWidth,
+    isCollapsed,
+    isDragging,
+    minWidth,
+    maxWidth,
+    handleMouseDown,
+    handleDoubleClick,
+    handleKeyDown,
+    toggleCollapse,
+  } = useResizableSidebar({
+    storageKey: "problems",
+    defaultWidth: 340,
+    minWidth: 240,
+    maxWidth: 540,
+  });
+
   const { data: problemsData } = useProblemsQuery(projectId);
   const updateProblemStatusMutation = useUpdateProblemStatusMutation(projectId);
   const deleteProblemMutation = useDeleteProblemMutation(projectId);
@@ -145,17 +163,30 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
   return (
     <>
       {/* Middle Panel: Problems Navigation List */}
-      <div className={styles.leftPanel}>
-        <button
-          className={styles.newSnippetBtn}
-          onClick={() => {
-            setEditingProblemId(undefined);
-            setIsProblemFormOpen(true);
-          }}
-        >
-          <Icons.Plus size={14} />
-          <span>Log Problem Node</span>
-        </button>
+      <div
+        className={`${styles.leftPanel} ${isCollapsed ? styles.leftPanelCollapsed : ""}`}
+        style={{ width: isCollapsed ? 0 : `${sidebarWidth}px` }}
+      >
+        <div className="flex items-center gap-1.5">
+          <button
+            className={`${styles.newSnippetBtn} flex-1`}
+            onClick={() => {
+              setEditingProblemId(undefined);
+              setIsProblemFormOpen(true);
+            }}
+          >
+            <Icons.Plus size={14} />
+            <span>Log Problem Node</span>
+          </button>
+          <button
+            type="button"
+            onClick={toggleCollapse}
+            className={styles.sidebarToggleIconBtn}
+            title="Collapse problems list"
+          >
+            <Icons.PanelLeftClose size={15} />
+          </button>
+        </div>
 
         <div className={styles.searchBar}>
           <Icons.Search className={styles.searchIcon} size={14} />
@@ -291,8 +322,26 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
         </div>
       </div>
 
+      {/* Splitter Resizer */}
+      <div
+        role="separator"
+        tabIndex={0}
+        aria-orientation="vertical"
+        aria-label="Resize problems sidebar"
+        aria-valuenow={sidebarWidth}
+        aria-valuemin={minWidth}
+        aria-valuemax={maxWidth}
+        className={`${styles.panelResizer} ${isDragging ? styles.panelResizerDragging : ""} ${
+          isCollapsed ? styles.panelResizerCollapsed : ""
+        }`}
+        onMouseDown={handleMouseDown}
+        onDoubleClick={handleDoubleClick}
+        onKeyDown={handleKeyDown}
+        title="Drag or use arrow keys to resize, double click to collapse/expand"
+      />
+
       {/* Right Side: Problems Workspace Detail Console */}
-      <div className={styles.rightPanel}>
+      <div className={`${styles.rightPanel} ${isCollapsed ? styles.rightPanelFull : ""}`}>
         {isLoadingProblemDetail && selectedProblemId ? (
           <div className="flex-1 flex flex-col items-center justify-center p-12 gap-3">
             <Icons.Loader2 className="animate-spin text-primary" size={32} />
@@ -304,7 +353,20 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
               <div className={styles.detailHeader}>
                 <div className={styles.detailTitleSection}>
                   <div className={styles.detailTitleRow}>
-                    <h2 className={styles.detailTitle}>{problemDetail.title}</h2>
+                    <div className="flex items-center gap-2">
+                      {isCollapsed && (
+                        <button
+                          type="button"
+                          onClick={toggleCollapse}
+                          className={styles.sidebarToggleBtn}
+                          title="Show problems navigator"
+                        >
+                          <Icons.PanelLeftOpen size={14} />
+                          <span>Problems</span>
+                        </button>
+                      )}
+                      <h2 className={styles.detailTitle}>{problemDetail.title}</h2>
+                    </div>
                     <div className="flex gap-1.5">
                       <span
                         className={`${styles.severityBadge} ${
@@ -340,6 +402,13 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
                 </div>
 
                 <div className={styles.detailActions}>
+                  <button
+                    className={styles.btnIcon}
+                    onClick={toggleCollapse}
+                    title={isCollapsed ? "Show problems navigator" : "Collapse problems navigator for full width"}
+                  >
+                    {isCollapsed ? <Icons.PanelLeftOpen size={14} /> : <Icons.PanelLeftClose size={14} />}
+                  </button>
                   <button
                     className={styles.btnIcon}
                     onClick={() => {
@@ -537,6 +606,16 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
             <div className={styles.placeholderText}>
               No diagnostic node selected. Select a problem from the list or click "Log Problem Node".
             </div>
+            {isCollapsed && (
+              <button
+                type="button"
+                onClick={toggleCollapse}
+                className={styles.sidebarToggleBtn}
+              >
+                <Icons.PanelLeftOpen size={14} />
+                <span>Show Problems List</span>
+              </button>
+            )}
           </div>
         )}
       </div>

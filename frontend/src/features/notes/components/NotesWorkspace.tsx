@@ -18,6 +18,7 @@ import {
   useUnarchiveNoteMutation,
   useDeleteNoteMutation,
 } from "../hooks/useNotes";
+import { useResizableSidebar } from "../../../hooks/useResizableSidebar";
 import styles from "../../../routes/projects.$projectId.module.css";
 
 interface NotesWorkspaceProps {
@@ -42,6 +43,23 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
   const [selectedNoteId, setSelectedNoteId] = useState<string | undefined>(initialSelectedId);
   const [noteSearchQuery, setNoteSearchQuery] = useState("");
   const [noteArchivedFilter, setNoteArchivedFilter] = useState<"ACTIVE" | "ARCHIVED" | "ALL">("ACTIVE");
+
+  const {
+    sidebarWidth,
+    isCollapsed,
+    isDragging,
+    minWidth,
+    maxWidth,
+    toggleCollapse,
+    handleMouseDown,
+    handleDoubleClick,
+    handleKeyDown,
+  } = useResizableSidebar({
+    storageKey: "notes",
+    defaultWidth: 340,
+    minWidth: 240,
+    maxWidth: 540,
+  });
 
   if (initialSelectedId !== prevInitialId) {
     setPrevInitialId(initialSelectedId);
@@ -288,15 +306,28 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
   return (
     <>
       {/* Left Side: Notes navigation list */}
-      <div className={styles.leftPanel}>
-        <button
-          type="button"
-          className={styles.newSnippetBtn}
-          onClick={handleAddNoteClick}
-        >
-          <Icons.Plus size={14} />
-          <span>Add Note</span>
-        </button>
+      <div
+        className={`${styles.leftPanel} ${isCollapsed ? styles.leftPanelCollapsed : ""}`}
+        style={{ width: isCollapsed ? 0 : `${sidebarWidth}px` }}
+      >
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            className={`${styles.newSnippetBtn} flex-1`}
+            onClick={handleAddNoteClick}
+          >
+            <Icons.Plus size={14} />
+            <span>Add Note</span>
+          </button>
+          <button
+            type="button"
+            onClick={toggleCollapse}
+            className={styles.sidebarToggleIconBtn}
+            title="Collapse notes list"
+          >
+            <Icons.PanelLeftClose size={15} />
+          </button>
+        </div>
 
         <div className={styles.searchBar}>
           <Icons.Search className={styles.searchIcon} size={14} />
@@ -380,14 +411,45 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
         </div>
       </div>
 
+      {/* Splitter Resizer */}
+      <div
+        role="separator"
+        tabIndex={0}
+        aria-orientation="vertical"
+        aria-label="Resize notes sidebar"
+        aria-valuenow={sidebarWidth}
+        aria-valuemin={minWidth}
+        aria-valuemax={maxWidth}
+        className={`${styles.panelResizer} ${isDragging ? styles.panelResizerDragging : ""} ${
+          isCollapsed ? styles.panelResizerCollapsed : ""
+        }`}
+        onMouseDown={handleMouseDown}
+        onDoubleClick={handleDoubleClick}
+        onKeyDown={handleKeyDown}
+        title="Drag or use arrow keys to resize, double click to collapse/expand"
+      />
+
       {/* Right Side: Note Workspace details panel */}
-      <div className={styles.rightPanel}>
+      <div className={`${styles.rightPanel} ${isCollapsed ? styles.rightPanelFull : ""}`}>
         {noteDetail ? (
           <div className={styles.problemDetailScroll}>
             <div className={styles.problemDetailContainer}>
               <div className={styles.detailHeader}>
                 <div className={styles.detailTitleSection}>
-                  <h2 className={styles.detailTitle}>{noteDetail.title}</h2>
+                  <div className="flex items-center gap-2">
+                    {isCollapsed && (
+                      <button
+                        type="button"
+                        onClick={toggleCollapse}
+                        className={styles.sidebarToggleBtn}
+                        title="Show notes navigator"
+                      >
+                        <Icons.PanelLeftOpen size={14} />
+                        <span>Notes</span>
+                      </button>
+                    )}
+                    <h2 className={styles.detailTitle}>{noteDetail.title}</h2>
+                  </div>
                   <div className={styles.problemMetadataRow}>
                     <span>Created: {new Date(noteDetail.createdAt).toLocaleDateString()}</span>
                     {formattedUpdatedDate && <span>Updated: {formattedUpdatedDate}</span>}
@@ -395,6 +457,15 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
                 </div>
 
                 <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleCollapse}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-border px-2.5 py-1.5 rounded bg-card transition-colors cursor-pointer"
+                    title={isCollapsed ? "Show notes navigator" : "Collapse notes navigator for full width"}
+                  >
+                    {isCollapsed ? <Icons.PanelLeftOpen size={12} /> : <Icons.PanelLeftClose size={12} />}
+                    <span>{isCollapsed ? "Sidebar" : "Full Width"}</span>
+                  </button>
                   <button
                     type="button"
                     onClick={async () => {
@@ -575,6 +646,16 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
             <div className={styles.placeholderText}>
               No note selected. Select a note from the navigator or click "Add Note" to write a new note.
             </div>
+            {isCollapsed && (
+              <button
+                type="button"
+                onClick={toggleCollapse}
+                className={styles.sidebarToggleBtn}
+              >
+                <Icons.PanelLeftOpen size={14} />
+                <span>Show Notes List</span>
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { useCredentialQuery } from "../hooks/useCredentials";
 import { copyToClipboard as copyTextToClipboard } from "../../../utils/clipboardUtils";
+import { openExternalUrl } from "../../../utils/urlUtils";
 import styles from "./CredentialDetailModal.module.css";
 
 
@@ -383,6 +384,10 @@ export const CredentialDetailModal: React.FC<CredentialDetailModalProps> = ({
                       target="_blank"
                       rel="noopener noreferrer"
                       className={styles.urlLink}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        openExternalUrl(cred.relatedUrl);
+                      }}
                     >
                       <span>{cred.relatedUrl}</span>
                       <ExternalLink size={13} />
