@@ -191,7 +191,7 @@ export const MarkdownWithMentions: React.FC<MarkdownWithMentionsProps> = ({
       }
 
       const anchor = (e.target as HTMLElement).closest("a") as HTMLAnchorElement | null;
-      if (anchor && anchor.href && !anchor.href.startsWith("javascript:")) {
+      if (anchor && anchor.href && /^https?:\/\//i.test(anchor.href)) {
         e.preventDefault();
         openExternalUrl(anchor.href);
       }

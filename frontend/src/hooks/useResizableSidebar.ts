@@ -67,15 +67,43 @@ export function useResizableSidebar({
     toggleCollapse();
   }, [toggleCollapse]);
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const step = 20;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setSidebarWidth((prev) => {
+          const next = Math.max(prev - step, minWidth);
+          currentWidthRef.current = next;
+          try {
+            localStorage.setItem(`devaulty:sidebar:${storageKey}:width`, String(next));
+          } catch {
+            // ignore
+          }
+          return next;
+        });
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setSidebarWidth((prev) => {
+          const next = Math.min(prev + step, maxWidth);
+          currentWidthRef.current = next;
+          try {
+            localStorage.setItem(`devaulty:sidebar:${storageKey}:width`, String(next));
+          } catch {
+            // ignore
+          }
+          return next;
+        });
+      } else if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggleCollapse();
+      }
+    },
+    [minWidth, maxWidth, storageKey, toggleCollapse]
+  );
+
   useEffect(() => {
     if (!isDragging) return;
-
-    const onMouseMove = (e: MouseEvent) => {
-      const deltaX = e.clientX - startXRef.current;
-      const newWidth = Math.min(Math.max(startWidthRef.current + deltaX, minWidth), maxWidth);
-      currentWidthRef.current = newWidth;
-      setSidebarWidth(newWidth);
-    };
 
     const onMouseUp = () => {
       setIsDragging(false);
@@ -86,12 +114,25 @@ export function useResizableSidebar({
       }
     };
 
+    const onMouseMove = (e: MouseEvent) => {
+      if (e.buttons === 0) {
+        onMouseUp();
+        return;
+      }
+      const deltaX = e.clientX - startXRef.current;
+      const newWidth = Math.min(Math.max(startWidthRef.current + deltaX, minWidth), maxWidth);
+      currentWidthRef.current = newWidth;
+      setSidebarWidth(newWidth);
+    };
+
+    window.addEventListener("blur", onMouseUp);
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
 
     return () => {
+      window.removeEventListener("blur", onMouseUp);
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
       document.body.style.cursor = "";
@@ -103,9 +144,12 @@ export function useResizableSidebar({
     sidebarWidth,
     isCollapsed,
     isDragging,
+    minWidth,
+    maxWidth,
     toggleCollapse,
     setIsCollapsed,
     handleMouseDown,
     handleDoubleClick,
+    handleKeyDown,
   };
 }

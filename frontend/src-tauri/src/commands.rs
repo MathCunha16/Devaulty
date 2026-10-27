@@ -400,7 +400,8 @@ pub fn open_file_path(path: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn open_external_url(url: String) -> Result<(), String> {
-  let safe_url = if !url.starts_with("http://") && !url.starts_with("https://") {
+  let lower = url.to_lowercase();
+  let safe_url = if !lower.starts_with("http://") && !lower.starts_with("https://") {
     format!("https://{}", url)
   } else {
     url
@@ -421,10 +422,38 @@ pub fn open_external_url(url: String) -> Result<(), String> {
 
   #[cfg(target_os = "windows")]
   {
-    Command::new("cmd")
-      .args(["/C", "start", "", &safe_url])
-      .spawn()
-      .map_err(|e| format!("Failed to open URL in browser: {}", e))?;
+    use std::ffi::OsStr;
+    use std::os::windows::ffi::OsStrExt;
+
+    #[link(name = "shell32")]
+    extern "system" {
+      fn ShellExecuteW(
+        hwnd: *mut std::ffi::c_void,
+        operation: *const u16,
+        file: *const u16,
+        parameters: *const u16,
+        directory: *const u16,
+        show_cmd: i32,
+      ) -> isize;
+    }
+
+    let operation: Vec<u16> = OsStr::new("open").encode_wide().chain(Some(0)).collect();
+    let file: Vec<u16> = OsStr::new(&safe_url).encode_wide().chain(Some(0)).collect();
+
+    let ret = unsafe {
+      ShellExecuteW(
+        std::ptr::null_mut(),
+        operation.as_ptr(),
+        file.as_ptr(),
+        std::ptr::null(),
+        std::ptr::null(),
+        1, // SW_SHOWNORMAL
+      )
+    };
+
+    if ret <= 32 {
+      return Err(format!("Failed to open URL in browser, error code: {}", ret));
+    }
   }
 
   #[cfg(target_os = "macos")]

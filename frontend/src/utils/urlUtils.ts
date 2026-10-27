@@ -9,8 +9,9 @@ export const openExternalUrl = async (rawUrl?: string | null): Promise<boolean> 
   if (!rawUrl || !rawUrl.trim()) return false;
 
   const trimmed = rawUrl.trim();
-  const url = trimmed.startsWith("http://") || trimmed.startsWith("https://")
-    ? trimmed
+  const match = trimmed.match(/^https?:\/\//i);
+  const url = match
+    ? `${match[0].toLowerCase()}${trimmed.slice(match[0].length)}`
     : `https://${trimmed}`;
 
   try {

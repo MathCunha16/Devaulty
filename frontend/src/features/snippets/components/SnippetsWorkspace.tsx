@@ -43,9 +43,12 @@ export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
     sidebarWidth,
     isCollapsed,
     isDragging,
+    minWidth,
+    maxWidth,
     toggleCollapse,
     handleMouseDown,
     handleDoubleClick,
+    handleKeyDown,
   } = useResizableSidebar({
     storageKey: "snippets",
     defaultWidth: 340,
@@ -256,12 +259,20 @@ export const SnippetsWorkspace: React.FC<SnippetsWorkspaceProps> = ({
 
       {/* Splitter Resizer */}
       <div
+        role="separator"
+        tabIndex={0}
+        aria-orientation="vertical"
+        aria-label="Resize snippets sidebar"
+        aria-valuenow={sidebarWidth}
+        aria-valuemin={minWidth}
+        aria-valuemax={maxWidth}
         className={`${styles.panelResizer} ${isDragging ? styles.panelResizerDragging : ""} ${
           isCollapsed ? styles.panelResizerCollapsed : ""
         }`}
         onMouseDown={handleMouseDown}
         onDoubleClick={handleDoubleClick}
-        title="Drag to resize, double click to collapse/expand"
+        onKeyDown={handleKeyDown}
+        title="Drag or use arrow keys to resize, double click to collapse/expand"
       />
 
       {/* Right Side: Snippets detail view */}
