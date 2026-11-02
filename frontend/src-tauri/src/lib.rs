@@ -57,7 +57,8 @@ pub fn run() {
       commands::download_release_file,
       commands::cancel_download_release_file,
       commands::open_file_path,
-      commands::open_external_url
+      commands::open_external_url,
+      commands::save_diagram_file
     ])
     .setup(move |app| {
       if cfg!(debug_assertions) {

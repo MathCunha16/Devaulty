@@ -18,7 +18,11 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  define: {
+    'process.env.IS_PREACT': JSON.stringify('false'),
+  },
   resolve: {
+    dedupe: ['react', 'react-dom'],
     alias: {
       '@': path.resolve(__dirname, './src'),
       '~types': path.resolve(__dirname, './src/types'),

@@ -44,14 +44,26 @@ func main() {
 	// falling back gracefully to embedded FS if disk migrations are not found.
 	var db *sqlx.DB
 	if os.Getenv("APP_ENV") == "dev" {
-		migrationsPath := "migrations"
-		if _, statErr := os.Stat(migrationsPath); statErr != nil {
-			if _, backendStatErr := os.Stat("backend/migrations"); backendStatErr == nil {
-				migrationsPath = "backend/migrations"
+		candidates := []string{
+			"migrations",
+			"backend/migrations",
+			"../backend/migrations",
+			"../../backend/migrations",
+		}
+		var foundPath string
+		for _, candidate := range candidates {
+			if info, statErr := os.Stat(candidate); statErr == nil && info.IsDir() {
+				foundPath = candidate
+				break
 			}
 		}
-		if _, statErr := os.Stat(migrationsPath); statErr == nil {
-			db, err = persistence.InitDB(dbPath, migrationsPath)
+
+		if foundPath != "" {
+			db, err = persistence.InitDB(dbPath, foundPath)
+			if err != nil {
+				log.Printf("Warning: failed to load migrations from disk (%s), falling back to embedded FS: %v", foundPath, err)
+				db, err = persistence.InitDBWithFS(dbPath, migrations.FS)
+			}
 		} else {
 			db, err = persistence.InitDBWithFS(dbPath, migrations.FS)
 		}

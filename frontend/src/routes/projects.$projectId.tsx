@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ProjectDetailRouteComponent } from "../components/ProjectDetailView";
 
-export type ProjectTabType = "overview" | "boards" | "snippets" | "problems" | "credentials" | "notes" | "links";
+export type ProjectTabType = "overview" | "boards" | "snippets" | "problems" | "credentials" | "notes" | "links" | "drawings";
 
 export interface ProjectSearch {
   tab?: ProjectTabType;
@@ -18,6 +18,7 @@ export const Route = createFileRoute("/projects/$projectId")({
       "credentials",
       "notes",
       "links",
+      "drawings",
     ];
     const tab = search.tab as ProjectTabType;
     return {
