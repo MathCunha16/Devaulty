@@ -44,6 +44,7 @@ func setupMCPTestApp(t *testing.T) *mcpTestApp {
 	boardRepo := persistence.NewBoardRepository(db)
 	boardColumnRepo := persistence.NewBoardColumnRepository(db)
 	cardRepo := persistence.NewCardRepository(db)
+	drawingRepo := persistence.NewDrawingRepository(db)
 
 	return &mcpTestApp{
 		projectUseCase:     usecase.NewProjectUseCase(projectRepo),
@@ -55,7 +56,7 @@ func setupMCPTestApp(t *testing.T) *mcpTestApp {
 		boardColumnUseCase: usecase.NewBoardColumnUseCase(boardColumnRepo, boardRepo, projectRepo),
 		cardUseCase:        usecase.NewCardUseCase(cardRepo, boardRepo, boardColumnRepo, projectRepo, itemTagRepo),
 		tagUseCase:         usecase.NewTagUseCase(tagRepo, projectRepo),
-		itemTagUseCase:     usecase.NewItemTagUseCase(itemTagRepo, tagRepo, projectRepo, snippetRepo, credentialRepo, linkRepo, problemRepo, noteRepo, boardRepo, cardRepo),
+		itemTagUseCase:     usecase.NewItemTagUseCase(itemTagRepo, tagRepo, projectRepo, snippetRepo, credentialRepo, linkRepo, problemRepo, noteRepo, boardRepo, cardRepo, drawingRepo),
 	}
 }
 

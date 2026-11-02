@@ -127,12 +127,14 @@ pub fn spawn_backend(app: &tauri::AppHandle, devaulty_data_dir: &std::path::Path
 
       let data_dir_str = devaulty_data_dir.to_string_lossy().to_string();
 
+      let app_env = if cfg!(debug_assertions) { "dev" } else { "prod" };
+
       // Spawn the native Go backend process.
       // Migrations are embedded in the Go binary via go:embed,
       // so no external migration files need to be shipped.
       let mut command = Command::new(&binary_path);
       command
-        .env("APP_ENV", "prod")
+        .env("APP_ENV", app_env)
         .env("DEVAULTY_INTERNAL_TOKEN", &session_token)
         .env("DEVAULTY_DATA_DIR", &data_dir_str)
         .stdout(Stdio::piped())

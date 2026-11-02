@@ -20,6 +20,7 @@ type Handlers struct {
 	Board       *handler.BoardHandler
 	BoardColumn *handler.BoardColumnHandler
 	Card        *handler.CardHandler
+	Drawing     *handler.DrawingHandler
 	Tag         *handler.TagHandler
 	ItemTag     *handler.ItemTagHandler
 	Security    *handler.SecurityHandler
@@ -53,6 +54,7 @@ func SetupRouter(h *Handlers, apiToken string) *gin.Engine {
 			mapBoardRoutes(protected, h.Board)
 			mapBoardColumnRoutes(protected, h.BoardColumn)
 			mapCardRoutes(protected, h.Card)
+			mapDrawingRoutes(protected, h.Drawing)
 			mapTagRoutes(protected, h.Tag)
 			mapItemTagRoutes(protected, h.ItemTag)
 			mapSecurityRoutes(protected, h.Security)
@@ -166,6 +168,17 @@ func mapCardRoutes(rg *gin.RouterGroup, h *handler.CardHandler) {
 		cards.PATCH("/:card_id", h.Update)
 		cards.PATCH("/:card_id/move", h.Move)
 		cards.DELETE("/:card_id", h.Delete)
+	}
+}
+
+func mapDrawingRoutes(rg *gin.RouterGroup, h *handler.DrawingHandler) {
+	drawings := rg.Group("/projects/:project_id/excalidraw-drawings")
+	{
+		drawings.POST("", h.Create)
+		drawings.GET("", h.GetAll)
+		drawings.GET("/:drawing_id", h.Get)
+		drawings.PATCH("/:drawing_id", h.Update)
+		drawings.DELETE("/:drawing_id", h.Delete)
 	}
 }
 
