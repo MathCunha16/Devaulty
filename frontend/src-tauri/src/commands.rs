@@ -466,3 +466,163 @@ pub fn open_external_url(url: String) -> Result<(), String> {
 
   Ok(())
 }
+
+#[cfg(target_os = "linux")]
+fn try_kdialog(default_path: &std::path::Path, extension: &str) -> Option<std::path::PathBuf> {
+  let filter = format!("*.{}", extension);
+  let res = std::process::Command::new("kdialog")
+    .args(&[
+      "--getsavefilename",
+      &default_path.to_string_lossy(),
+      &filter,
+    ])
+    .output();
+
+  match res {
+    Ok(output) if output.status.success() => {
+      let path_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+      if path_str.is_empty() {
+        None
+      } else {
+        Some(std::path::PathBuf::from(path_str))
+      }
+    }
+    _ => None,
+  }
+}
+
+#[tauri::command]
+pub async fn save_diagram_file(
+  default_filename: String,
+  extension: String,
+  file_bytes: Option<Vec<u8>>,
+  file_text: Option<String>,
+) -> Result<Option<String>, String> {
+  let downloads_dir = dirs::download_dir()
+    .or_else(dirs::home_dir)
+    .unwrap_or_else(std::env::temp_dir);
+
+  let default_path = downloads_dir.join(&default_filename);
+
+  let selected_path: Option<std::path::PathBuf> = tokio::task::spawn_blocking({
+    let default_path = default_path.clone();
+    let extension = extension.clone();
+    let default_filename = default_filename.clone();
+    move || {
+      #[cfg(target_os = "linux")]
+      {
+        let zenity_res = std::process::Command::new("zenity")
+          .args(&[
+            "--file-selection",
+            "--save",
+            "--confirm-overwrite",
+            &format!("--filename={}", default_path.to_string_lossy()),
+            "--title=Save Diagram",
+          ])
+          .output();
+
+        match zenity_res {
+          Ok(output) if output.status.success() => {
+            let path_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if path_str.is_empty() {
+              None
+            } else {
+              Some(std::path::PathBuf::from(path_str))
+            }
+          }
+          Ok(output) => {
+            // Zenity returns code 1 if user clicked Cancel
+            if output.status.code() == Some(1) {
+              return None;
+            }
+            try_kdialog(&default_path, &extension).or(Some(default_path))
+          }
+          Err(_) => try_kdialog(&default_path, &extension).or(Some(default_path)),
+        }
+      }
+
+      #[cfg(target_os = "windows")]
+      {
+        let ps_script = format!(
+          "Add-Type -AssemblyName System.Windows.Forms; \
+           $d = New-Object System.Windows.Forms.SaveFileDialog; \
+           $d.FileName = '{}'; \
+           $d.Filter = 'Files (*.{})|*.{}|All Files (*.*)|*.*'; \
+           if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {{ Write-Host $d.FileName }}",
+          default_filename, extension, extension
+        );
+        let ps_res = std::process::Command::new("powershell")
+          .args(&["-NoProfile", "-Command", &ps_script])
+          .output();
+
+        match ps_res {
+          Ok(output) if output.status.success() => {
+            let path_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if path_str.is_empty() {
+              None
+            } else {
+              Some(std::path::PathBuf::from(path_str))
+            }
+          }
+          _ => Some(default_path),
+        }
+      }
+
+      #[cfg(target_os = "macos")]
+      {
+        let script = format!(
+          "POSIX path of (choose file name with prompt \"Save Diagram\" default name \"{}\")",
+          default_filename
+        );
+        let res = std::process::Command::new("osascript")
+          .args(&["-e", &script])
+          .output();
+
+        match res {
+          Ok(output) if output.status.success() => {
+            let path_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if path_str.is_empty() {
+              None
+            } else {
+              Some(std::path::PathBuf::from(path_str))
+            }
+          }
+          _ => Some(default_path),
+        }
+      }
+
+      #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
+      {
+        Some(default_path)
+      }
+    }
+  })
+  .await
+  .map_err(|e| format!("Dialog task error: {}", e))?;
+
+  let target = match selected_path {
+    Some(p) => p,
+    None => return Ok(None), // User cancelled dialog
+  };
+
+  // Ensure extension is retained if user omitted it
+  let final_path = if target.extension().is_none() {
+    target.with_extension(&extension)
+  } else {
+    target
+  };
+
+  let data_to_write = if let Some(ref text) = file_text {
+    text.as_bytes().to_vec()
+  } else if let Some(bytes) = file_bytes {
+    bytes
+  } else {
+    return Err("No content provided to save".to_string());
+  };
+
+  tokio::fs::write(&final_path, &data_to_write)
+    .await
+    .map_err(|e| format!("Failed to write file {:?}: {}", final_path, e))?;
+
+  Ok(Some(final_path.to_string_lossy().to_string()))
+}

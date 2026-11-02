@@ -8,7 +8,8 @@ export type ProjectTabType =
   | "problems"
   | "credentials"
   | "notes"
-  | "links";
+  | "links"
+  | "drawings";
 
 export interface ItemTypeMeta {
   label: string;
@@ -66,6 +67,15 @@ export const getItemTypeMeta = (type: ItemType): ItemTypeMeta => {
         bgColor: "bg-cyan-500/10",
         borderColor: "border-cyan-500/30",
       };
+    case "DRAWING":
+      return {
+        label: "Drawing",
+        icon: Icons.Shapes,
+        color: "#f59e0b",
+        textColor: "text-amber-500",
+        bgColor: "bg-amber-500/10",
+        borderColor: "border-amber-500/30",
+      };
     default:
       return {
         label: "Item",
@@ -90,6 +100,8 @@ export const getTabForItemType = (type: ItemType): ProjectTabType => {
       return "notes";
     case "LINK":
       return "links";
+    case "DRAWING":
+      return "drawings";
     default:
       return "overview";
   }

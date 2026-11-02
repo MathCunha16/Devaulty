@@ -8,6 +8,7 @@ import { useProblemsQuery } from "~features/problems/hooks/useProblems";
 import { useCredentialsQuery } from "~features/credentials/hooks/useCredentials";
 import { useNotesQuery } from "~features/notes/hooks/useNotes";
 import { useLinksQuery } from "~features/links/hooks/useLinks";
+import { useDrawingsQuery } from "~features/drawings/hooks/useDrawings";
 import {
   getItemTypeMeta,
   getTabForItemType,
@@ -53,6 +54,7 @@ export const MarkdownWithMentions: React.FC<MarkdownWithMentionsProps> = ({
   const { data: credentialsData } = useCredentialsQuery(projectId);
   const { data: notesData } = useNotesQuery(projectId);
   const { data: linksData } = useLinksQuery(projectId);
+  const { data: drawingsData } = useDrawingsQuery(projectId);
 
   // Build a lookup map for all items
   const itemLookup = useMemo(() => {
@@ -98,8 +100,16 @@ export const MarkdownWithMentions: React.FC<MarkdownWithMentionsProps> = ({
       });
     });
 
+    (drawingsData?.content || []).forEach((d) => {
+      map.set(`DRAWING-${d.id}`, {
+        title: d.title,
+        type: "DRAWING",
+        data: {},
+      });
+    });
+
     return map;
-  }, [snippetsData, problemsData, credentialsData, notesData, linksData]);
+  }, [snippetsData, problemsData, credentialsData, notesData, linksData, drawingsData]);
 
   // List of resolved mention items (strictly from linkedItems if provided)
   const availableMentionItems: ResolvedMentionItem[] = useMemo(() => {

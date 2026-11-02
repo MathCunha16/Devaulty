@@ -19,12 +19,15 @@ const TRAY_DESTROY_GRACE_PERIOD: Duration = Duration::from_secs(180);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  // Ensure the user config/data directory exists for database storage
+  // Ensure the user config/data directory exists for database storage.
+  // In development (debug assertions), isolate to 'devaulty-dev' to prevent
+  // polluting or migrating the user's production database.
+  let app_dir_name = if cfg!(debug_assertions) { "devaulty-dev" } else { "devaulty" };
   let devaulty_data_dir = dirs::config_dir()
     .or_else(dirs::data_local_dir)
     .or_else(dirs::home_dir)
-    .map(|path| path.join("devaulty"))
-    .unwrap_or_else(|| std::env::temp_dir().join("devaulty"));
+    .map(|path| path.join(app_dir_name))
+    .unwrap_or_else(|| std::env::temp_dir().join(app_dir_name));
 
   if !devaulty_data_dir.exists() {
     if let Err(e) = std::fs::create_dir_all(&devaulty_data_dir) {
@@ -54,7 +57,8 @@ pub fn run() {
       commands::download_release_file,
       commands::cancel_download_release_file,
       commands::open_file_path,
-      commands::open_external_url
+      commands::open_external_url,
+      commands::save_diagram_file
     ])
     .setup(move |app| {
       if cfg!(debug_assertions) {

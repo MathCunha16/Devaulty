@@ -101,6 +101,7 @@ type ItemTagTestSetup struct {
 	MockNoteRepo    *MockNoteRepository
 	MockBoardRepo   *MockBoardRepository
 	MockCardRepo    *MockCardRepository
+	MockDrawingRepo *MockDrawingRepository
 	UC              *usecase.ItemTagUseCase
 }
 
@@ -115,6 +116,7 @@ func SetupItemTagUseCaseTest() ItemTagTestSetup {
 	mockNoteRepo := new(MockNoteRepository)
 	mockBoardRepo := new(MockBoardRepository)
 	mockCardRepo := new(MockCardRepository)
+	mockDrawingRepo := new(MockDrawingRepository)
 
 	uc := usecase.NewItemTagUseCase(
 		mockItemTagRepo,
@@ -127,6 +129,7 @@ func SetupItemTagUseCaseTest() ItemTagTestSetup {
 		mockNoteRepo,
 		mockBoardRepo,
 		mockCardRepo,
+		mockDrawingRepo,
 	)
 
 	return ItemTagTestSetup{
@@ -140,6 +143,7 @@ func SetupItemTagUseCaseTest() ItemTagTestSetup {
 		MockNoteRepo:    mockNoteRepo,
 		MockBoardRepo:   mockBoardRepo,
 		MockCardRepo:    mockCardRepo,
+		MockDrawingRepo: mockDrawingRepo,
 		UC:              uc,
 	}
 }

@@ -421,7 +421,8 @@ export type ItemType =
   | "PROBLEM"
   | "CREDENTIAL"
   | "BOARD"
-  | "CARD";
+  | "CARD"
+  | "DRAWING";
 
 export type CardPriority = "LOW" | "MEDIUM" | "HIGH" | "EXTREMELY_HIGH";
 
@@ -540,5 +541,48 @@ export interface UpdateCardRequest {
 export interface MoveCardRequest {
   targetColumnId: string;
   position: number;
+}
+
+// ─────────────────────────────────────────────
+// Excalidraw / Drawing Models
+// ─────────────────────────────────────────────
+
+export interface Drawing {
+  id: string; // uuid
+  projectId: string; // uuid
+  title: string;
+  content: string | null;
+  thumbnail: string | null;
+  tags: TagSummaryResponse[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DrawingSummary {
+  id: string; // uuid
+  projectId: string; // uuid
+  title: string;
+  thumbnail: string | null;
+  tags: TagSummaryResponse[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateDrawingRequest {
+  title: string;
+}
+
+export interface UpdateDrawingRequest {
+  title?: string;
+  content?: string;
+  thumbnail?: string | null;
+}
+
+export interface PagedModelDrawingSummaryResponse {
+  content: DrawingSummary[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
 }
 

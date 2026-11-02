@@ -73,7 +73,11 @@ func SetupTestApp(t *testing.T) *TestApp {
 	cardUseCase := usecase.NewCardUseCase(cardRepo, boardRepo, boardColumnRepo, projectRepo, itemTagRepo)
 	cardHandler := handler.NewCardHandler(cardUseCase)
 
-	itemTagUseCase := usecase.NewItemTagUseCase(itemTagRepo, tagRepo, projectRepo, snippetRepo, credentialRepo, linkRepo, problemRepo, noteRepo, boardRepo, cardRepo)
+	drawingRepo := persistence.NewDrawingRepository(db)
+	drawingUseCase := usecase.NewDrawingUseCase(drawingRepo, projectRepo, itemTagRepo)
+	drawingHandler := handler.NewDrawingHandler(drawingUseCase)
+
+	itemTagUseCase := usecase.NewItemTagUseCase(itemTagRepo, tagRepo, projectRepo, snippetRepo, credentialRepo, linkRepo, problemRepo, noteRepo, boardRepo, cardRepo, drawingRepo)
 	itemTagHandler := handler.NewItemTagHandler(itemTagUseCase, tagUseCase, projectUseCase)
 
 	handlers := &web.Handlers{
@@ -86,6 +90,7 @@ func SetupTestApp(t *testing.T) *TestApp {
 		Board:       boardHandler,
 		BoardColumn: boardColumnHandler,
 		Card:        cardHandler,
+		Drawing:     drawingHandler,
 		Tag:         tagHandler,
 		ItemTag:     itemTagHandler,
 		Security:    securityHandler,

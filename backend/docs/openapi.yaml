@@ -827,6 +827,7 @@ components:
         - CREDENTIAL
         - BOARD
         - CARD
+        - DRAWING
       example: "BOARD"
 
     TagSummary:
@@ -1551,6 +1552,148 @@ components:
           format: date-time
           nullable: true
           example: "2026-08-27T09:20:04.633630-03:00"
+
+    Drawing:
+      type: object
+      required:
+        - id
+        - projectId
+        - title
+        - tags
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "4c3b7a12-98ab-495d-b8e1-d3a95c1a7e23"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        title:
+          type: string
+          example: "System Architecture"
+        content:
+          type: string
+          nullable: true
+          example: "{\"elements\":[],\"appState\":{},\"files\":{}}"
+          description: Full Excalidraw JSON serialization
+        thumbnail:
+          type: string
+          nullable: true
+          example: "data:image/svg+xml;base64,PHN2Zz4..."
+          description: Preview thumbnail as base64 data URI
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-11-02T08:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-11-02T08:30:00Z"
+
+    DrawingSummary:
+      type: object
+      required:
+        - id
+        - projectId
+        - title
+        - tags
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "4c3b7a12-98ab-495d-b8e1-d3a95c1a7e23"
+        projectId:
+          type: string
+          format: uuid
+          example: "70d68fba-be62-46bb-8e6c-e4c4b6912e91"
+        title:
+          type: string
+          example: "System Architecture"
+        thumbnail:
+          type: string
+          nullable: true
+          example: "data:image/svg+xml;base64,PHN2Zz4..."
+          description: Preview thumbnail as base64 data URI
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-11-02T08:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-11-02T08:30:00Z"
+
+    CreateDrawingCommand:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: "System Architecture"
+
+    UpdateDrawingCommand:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+          nullable: true
+          example: "Updated Architecture"
+        content:
+          type: string
+          nullable: true
+          example: "{\"elements\":[{\"type\":\"rectangle\"}]}"
+          description: Full Excalidraw JSON serialization
+        thumbnail:
+          type: string
+          nullable: true
+          example: "data:image/svg+xml;base64,PHN2Zz4..."
+          description: Preview thumbnail as base64 data URI
+
+    DrawingSummaryPage:
+      type: object
+      required:
+        - content
+        - size
+        - number
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/DrawingSummary'
+        size:
+          type: integer
+          example: 10
+        number:
+          type: integer
+          example: 0
+        totalElements:
+          type: integer
+          format: int64
+          example: 1
+        totalPages:
+          type: integer
+          example: 1
 
 security:
   - ApiKeyAuth: []
@@ -4516,6 +4659,285 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Project, board, target column, or card not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/excalidraw-drawings:
+    post:
+      summary: Create a new drawing in a project
+      description: Creates a new blank drawing linked to the specified project.
+      tags:
+        - Drawings
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDrawingCommand'
+      responses:
+        '201':
+          description: Drawing created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: Relative URL path to the newly created drawing
+              example: "/api/v1/projects/70d68fba-be62-46bb-8e6c-e4c4b6912e91/excalidraw-drawings/4c3b7a12-98ab-495d-b8e1-d3a95c1a7e23"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Drawing'
+        '400':
+          description: Invalid UUID format or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: List all drawings for a project
+      description: Returns a paginated list of drawings for a project with attached tags. Does NOT include the heavy canvas content.
+      tags:
+        - Drawings
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Page number (0-indexed)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated list of drawings retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrawingSummaryPage'
+        '400':
+          description: Invalid UUID format or query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/excalidraw-drawings/{drawing_id}:
+    get:
+      summary: Get drawing by ID
+      description: Returns a single drawing by ID with full canvas content JSON and attached tags.
+      tags:
+        - Drawings
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: drawing_id
+          in: path
+          description: Target Drawing UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Drawing retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Drawing'
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Drawing not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      summary: Update a drawing
+      description: Updates title, canvas content, and/or thumbnail preview of an existing drawing.
+      tags:
+        - Drawings
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: drawing_id
+          in: path
+          description: Target Drawing UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDrawingCommand'
+      responses:
+        '200':
+          description: Drawing updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Drawing'
+        '400':
+          description: Invalid UUID format or payload validation failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Drawing not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete a drawing
+      description: Deletes a drawing by ID and removes its tag associations.
+      tags:
+        - Drawings
+      parameters:
+        - name: project_id
+          in: path
+          description: Parent Project UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: drawing_id
+          in: path
+          description: Target Drawing UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Drawing deleted successfully (No Content)
+        '400':
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid DEVAULTY_INTERNAL_TOKEN header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or Drawing not found
           content:
             application/json:
               schema:
