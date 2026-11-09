@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"path/filepath"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
@@ -75,7 +76,12 @@ func runMigrationsFromPath(db *sql.DB, migrationsPath string) error {
 		return fmt.Errorf("error trying to create Sqlite driver for migrations: %w", err)
 	}
 
-	sourceURL := fmt.Sprintf("file://%s", migrationsPath)
+	absPath, err := filepath.Abs(migrationsPath)
+	if err != nil {
+		return fmt.Errorf("error resolving migrations path: %w", err)
+	}
+
+	sourceURL := fmt.Sprintf("file://%s", filepath.ToSlash(absPath))
 	m, err := migrate.NewWithDatabaseInstance(
 		sourceURL,
 		"sqlite3",

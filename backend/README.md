@@ -162,7 +162,7 @@ Powered by **Scalar API Reference**, it dynamically parses `docs/openapi.yaml` t
 ```bash
 APP_ENV=dev go run ./cmd/api/
 ```
-*App runs on `http://127.0.0.1:8080` with API docs available at `/docs`.*
+*App runs on `http://127.0.0.1:8080` with API docs available at `/docs`. Data is stored in a dedicated development directory (`<UserConfigDir>/devaulty-dev`), keeping your production vault and database completely isolated.*
 
 ### Running Tests
 ```bash

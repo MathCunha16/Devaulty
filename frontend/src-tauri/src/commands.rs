@@ -466,3 +466,181 @@ pub fn open_external_url(url: String) -> Result<(), String> {
 
   Ok(())
 }
+
+#[cfg(target_os = "linux")]
+fn try_kdialog(default_path: &std::path::Path, extension: &str) -> Result<Option<std::path::PathBuf>, String> {
+  let filter = format!("*.{}", extension);
+  let res = std::process::Command::new("kdialog")
+    .args(&[
+      "--getsavefilename",
+      &default_path.to_string_lossy(),
+      &filter,
+    ])
+    .output();
+
+  match res {
+    Ok(output) if output.status.success() => {
+      let path_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+      if path_str.is_empty() {
+        Ok(None)
+      } else {
+        Ok(Some(std::path::PathBuf::from(path_str)))
+      }
+    }
+    Ok(output) if output.status.code() == Some(1) => Ok(None),
+    Ok(output) => Err(format!("kdialog exited with code {:?}", output.status.code())),
+    Err(e) => Err(format!("Failed to execute kdialog: {}", e)),
+  }
+}
+
+#[tauri::command]
+pub async fn save_diagram_file(
+  default_filename: String,
+  extension: String,
+  file_bytes: Option<Vec<u8>>,
+  file_text: Option<String>,
+) -> Result<Option<String>, String> {
+  let ext_clean = extension.trim().trim_start_matches('.').to_lowercase();
+  if !["png", "svg", "excalidraw"].contains(&ext_clean.as_str()) {
+    return Err(format!("Unsupported file extension: {}", extension));
+  }
+
+  let downloads_dir = dirs::download_dir()
+    .or_else(dirs::home_dir)
+    .unwrap_or_else(std::env::temp_dir);
+
+  let default_path = downloads_dir.join(&default_filename);
+
+  let selected_path: Option<std::path::PathBuf> = tokio::task::spawn_blocking({
+    let default_path = default_path.clone();
+    let ext_clean = ext_clean.clone();
+    #[allow(unused_variables)]
+    let default_filename = default_filename.clone();
+    move || -> Result<Option<std::path::PathBuf>, String> {
+      #[cfg(target_os = "linux")]
+      {
+        let zenity_res = std::process::Command::new("zenity")
+          .args(&[
+            "--file-selection",
+            "--save",
+            "--confirm-overwrite",
+            &format!("--filename={}", default_path.to_string_lossy()),
+            "--title=Save Diagram",
+          ])
+          .output();
+
+        match zenity_res {
+          Ok(output) if output.status.success() => {
+            let path_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if path_str.is_empty() {
+              Ok(None)
+            } else {
+              Ok(Some(std::path::PathBuf::from(path_str)))
+            }
+          }
+          Ok(output) if output.status.code() == Some(1) => {
+            // User cancelled
+            Ok(None)
+          }
+          _ => {
+            // Fallback to kdialog if zenity is not installed or failed with non-cancel status
+            match try_kdialog(&default_path, &ext_clean) {
+              Ok(kdialog_path) => Ok(kdialog_path),
+              Err(_) => Err("Failed to open file save dialog (neither zenity nor kdialog is available)".to_string()),
+            }
+          }
+        }
+      }
+
+      #[cfg(target_os = "windows")]
+      {
+        let ps_script = "Add-Type -AssemblyName System.Windows.Forms; \
+           $d = New-Object System.Windows.Forms.SaveFileDialog; \
+           $d.FileName = $env:DEVAULTY_DEFAULT_FILENAME; \
+           $ext = $env:DEVAULTY_FILE_EXT; \
+           $d.Filter = \"Files (*.$ext)|*.$ext|All Files (*.*)|*.*\"; \
+           if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Host $d.FileName }";
+
+        let mut cmd = std::process::Command::new("powershell");
+        cmd.args(&["-NoProfile", "-Command", ps_script])
+          .env("DEVAULTY_DEFAULT_FILENAME", &default_filename)
+          .env("DEVAULTY_FILE_EXT", &ext_clean);
+
+        match cmd.output() {
+          Ok(output) if output.status.success() => {
+            let path_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if path_str.is_empty() {
+              Ok(None)
+            } else {
+              Ok(Some(std::path::PathBuf::from(path_str)))
+            }
+          }
+          Ok(output) => Err(format!("PowerShell dialog exited with code {:?}", output.status.code())),
+          Err(e) => Err(format!("Failed to execute PowerShell dialog: {}", e)),
+        }
+      }
+
+      #[cfg(target_os = "macos")]
+      {
+        let script = "set defName to (system attribute \"DEVAULTY_DEFAULT_FILENAME\")\n\
+                      POSIX path of (choose file name with prompt \"Save Diagram\" default name defName)";
+        let mut cmd = std::process::Command::new("osascript");
+        cmd.args(&["-e", script])
+          .env("DEVAULTY_DEFAULT_FILENAME", &default_filename);
+
+        match cmd.output() {
+          Ok(output) if output.status.success() => {
+            let path_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if path_str.is_empty() {
+              Ok(None)
+            } else {
+              Ok(Some(std::path::PathBuf::from(path_str)))
+            }
+          }
+          Ok(output) => {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            if stderr.contains("User canceled") || stderr.contains("-128") {
+              Ok(None)
+            } else {
+              Err(format!("osascript failed: {}", stderr.trim()))
+            }
+          }
+          Err(e) => Err(format!("Failed to execute osascript dialog: {}", e)),
+        }
+      }
+
+      #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
+      {
+        Err("File save dialog is not supported on this platform".to_string())
+      }
+    }
+  })
+  .await
+  .map_err(|e| format!("Dialog task error: {}", e))??;
+
+  let target = match selected_path {
+    Some(p) => p,
+    None => return Ok(None), // User cancelled dialog
+  };
+
+  // Ensure extension is retained if user omitted it
+  let final_path = if target.extension().is_none() {
+    target.with_extension(&extension)
+  } else {
+    target
+  };
+
+  let data_to_write = if let Some(ref text) = file_text {
+    text.as_bytes().to_vec()
+  } else if let Some(bytes) = file_bytes {
+    bytes
+  } else {
+    return Err("No content provided to save".to_string());
+  };
+
+  tokio::fs::write(&final_path, &data_to_write)
+    .await
+    .map_err(|e| format!("Failed to write file {:?}: {}", final_path, e))?;
+
+  Ok(Some(final_path.to_string_lossy().to_string()))
+}

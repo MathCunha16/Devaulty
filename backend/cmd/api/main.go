@@ -40,10 +40,33 @@ func main() {
 	dbPath := filepath.Join(dataDir, "devaulty.db")
 
 	// Use embedded migrations in production for a self-contained binary.
-	// In development (APP_ENV=dev), use file-based migrations for hot-reload convenience.
+	// In development (APP_ENV=dev), use file-based migrations for hot-reload convenience,
+	// falling back gracefully to embedded FS if disk migrations are not found.
 	var db *sqlx.DB
 	if os.Getenv("APP_ENV") == "dev" {
-		db, err = persistence.InitDB(dbPath, "migrations")
+		candidates := []string{
+			"migrations",
+			"backend/migrations",
+			"../backend/migrations",
+			"../../backend/migrations",
+		}
+		var foundPath string
+		for _, candidate := range candidates {
+			if info, statErr := os.Stat(candidate); statErr == nil && info.IsDir() {
+				foundPath = candidate
+				break
+			}
+		}
+
+		if foundPath != "" {
+			db, err = persistence.InitDB(dbPath, foundPath)
+			if err != nil {
+				log.Printf("Warning: failed to load migrations from disk (%s), falling back to embedded FS: %v", foundPath, err)
+				db, err = persistence.InitDBWithFS(dbPath, migrations.FS)
+			}
+		} else {
+			db, err = persistence.InitDBWithFS(dbPath, migrations.FS)
+		}
 	} else {
 		db, err = persistence.InitDBWithFS(dbPath, migrations.FS)
 	}
@@ -103,6 +126,10 @@ func main() {
 	cardUseCase := usecase.NewCardUseCase(cardRepo, boardRepo, boardColumnRepo, projectRepo, itemTagRepo)
 	cardHandler := handler.NewCardHandler(cardUseCase)
 
+	drawingRepo := persistence.NewDrawingRepository(db)
+	drawingUseCase := usecase.NewDrawingUseCase(drawingRepo, projectRepo, itemTagRepo)
+	drawingHandler := handler.NewDrawingHandler(drawingUseCase)
+
 	cryptoAdapter := security.NewAESGCMCrypto()
 	credentialRepo := persistence.NewCredentialRepository(db)
 	credentialUseCase := usecase.NewCredentialUseCase(credentialRepo, projectRepo, itemTagRepo, cryptoAdapter, masterKeySession, *vaultUseCase)
@@ -112,7 +139,7 @@ func main() {
 	tagUseCase := usecase.NewTagUseCase(tagRepo, projectRepo)
 	tagHandler := handler.NewTagHandler(tagUseCase)
 
-	itemTagUseCase := usecase.NewItemTagUseCase(itemTagRepo, tagRepo, projectRepo, snippetRepo, credentialRepo, linkRepo, problemRepo, noteRepo, boardRepo, cardRepo)
+	itemTagUseCase := usecase.NewItemTagUseCase(itemTagRepo, tagRepo, projectRepo, snippetRepo, credentialRepo, linkRepo, problemRepo, noteRepo, boardRepo, cardRepo, drawingRepo)
 	itemTagHandler := handler.NewItemTagHandler(itemTagUseCase, tagUseCase, projectUseCase)
 
 	if len(os.Args) > 1 && os.Args[1] == "mcp" {
@@ -130,6 +157,7 @@ func main() {
 		Board:       boardHandler,
 		BoardColumn: boardColumnHandler,
 		Card:        cardHandler,
+		Drawing:     drawingHandler,
 		Tag:         tagHandler,
 		ItemTag:     itemTagHandler,
 		Security:    securityHandler,
@@ -201,7 +229,12 @@ func resolveDataDir() (string, error) {
 		if err != nil {
 			return "", errors.New("failed to resolve user config directory")
 		}
-		candidate = filepath.Join(configDir, "devaulty")
+		appName := "devaulty"
+		isMCP := len(os.Args) > 1 && os.Args[1] == "mcp"
+		if os.Getenv("APP_ENV") == "dev" && !isMCP {
+			appName = "devaulty-dev"
+		}
+		candidate = filepath.Join(configDir, appName)
 	}
 
 	absPath, err := filepath.Abs(candidate)

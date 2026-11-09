@@ -9,6 +9,7 @@ import { useNotesQuery } from "~features/notes/hooks/useNotes";
 import { useLinksQuery } from "~features/links/hooks/useLinks";
 import { useTagsQuery } from "~features/tags/hooks/useTags";
 import { useBoardsQuery } from "~features/boards/hooks/useBoards";
+import { useDrawingsQuery } from "~features/drawings/hooks/useDrawings";
 import type { ProjectViewResponse } from "~types/api";
 import type { ProjectTabType } from "../../../routes/projects.$projectId";
 
@@ -54,6 +55,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   const { data: notesData } = useNotesQuery(projectId);
   const { data: linksData } = useLinksQuery(projectId);
   const { data: tagsData } = useTagsQuery(projectId);
+  const { data: drawingsData } = useDrawingsQuery(projectId);
 
   const boardsCount = boardsData?.page?.totalElements ?? boardsData?.content?.length ?? 0;
   const snippetsCount =
@@ -72,6 +74,8 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   const linksCount =
     linksData?.page?.totalElements ?? linksData?.content?.length ?? 0;
   const tagsCount = tagsData?.length ?? 0;
+  const drawingsCount =
+    drawingsData?.totalElements ?? drawingsData?.content?.length ?? 0;
 
   const glowRgb = useMemo(() => hexToRgb(project?.color), [project?.color]);
 
@@ -150,6 +154,18 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
         onClick: () => onNavigateTab("links"),
       },
       {
+        id: "drawings",
+        title: "Architecture & Diagrams",
+        description:
+          "Create system architectures, flowcharts, schemas, and whiteboard brainstorms with Excalidraw.",
+        label: "Excalidraw",
+        icon: Icons.Shapes,
+        stat: drawingsCount,
+        statLabel: "Diagrams",
+        color: "#f59e0b",
+        onClick: () => onNavigateTab("drawings"),
+      },
+      {
         id: "tags",
         title: "Tags & Taxonomy",
         description:
@@ -171,6 +187,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
       notesCount,
       linksCount,
       tagsCount,
+      drawingsCount,
       project?.color,
       onNavigateTab,
       onOpenTagsManager,
@@ -212,7 +229,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
               Total Assets
             </span>
             <span className="text-sm font-bold font-mono text-foreground">
-              {snippetsCount + credentialsCount + notesCount + linksCount}
+              {snippetsCount + credentialsCount + notesCount + linksCount + drawingsCount}
             </span>
           </div>
         </div>

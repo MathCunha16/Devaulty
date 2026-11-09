@@ -46,6 +46,7 @@ export const useUpdateTagMutation = (projectId: string) => {
       queryClient.invalidateQueries({ queryKey: ["projects", projectId, "notes"] });
       queryClient.invalidateQueries({ queryKey: ["projects", projectId, "links"] });
       queryClient.invalidateQueries({ queryKey: ["projects", projectId, "credentials"] });
+      queryClient.invalidateQueries({ queryKey: ["projects", projectId, "drawings"] });
     },
   });
 };
@@ -61,6 +62,7 @@ export const useDeleteTagMutation = (projectId: string) => {
       queryClient.invalidateQueries({ queryKey: ["projects", projectId, "notes"] });
       queryClient.invalidateQueries({ queryKey: ["projects", projectId, "links"] });
       queryClient.invalidateQueries({ queryKey: ["projects", projectId, "credentials"] });
+      queryClient.invalidateQueries({ queryKey: ["projects", projectId, "drawings"] });
     },
   });
 };
@@ -84,6 +86,7 @@ export const useAssociateTagMutation = (projectId: string) => {
       else if (typeLower === "link") itemKey = "links";
       else if (typeLower === "credential") itemKey = "credentials";
       else if (typeLower === "card" || typeLower === "board") itemKey = "boards";
+      else if (typeLower === "drawing") itemKey = "drawings";
 
       if (typeLower === "card" || typeLower === "board") {
         queryClient.invalidateQueries({ queryKey: ["boards", projectId] });
@@ -107,6 +110,7 @@ export const useDisassociateTagMutation = (projectId: string) => {
       else if (typeLower === "link") itemKey = "links";
       else if (typeLower === "credential") itemKey = "credentials";
       else if (typeLower === "card" || typeLower === "board") itemKey = "boards";
+      else if (typeLower === "drawing") itemKey = "drawings";
 
       if (typeLower === "card" || typeLower === "board") {
         queryClient.invalidateQueries({ queryKey: ["boards", projectId] });

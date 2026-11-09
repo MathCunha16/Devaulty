@@ -8,12 +8,12 @@ import {
   useAssociateTagMutation,
   useDisassociateTagMutation,
 } from "~features/tags/hooks/useTags";
-import type { TagSummaryResponse } from "~types/api";
+import type { TagSummaryResponse, ItemType } from "~types/api";
 import styles from "../routes/projects.$projectId.module.css";
 
 interface TagManagerSectionProps {
   itemId: string;
-  itemType: "SNIPPET" | "PROBLEM" | "NOTE" | "LINK" | "CREDENTIAL";
+  itemType: ItemType;
   itemTags?: TagSummaryResponse[];
   projectId: string;
   onOpenManageTagsModal: () => void;

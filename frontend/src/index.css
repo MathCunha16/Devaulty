@@ -122,3 +122,23 @@
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-muted-foreground);
 }
+
+/* Excalidraw Laser Pointer SVGLayer viewport fix */
+.excalidraw .SVGLayer {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  pointer-events: none !important;
+  transform: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  z-index: 100 !important;
+}
+
+/* Excalidraw Canvas Crisp & Smooth Bilinear Interpolation */
+.excalidraw canvas {
+  image-rendering: auto !important;
+}
+

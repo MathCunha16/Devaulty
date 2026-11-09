@@ -6,6 +6,7 @@ import { useProblemsQuery } from "~features/problems/hooks/useProblems";
 import { useCredentialsQuery } from "~features/credentials/hooks/useCredentials";
 import { useNotesQuery } from "~features/notes/hooks/useNotes";
 import { useLinksQuery } from "~features/links/hooks/useLinks";
+import { useDrawingsQuery } from "~features/drawings/hooks/useDrawings";
 import { getItemTypeMeta, getTabForItemType, type ProjectTabType } from "../utils/boardUtils";
 import type { ItemType, CreateCardItemCommand } from "~types/api";
 
@@ -37,6 +38,7 @@ export const LinkedItemPicker: React.FC<LinkedItemPickerProps> = ({
   const { data: credentialsData } = useCredentialsQuery(projectId);
   const { data: notesData } = useNotesQuery(projectId);
   const { data: linksData } = useLinksQuery(projectId);
+  const { data: drawingsData } = useDrawingsQuery(projectId);
 
   const allAvailableItems: AvailableItem[] = useMemo(() => {
     const list: AvailableItem[] = [];
@@ -61,8 +63,12 @@ export const LinkedItemPicker: React.FC<LinkedItemPickerProps> = ({
       list.push({ id: l.id, title: l.title, type: "LINK" });
     });
 
+    (drawingsData?.content || []).forEach((d) => {
+      list.push({ id: d.id, title: d.title, type: "DRAWING" });
+    });
+
     return list;
-  }, [snippetsData, problemsData, credentialsData, notesData, linksData]);
+  }, [snippetsData, problemsData, credentialsData, notesData, linksData, drawingsData]);
 
   // Title lookup map
   const itemMap = useMemo(() => {

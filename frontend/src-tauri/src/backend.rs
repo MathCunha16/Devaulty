@@ -48,14 +48,36 @@ pub fn install_standalone_cli(
       let _ = std::fs::remove_file(&dest);
     }
 
-    std::os::unix::fs::symlink(resource_binary, &dest)?;
+    if cfg!(debug_assertions) {
+      // In development/debug builds, create a wrapper script that exports DEVAULTY_DATA_DIR
+      // pointing to the isolated dev data directory so external MCP clients use the same dev DB.
+      let script = format!(
+        "#!/bin/sh\nexport DEVAULTY_DATA_DIR=\"{}\"\nexec \"{}\" \"$@\"\n",
+        data_dir.display(),
+        resource_binary.display()
+      );
+      std::fs::write(&dest, script)?;
+      ensure_executable(&dest)?;
+    } else {
+      // In production builds, symlink directly to the backend binary without overriding data dir.
+      std::os::unix::fs::symlink(resource_binary, &dest)?;
+    }
     Ok(dest)
   }
 
   #[cfg(windows)]
   {
     let dest = bin_dir.join("devaulty-backend.bat");
-    let script = format!("@echo off\r\n\"{}\" %*\r\n", resource_binary.display());
+    let script = if cfg!(debug_assertions) {
+      let escaped_data_dir = data_dir.display().to_string().replace('%', "%%");
+      format!(
+        "@echo off\r\nset \"DEVAULTY_DATA_DIR={}\"\r\n\"{}\" %*\r\n",
+        escaped_data_dir,
+        resource_binary.display()
+      )
+    } else {
+      format!("@echo off\r\n\"{}\" %*\r\n", resource_binary.display())
+    };
     std::fs::write(&dest, script)?;
     Ok(dest)
   }
@@ -127,12 +149,14 @@ pub fn spawn_backend(app: &tauri::AppHandle, devaulty_data_dir: &std::path::Path
 
       let data_dir_str = devaulty_data_dir.to_string_lossy().to_string();
 
+      let app_env = if cfg!(debug_assertions) { "dev" } else { "prod" };
+
       // Spawn the native Go backend process.
       // Migrations are embedded in the Go binary via go:embed,
       // so no external migration files need to be shipped.
       let mut command = Command::new(&binary_path);
       command
-        .env("APP_ENV", "prod")
+        .env("APP_ENV", app_env)
         .env("DEVAULTY_INTERNAL_TOKEN", &session_token)
         .env("DEVAULTY_DATA_DIR", &data_dir_str)
         .stdout(Stdio::piped())

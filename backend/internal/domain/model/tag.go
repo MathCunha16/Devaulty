@@ -12,6 +12,7 @@ const (
 	ItemTypeCredential ItemType = "CREDENTIAL"
 	ItemTypeBoard      ItemType = "BOARD"
 	ItemTypeCard       ItemType = "CARD"
+	ItemTypeDrawing    ItemType = "DRAWING"
 )
 
 var ItemTypes = []ItemType{ItemTypeSnippet, ItemTypeNote, ItemTypeLink, ItemTypeProblem, ItemTypeBoard, ItemTypeCard}

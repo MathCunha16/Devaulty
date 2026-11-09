@@ -32,6 +32,7 @@ func NewItemTagUseCase(
 	noteRepo port.NoteRepository,
 	boardRepo port.BoardRepository,
 	cardRepo port.CardRepository,
+	drawingRepo port.DrawingRepository,
 ) *ItemTagUseCase {
 	return &ItemTagUseCase{
 		itemTagRepo: itemTagRepo,
@@ -45,6 +46,7 @@ func NewItemTagUseCase(
 			model.ItemTypeCredential: credentialRepo,
 			model.ItemTypeBoard:      boardRepo,
 			model.ItemTypeCard:       cardRepo,
+			model.ItemTypeDrawing:    drawingRepo,
 		},
 	}
 }

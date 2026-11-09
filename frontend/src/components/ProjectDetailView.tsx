@@ -16,6 +16,13 @@ import { KanbanWorkspace } from "~features/boards/components/KanbanWorkspace";
 import styles from "../routes/projects.$projectId.module.css";
 import type { ProjectTabType } from "../routes/projects.$projectId";
 
+// Lazy-load DrawingsWorkspace to keep initial project load lightweight and fast
+const DrawingsWorkspace = React.lazy(() =>
+  import("~features/drawings/components/DrawingsWorkspace").then((m) => ({
+    default: m.DrawingsWorkspace,
+  }))
+);
+
 const routeApi = getRouteApi("/projects/$projectId");
 
 export const ProjectDetailView: React.FC = () => {
@@ -43,6 +50,11 @@ export const ProjectDetailView: React.FC = () => {
   const activeTab: ProjectTabType = search.tab || "overview";
 
   const [isTagsManagerOpen, setIsTagsManagerOpen] = useState(false);
+  const [hasVisitedDrawings, setHasVisitedDrawings] = useState(activeTab === "drawings");
+
+  if (activeTab === "drawings" && !hasVisitedDrawings) {
+    setHasVisitedDrawings(true);
+  }
 
   const handleTabChange = (tab: ProjectTabType) => {
     navigate({ search: { tab }, replace: true });
@@ -61,6 +73,7 @@ export const ProjectDetailView: React.FC = () => {
     { id: "credentials", label: "Credentials", icon: Icons.KeyRound },
     { id: "notes", label: "Notes", icon: Icons.FileText },
     { id: "links", label: "Links", icon: Icons.Link2 },
+    { id: "drawings", label: "Drawings", icon: Icons.Shapes },
   ];
 
   const activeProjectColor = project?.color || "#10b981";
@@ -176,6 +189,20 @@ export const ProjectDetailView: React.FC = () => {
             initialSelectedId={search.itemId}
             projectColor={activeProjectColor}
           />
+        )}
+
+        {hasVisitedDrawings && (
+          <div className={activeTab === "drawings" ? "contents" : "hidden"}>
+            <React.Suspense fallback={null}>
+              <DrawingsWorkspace
+                projectId={projectId}
+                isActive={activeTab === "drawings"}
+                onOpenManageTagsModal={() => setIsTagsManagerOpen(true)}
+                initialSelectedId={search.itemId}
+                projectColor={activeProjectColor}
+              />
+            </React.Suspense>
+          </div>
         )}
       </div>
 
