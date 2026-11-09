@@ -86,8 +86,19 @@ export async function copyDrawingToClipboard(
 }
 
 /**
+ * Detects whether the code is running inside a desktop Tauri runtime.
+ */
+function isTauriEnvironment(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    ("__TAURI_INTERNALS__" in window || "__TAURI__" in window)
+  );
+}
+
+/**
  * Prompts the user with the native desktop Save As dialog to choose the destination folder and filename.
- * Falls back to standard browser download if running outside the Tauri environment.
+ * Falls back to standard browser download only when running outside the Tauri environment.
+ * If running in Tauri and saving fails, throws an error so the caller can handle it.
  * Returns the final path/filename saved, or null if the user cancelled the dialog.
  */
 async function saveFileWithNativePicker(
@@ -97,26 +108,23 @@ async function saveFileWithNativePicker(
   textString?: string
 ): Promise<string | null> {
   // 1. Desktop (Tauri) environment: use native OS Save As dialog via Tauri IPC
-  try {
+  if (isTauriEnvironment()) {
     let fileBytes: number[] | null = null;
     if (!textString) {
       const buffer = await blob.arrayBuffer();
       fileBytes = Array.from(new Uint8Array(buffer));
     }
 
-    const savedPath = await invoke<string | null>("save_diagram_file", {
+    return await invoke<string | null>("save_diagram_file", {
       defaultFilename,
       extension,
       fileBytes,
       fileText: textString ?? null,
     });
-
-    return savedPath;
-  } catch (err) {
-    console.warn("[drawingExportUtils] Tauri native dialog fallback:", err);
-    // 2. Fallback to standard browser download (e.g. if running in web)
-    return fallbackBrowserDownload(blob, defaultFilename);
   }
+
+  // 2. Fallback to standard browser download only if running outside Tauri (e.g. web browser)
+  return fallbackBrowserDownload(blob, defaultFilename);
 }
 
 /**

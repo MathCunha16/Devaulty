@@ -69,9 +69,10 @@ pub fn install_standalone_cli(
   {
     let dest = bin_dir.join("devaulty-backend.bat");
     let script = if cfg!(debug_assertions) {
+      let escaped_data_dir = data_dir.display().to_string().replace('%', "%%");
       format!(
         "@echo off\r\nset \"DEVAULTY_DATA_DIR={}\"\r\n\"{}\" %*\r\n",
-        data_dir.display(),
+        escaped_data_dir,
         resource_binary.display()
       )
     } else {

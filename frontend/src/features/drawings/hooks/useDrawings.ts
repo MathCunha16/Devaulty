@@ -12,6 +12,9 @@ export const drawingsKeys = {
     ["projects", projectId, "drawings", "detail", drawingId] as const,
 };
 
+/**
+ * Hook to query a paginated list of drawings for a project.
+ */
 export const useDrawingsQuery = (projectId: string, page = 0, size = 100) => {
   return useQuery({
     queryKey: [...drawingsKeys.all(projectId), { page, size }],
@@ -20,6 +23,9 @@ export const useDrawingsQuery = (projectId: string, page = 0, size = 100) => {
   });
 };
 
+/**
+ * Hook to query the details and content of a specific drawing.
+ */
 export const useDrawingQuery = (projectId: string, drawingId: string) => {
   return useQuery({
     queryKey: drawingsKeys.detail(projectId, drawingId),
@@ -28,6 +34,9 @@ export const useDrawingQuery = (projectId: string, drawingId: string) => {
   });
 };
 
+/**
+ * Hook to create a new drawing within a project.
+ */
 export const useCreateDrawingMutation = (projectId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -39,18 +48,33 @@ export const useCreateDrawingMutation = (projectId: string) => {
   });
 };
 
-export const useUpdateDrawingMutation = (projectId: string, drawingId: string) => {
+/**
+ * Hook to update an existing drawing (content, title, or thumbnail).
+ * Accepts drawingId per mutation to decouple saves from component active state.
+ */
+export const useUpdateDrawingMutation = (projectId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (request: UpdateDrawingRequest) =>
-      drawingsApi.update(projectId, drawingId, request),
-    onSuccess: (data: Drawing) => {
+    mutationFn: ({
+      drawingId,
+      request,
+    }: {
+      drawingId: string;
+      request: UpdateDrawingRequest;
+    }) => drawingsApi.update(projectId, drawingId, request),
+    onSuccess: (data: Drawing, variables) => {
       queryClient.invalidateQueries({ queryKey: drawingsKeys.all(projectId) });
-      queryClient.setQueryData(drawingsKeys.detail(projectId, drawingId), data);
+      queryClient.setQueryData(
+        drawingsKeys.detail(projectId, variables.drawingId),
+        data
+      );
     },
   });
 };
 
+/**
+ * Hook to delete a drawing from a project.
+ */
 export const useDeleteDrawingMutation = (projectId: string) => {
   const queryClient = useQueryClient();
   return useMutation({

@@ -8,10 +8,16 @@ export type SaveStatus = "saved" | "unsaved" | "saving" | "error";
 interface UseDebouncedSaveOptions {
   drawingId: string;
   initialContent: string | null;
-  onSave: (payload: { content: string; thumbnail?: string | null }) => Promise<void>;
+  onSave: (
+    drawingId: string,
+    payload: { content: string; thumbnail?: string | null }
+  ) => Promise<void>;
   debounceMs?: number;
 }
 
+/**
+ * Normalizes raw Excalidraw JSON string into a consistent structure for comparison.
+ */
 function normalizeSceneContent(raw: string | null): string {
   if (!raw || !raw.trim()) {
     return JSON.stringify({
@@ -37,6 +43,9 @@ function normalizeSceneContent(raw: string | null): string {
   }
 }
 
+/**
+ * Performs a shallow fast check to determine if elements have actually changed.
+ */
 function hasElementsTrulyChanged(
   prev: readonly NonDeletedExcalidrawElement[] | null,
   next: readonly NonDeletedExcalidrawElement[]
@@ -54,6 +63,10 @@ function hasElementsTrulyChanged(
   return false;
 }
 
+/**
+ * Custom hook providing two-tier debounced saving (localStorage draft + SQLite backend persistence)
+ * for Excalidraw diagrams with zero typing/pointer lag and crash recovery.
+ */
 export function useDebouncedSave({
   drawingId,
   initialContent,
@@ -68,6 +81,11 @@ export function useDebouncedSave({
     setPrevDrawingId(drawingId);
     setStatus("saved");
   }
+
+  const currentDrawingIdRef = useRef(drawingId);
+  useEffect(() => {
+    currentDrawingIdRef.current = drawingId;
+  }, [drawingId]);
 
   const onSaveRef = useRef(onSave);
   useEffect(() => {
@@ -117,7 +135,8 @@ export function useDebouncedSave({
       }
 
       const payloadToFlush = pendingPayloadRef.current;
-      if (payloadToFlush && drawingId) {
+      const flushDrawingId = drawingId;
+      if (payloadToFlush && flushDrawingId) {
         pendingPayloadRef.current = null;
         const contentToFlush = JSON.stringify({
           elements: payloadToFlush.elements,
@@ -132,14 +151,21 @@ export function useDebouncedSave({
             payloadToFlush.elements,
             payloadToFlush.appState,
             payloadToFlush.files
-          ).then((thumbnail) => {
-            void onSaveRef.current({ content: contentToFlush, thumbnail });
+          ).then(async (thumbnail) => {
+            try {
+              await onSaveRef.current(flushDrawingId, {
+                content: contentToFlush,
+                thumbnail,
+              });
+              try {
+                localStorage.removeItem(`devaulty_drawing_draft_${flushDrawingId}`);
+              } catch {
+                // Ignore storage errors
+              }
+            } catch (err) {
+              console.error("[useDebouncedSave] Failed to flush drawing on switch:", err);
+            }
           });
-          try {
-            localStorage.removeItem(`devaulty_drawing_draft_${drawingId}`);
-          } catch {
-            // Ignore storage errors
-          }
         }
       }
     };
@@ -153,7 +179,15 @@ export function useDebouncedSave({
   }, [initialContent, status]);
 
   const commitSave = useCallback(async () => {
-    if (!pendingPayloadRef.current || isSavingRef.current || !drawingId) {
+    if (!pendingPayloadRef.current || !drawingId) {
+      return;
+    }
+
+    if (isSavingRef.current) {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        void commitSaveRef.current();
+      }, debounceMs);
       return;
     }
 
@@ -162,6 +196,7 @@ export function useDebouncedSave({
       draftTimerRef.current = null;
     }
 
+    const saveDrawingId = drawingId;
     const payloadToSave = pendingPayloadRef.current;
     const { elements, appState, files } = payloadToSave;
     const contentString = JSON.stringify({
@@ -180,7 +215,7 @@ export function useDebouncedSave({
         setStatus("saved");
       }
       try {
-        localStorage.removeItem(`devaulty_drawing_draft_${drawingId}`);
+        localStorage.removeItem(`devaulty_drawing_draft_${saveDrawingId}`);
       } catch {
         // Ignore localStorage errors
       }
@@ -194,24 +229,31 @@ export function useDebouncedSave({
       // Generate compact thumbnail on save
       const thumbnail = await generateDrawingThumbnail(elements, appState, files);
 
-      await onSave({
+      await onSave(saveDrawingId, {
         content: contentString,
         thumbnail,
       });
 
-      lastSavedContentRef.current = contentString;
+      if (currentDrawingIdRef.current === saveDrawingId) {
+        lastSavedContentRef.current = contentString;
+      }
+
       try {
-        localStorage.removeItem(`devaulty_drawing_draft_${drawingId}`);
+        localStorage.removeItem(`devaulty_drawing_draft_${saveDrawingId}`);
       } catch {
         // Ignore localStorage errors
       }
 
       if (pendingPayloadRef.current === payloadToSave) {
         pendingPayloadRef.current = null;
-        setStatus("saved");
+        if (currentDrawingIdRef.current === saveDrawingId) {
+          setStatus("saved");
+        }
       } else {
         // User made new edits while save was in flight: retain them, keep unsaved, and reschedule
-        setStatus("unsaved");
+        if (currentDrawingIdRef.current === saveDrawingId) {
+          setStatus("unsaved");
+        }
         if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => {
           void commitSaveRef.current();
@@ -219,7 +261,9 @@ export function useDebouncedSave({
       }
     } catch (err) {
       console.error("[useDebouncedSave] Auto-save error:", err);
-      setStatus("error");
+      if (currentDrawingIdRef.current === saveDrawingId) {
+        setStatus("error");
+      }
     } finally {
       isSavingRef.current = false;
     }

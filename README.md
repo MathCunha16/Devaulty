@@ -41,8 +41,9 @@ Security is the core foundation of Devaulty.
 
 ## Key Features
 
-- **Project Workspaces**: Group your credentials, snippets, problems, notes, and boards by project.
+- **Project Workspaces**: Group your credentials, snippets, problems, notes, boards, and drawings by project.
 - **Interactive Kanban Boards**: Visual task management with customizable columns, WIP (Work In Progress) limits, priority tagging, and fluid drag-and-drop.
+- **Drawings & Diagrams**: Create architecture diagrams, wireframes, and sketches directly in your workspace with embedded Excalidraw.
 - **Smart `@` Mentions & Deep Linking**: Mention any project item directly inside Markdown descriptions with caret-anchored autocomplete and live preview hovercards.
 - **Encrypted Credential Store**: Safely store API keys, database URLs, SSH keys, and passwords.
 - **Code Snippets Vault**: Save reusable code snippets with syntax highlighting and language tag filters.

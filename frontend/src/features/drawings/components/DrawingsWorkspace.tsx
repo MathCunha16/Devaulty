@@ -82,7 +82,7 @@ export const DrawingsWorkspace: React.FC<DrawingsWorkspaceProps> = ({
 
   // Mutations
   const createMutation = useCreateDrawingMutation(projectId);
-  const updateMutation = useUpdateDrawingMutation(projectId, activeDrawingId || "");
+  const updateMutation = useUpdateDrawingMutation(projectId);
   const deleteMutation = useDeleteDrawingMutation(projectId);
 
   // Query selected drawing details
@@ -102,9 +102,12 @@ export const DrawingsWorkspace: React.FC<DrawingsWorkspaceProps> = ({
   } = useDebouncedSave({
     drawingId: activeDrawingId || "",
     initialContent: currentDrawing?.content || null,
-    onSave: async (payload) => {
-      if (!activeDrawingId) return;
-      await updateMutation.mutateAsync(payload);
+    onSave: async (targetDrawingId, payload) => {
+      if (!targetDrawingId) return;
+      await updateMutation.mutateAsync({
+        drawingId: targetDrawingId,
+        request: payload,
+      });
     },
     debounceMs: 1500,
   });
@@ -146,7 +149,10 @@ export const DrawingsWorkspace: React.FC<DrawingsWorkspaceProps> = ({
   const handleRenameDrawing = async (newTitle: string) => {
     if (!activeDrawingId) return;
     try {
-      await updateMutation.mutateAsync({ title: newTitle });
+      await updateMutation.mutateAsync({
+        drawingId: activeDrawingId,
+        request: { title: newTitle },
+      });
       toast.success("Diagram renamed");
     } catch {
       toast.error("Failed to rename diagram");
