@@ -13,9 +13,15 @@ import { CredentialsWorkspace } from "~features/credentials/components/Credentia
 import { NotesWorkspace } from "~features/notes/components/NotesWorkspace";
 import { LinksWorkspace } from "~features/links/components/LinksWorkspace";
 import { KanbanWorkspace } from "~features/boards/components/KanbanWorkspace";
-import { DrawingsWorkspace } from "~features/drawings/components/DrawingsWorkspace";
 import styles from "../routes/projects.$projectId.module.css";
 import type { ProjectTabType } from "../routes/projects.$projectId";
+
+// Lazy-load DrawingsWorkspace to keep initial project load lightweight and fast
+const DrawingsWorkspace = React.lazy(() =>
+  import("~features/drawings/components/DrawingsWorkspace").then((m) => ({
+    default: m.DrawingsWorkspace,
+  }))
+);
 
 const routeApi = getRouteApi("/projects/$projectId");
 
@@ -187,13 +193,15 @@ export const ProjectDetailView: React.FC = () => {
 
         {hasVisitedDrawings && (
           <div className={activeTab === "drawings" ? "contents" : "hidden"}>
-            <DrawingsWorkspace
-              projectId={projectId}
-              isActive={activeTab === "drawings"}
-              onOpenManageTagsModal={() => setIsTagsManagerOpen(true)}
-              initialSelectedId={search.itemId}
-              projectColor={activeProjectColor}
-            />
+            <React.Suspense fallback={null}>
+              <DrawingsWorkspace
+                projectId={projectId}
+                isActive={activeTab === "drawings"}
+                onOpenManageTagsModal={() => setIsTagsManagerOpen(true)}
+                initialSelectedId={search.itemId}
+                projectColor={activeProjectColor}
+              />
+            </React.Suspense>
           </div>
         )}
       </div>

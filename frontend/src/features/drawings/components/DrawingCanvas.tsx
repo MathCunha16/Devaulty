@@ -36,6 +36,7 @@ interface DrawingCanvasProps {
     files: BinaryFiles
   ) => void;
   excalidrawAPIRef: React.MutableRefObject<ExcalidrawImperativeAPI | null>;
+  isActive?: boolean;
 }
 
 let _isCanvasFilterBrokenCache: boolean | null = null;
@@ -154,7 +155,8 @@ if (typeof window !== "undefined") {
       // 3. Prevent lines from cutting in half / dropping out at extreme zoom out
       // In WebKitGTK (Cairo backend), when currentScale * lineWidth < 0.85px, subpixel alpha
       // coverage falls below the rasterization discard threshold, causing curved / hand-drawn
-      // strokes to disappear in segments ("cut in half"). We clamp the physical stroke width to >= 0.85px.
+      // strokes to disappear in segments ("cut in half"). We clamp the physical stroke width to >= 0.85px
+      // only for scaled-down Excalidraw canvases, bypassing non-Excalidraw elements to avoid GC churn.
       const lineWidthInfo =
         findPropertyDescriptor(searchTarget, "lineWidth") ||
         (typeof CanvasRenderingContext2D !== "undefined"
@@ -167,10 +169,16 @@ if (typeof window !== "undefined") {
         Object.defineProperty(lineWidthInfo.owner, "lineWidth", {
           set(val: number) {
             try {
-              if (val > 0 && typeof this.getTransform === "function") {
+              const canvas = (this as CanvasRenderingContext2D).canvas;
+              const isExcalidraw =
+                Boolean((canvas as unknown as { __isExcalidraw?: boolean })?.__isExcalidraw) ||
+                Boolean(canvas?.classList?.contains("excalidraw__canvas")) ||
+                Boolean(canvas?.closest?.(".excalidraw"));
+
+              if (isExcalidraw && val > 0 && typeof this.getTransform === "function") {
                 const matrix = this.getTransform();
                 const currentScale = Math.hypot(matrix.a, matrix.b);
-                if (currentScale > 0) {
+                if (currentScale > 0 && currentScale < 1) {
                   const physicalWidth = val * currentScale;
                   const minPhysicalWidth = 0.85;
                   if (physicalWidth < minPhysicalWidth) {
@@ -277,6 +285,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   drawing,
   onSceneChange,
   excalidrawAPIRef,
+  isActive = true,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const invertedMapRef = useRef<Map<string, string>>(new Map());
@@ -716,13 +725,16 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       }
     };
 
-    window.addEventListener("paste", handlePaste, true);
-    window.addEventListener("drop", handleDrop, true);
-    window.addEventListener("dragover", handleDragOver, true);
+    const container = containerRef.current;
+    if (!container) return;
+
+    container.addEventListener("paste", handlePaste);
+    container.addEventListener("drop", handleDrop);
+    container.addEventListener("dragover", handleDragOver);
     return () => {
-      window.removeEventListener("paste", handlePaste, true);
-      window.removeEventListener("drop", handleDrop, true);
-      window.removeEventListener("dragover", handleDragOver, true);
+      container.removeEventListener("paste", handlePaste);
+      container.removeEventListener("drop", handleDrop);
+      container.removeEventListener("dragover", handleDragOver);
     };
   }, [excalidrawAPIRef]);
 
@@ -747,12 +759,18 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
               shouldCacheIgnoreZoom: true,
             },
           });
+          // Mark inner canvases for fast-path prototype optimization
+          if (containerRef.current) {
+            containerRef.current.querySelectorAll("canvas").forEach((c) => {
+              (c as unknown as { __isExcalidraw?: boolean }).__isExcalidraw = true;
+            });
+          }
           // Refresh bounding box after mount
           setTimeout(() => api.refresh(), 50);
         }}
         theme="dark"
         autoFocus={true}
-        handleKeyboardGlobally={true}
+        handleKeyboardGlobally={isActive}
         onChange={handleSceneChange}
         UIOptions={{
           canvasActions: {

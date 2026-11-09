@@ -48,14 +48,35 @@ pub fn install_standalone_cli(
       let _ = std::fs::remove_file(&dest);
     }
 
-    std::os::unix::fs::symlink(resource_binary, &dest)?;
+    if cfg!(debug_assertions) {
+      // In development/debug builds, create a wrapper script that exports DEVAULTY_DATA_DIR
+      // pointing to the isolated dev data directory so external MCP clients use the same dev DB.
+      let script = format!(
+        "#!/bin/sh\nexport DEVAULTY_DATA_DIR=\"{}\"\nexec \"{}\" \"$@\"\n",
+        data_dir.display(),
+        resource_binary.display()
+      );
+      std::fs::write(&dest, script)?;
+      ensure_executable(&dest)?;
+    } else {
+      // In production builds, symlink directly to the backend binary without overriding data dir.
+      std::os::unix::fs::symlink(resource_binary, &dest)?;
+    }
     Ok(dest)
   }
 
   #[cfg(windows)]
   {
     let dest = bin_dir.join("devaulty-backend.bat");
-    let script = format!("@echo off\r\n\"{}\" %*\r\n", resource_binary.display());
+    let script = if cfg!(debug_assertions) {
+      format!(
+        "@echo off\r\nset \"DEVAULTY_DATA_DIR={}\"\r\n\"{}\" %*\r\n",
+        data_dir.display(),
+        resource_binary.display()
+      )
+    } else {
+      format!("@echo off\r\n\"{}\" %*\r\n", resource_binary.display())
+    };
     std::fs::write(&dest, script)?;
     Ok(dest)
   }

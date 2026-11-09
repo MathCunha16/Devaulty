@@ -1,9 +1,3 @@
-import {
-  exportToSvg,
-  exportToBlob,
-  exportToClipboard,
-  serializeAsJSON,
-} from "@excalidraw/excalidraw";
 import { invoke } from "@tauri-apps/api/core";
 import type { NonDeletedExcalidrawElement } from "@excalidraw/excalidraw/element/types";
 import type { AppState, BinaryFiles } from "@excalidraw/excalidraw/types";
@@ -37,6 +31,7 @@ export async function generateDrawingThumbnail(
   }
 
   try {
+    const { exportToSvg } = await import("@excalidraw/excalidraw");
     const svg = await exportToSvg({
       elements,
       appState: {
@@ -75,6 +70,7 @@ export async function copyDrawingToClipboard(
   appState: Partial<AppState>,
   files: BinaryFiles
 ): Promise<void> {
+  const { exportToClipboard } = await import("@excalidraw/excalidraw");
   await exportToClipboard({
     elements,
     appState: {
@@ -136,6 +132,7 @@ export async function exportDrawingToFile(
   title: string
 ): Promise<string | null> {
   const sanitizedTitle = (title.trim() || "untitled").replace(/[/\\?%*:|"<>]/g, "-");
+  const { exportToSvg, exportToBlob, serializeAsJSON } = await import("@excalidraw/excalidraw");
 
   if (format === "json") {
     const jsonStr = serializeAsJSON(elements, appState, files, "local");

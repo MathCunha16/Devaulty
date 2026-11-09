@@ -116,8 +116,9 @@ export const DrawingsWorkspace: React.FC<DrawingsWorkspaceProps> = ({
     }
   }, [sidebarWidth, isCollapsed, isActive]);
 
-  // Global Ctrl+S / Cmd+S shortcut to force immediate save
+  // Global Ctrl+S / Cmd+S shortcut to force immediate save only when workspace is active
   useEffect(() => {
+    if (!isActive) return;
     const handleSaveShortcut = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
@@ -126,7 +127,7 @@ export const DrawingsWorkspace: React.FC<DrawingsWorkspaceProps> = ({
     };
     window.addEventListener("keydown", handleSaveShortcut);
     return () => window.removeEventListener("keydown", handleSaveShortcut);
-  }, [saveNow]);
+  }, [saveNow, isActive]);
 
   // Create new drawing
   const handleCreateDrawing = async () => {
@@ -303,6 +304,7 @@ export const DrawingsWorkspace: React.FC<DrawingsWorkspaceProps> = ({
                 drawing={currentDrawing}
                 onSceneChange={triggerChange}
                 excalidrawAPIRef={excalidrawAPIRef}
+                isActive={isActive}
               />
             </Suspense>
           </div>

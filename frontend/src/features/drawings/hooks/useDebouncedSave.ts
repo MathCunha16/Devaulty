@@ -61,14 +61,23 @@ export function useDebouncedSave({
   debounceMs = 1500,
 }: UseDebouncedSaveOptions) {
   const [status, setStatus] = useState<SaveStatus>("saved");
-  const [prevSyncKey, setPrevSyncKey] = useState(`${drawingId}_${initialContent || ""}`);
+  const [prevDrawingId, setPrevDrawingId] = useState(drawingId);
 
-  // Adjust state during render when switching drawing (official React pattern)
-  const currentSyncKey = `${drawingId}_${initialContent || ""}`;
-  if (currentSyncKey !== prevSyncKey) {
-    setPrevSyncKey(currentSyncKey);
+  // Reset status during render when drawingId changes (official React pattern)
+  if (drawingId !== prevDrawingId) {
+    setPrevDrawingId(drawingId);
     setStatus("saved");
   }
+
+  const onSaveRef = useRef(onSave);
+  useEffect(() => {
+    onSaveRef.current = onSave;
+  }, [onSave]);
+
+  const initialContentRef = useRef(initialContent);
+  useEffect(() => {
+    initialContentRef.current = initialContent;
+  }, [initialContent]);
 
   // Keep track of last saved serialization and fast element comparison refs
   const lastSavedContentRef = useRef<string>(normalizeSceneContent(initialContent));
@@ -86,25 +95,62 @@ export function useDebouncedSave({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSavingRef = useRef(false);
+  const commitSaveRef = useRef<() => Promise<void>>(async () => {});
 
-  // Synchronize refs and timers when switching to a different drawing or when initialContent updates
+  // Synchronize drawingId changes: flush pending edits to previous drawing on cleanup, and initialize new drawing
   useEffect(() => {
-    lastSavedContentRef.current = normalizeSceneContent(initialContent);
+    lastSavedContentRef.current = normalizeSceneContent(initialContentRef.current);
     lastElementsRef.current = null;
     lastFilesRef.current = null;
     lastBgRef.current = undefined;
     lastGridRef.current = undefined;
     pendingPayloadRef.current = null;
 
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      if (draftTimerRef.current) {
+        clearTimeout(draftTimerRef.current);
+        draftTimerRef.current = null;
+      }
+
+      const payloadToFlush = pendingPayloadRef.current;
+      if (payloadToFlush && drawingId) {
+        pendingPayloadRef.current = null;
+        const contentToFlush = JSON.stringify({
+          elements: payloadToFlush.elements,
+          appState: {
+            viewBackgroundColor: payloadToFlush.appState.viewBackgroundColor,
+            gridSize: payloadToFlush.appState.gridSize,
+          },
+          files: payloadToFlush.files,
+        });
+        if (contentToFlush !== lastSavedContentRef.current) {
+          void generateDrawingThumbnail(
+            payloadToFlush.elements,
+            payloadToFlush.appState,
+            payloadToFlush.files
+          ).then((thumbnail) => {
+            void onSaveRef.current({ content: contentToFlush, thumbnail });
+          });
+          try {
+            localStorage.removeItem(`devaulty_drawing_draft_${drawingId}`);
+          } catch {
+            // Ignore storage errors
+          }
+        }
+      }
+    };
+  }, [drawingId]);
+
+  // Synchronize initialContent only if there are no pending unsaved modifications
+  useEffect(() => {
+    if (!pendingPayloadRef.current && status === "saved") {
+      lastSavedContentRef.current = normalizeSceneContent(initialContent);
     }
-    if (draftTimerRef.current) {
-      clearTimeout(draftTimerRef.current);
-      draftTimerRef.current = null;
-    }
-  }, [drawingId, initialContent]);
+  }, [initialContent, status]);
 
   const commitSave = useCallback(async () => {
     if (!pendingPayloadRef.current || isSavingRef.current || !drawingId) {
@@ -116,7 +162,8 @@ export function useDebouncedSave({
       draftTimerRef.current = null;
     }
 
-    const { elements, appState, files } = pendingPayloadRef.current;
+    const payloadToSave = pendingPayloadRef.current;
+    const { elements, appState, files } = payloadToSave;
     const contentString = JSON.stringify({
       elements,
       appState: {
@@ -128,13 +175,15 @@ export function useDebouncedSave({
 
     // Check if truly modified
     if (contentString === lastSavedContentRef.current) {
-      pendingPayloadRef.current = null;
+      if (pendingPayloadRef.current === payloadToSave) {
+        pendingPayloadRef.current = null;
+        setStatus("saved");
+      }
       try {
         localStorage.removeItem(`devaulty_drawing_draft_${drawingId}`);
       } catch {
         // Ignore localStorage errors
       }
-      setStatus("saved");
       return;
     }
 
@@ -151,20 +200,34 @@ export function useDebouncedSave({
       });
 
       lastSavedContentRef.current = contentString;
-      pendingPayloadRef.current = null;
       try {
         localStorage.removeItem(`devaulty_drawing_draft_${drawingId}`);
       } catch {
         // Ignore localStorage errors
       }
-      setStatus("saved");
+
+      if (pendingPayloadRef.current === payloadToSave) {
+        pendingPayloadRef.current = null;
+        setStatus("saved");
+      } else {
+        // User made new edits while save was in flight: retain them, keep unsaved, and reschedule
+        setStatus("unsaved");
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+          void commitSaveRef.current();
+        }, debounceMs);
+      }
     } catch (err) {
       console.error("[useDebouncedSave] Auto-save error:", err);
       setStatus("error");
     } finally {
       isSavingRef.current = false;
     }
-  }, [drawingId, onSave]);
+  }, [drawingId, onSave, debounceMs]);
+
+  useEffect(() => {
+    commitSaveRef.current = commitSave;
+  }, [commitSave]);
 
   const triggerChange = useCallback(
     (
@@ -238,18 +301,6 @@ export function useDebouncedSave({
     }
     await commitSave();
   }, [commitSave]);
-
-  // Clean-up and flush on unmount
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-      if (draftTimerRef.current) {
-        clearTimeout(draftTimerRef.current);
-      }
-    };
-  }, []);
 
   return {
     status,
