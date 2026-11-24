@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { X, Loader2, Code2, Eye } from "lucide-react";
-import { marked } from "marked";
-import DOMPurify from "dompurify";
 import { toast } from "sonner";
+import { MarkdownRenderer } from "../../../components/MarkdownRenderer";
 import {
   useCreateNoteMutation,
   useUpdateNoteMutation,
@@ -67,16 +66,6 @@ const NoteFormInner: React.FC<NoteFormInnerProps> = ({
     handleConfirmDiscard,
     handleCancelDiscard,
   } = useDiscardGuard({ isDirty, onClose });
-
-  const renderPreviewHtml = () => {
-    if (!content.trim()) return "";
-    try {
-      const rawHtml = marked.parse(content, { breaks: true, gfm: true }) as string;
-      return DOMPurify.sanitize(rawHtml);
-    } catch {
-      return DOMPurify.sanitize(content);
-    }
-  };
 
   // Focus trap refs
   const previousActiveElement = useRef<HTMLElement | null>(null);
@@ -232,7 +221,7 @@ const NoteFormInner: React.FC<NoteFormInnerProps> = ({
             ) : (
               <div className={styles.previewContainer}>
                 {content.trim() ? (
-                  <div dangerouslySetInnerHTML={{ __html: renderPreviewHtml() }} />
+                  <MarkdownRenderer content={content} />
                 ) : (
                   <span className="text-muted-foreground italic text-xs font-mono">
                     No content written yet. Switch to "Write / Code" to add markdown details.

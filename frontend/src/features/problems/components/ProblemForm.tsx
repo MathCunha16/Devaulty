@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, Suspense } from "react";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, Code2, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { MarkdownRenderer } from "../../../components/MarkdownRenderer";
 import {
   useCreateProblemMutation,
   useUpdateProblemMutation,
@@ -51,8 +52,11 @@ const ProblemFormInner: React.FC<ProblemFormInnerProps> = ({
   const [status, setStatus] = useState<ProblemStatus>(initialValues?.status || "OPEN");
   const [severity, setSeverity] = useState<ProblemSeverity>(initialValues?.severity || "MEDIUM");
 
-  const errorDescRef = useAutoResize(errorDescription, 100);
-  const solutionRef = useAutoResize(solution, 100);
+  const [errorTab, setErrorTab] = useState<"write" | "preview">("write");
+  const [solutionTab, setSolutionTab] = useState<"write" | "preview">("write");
+
+  const errorDescRef = useAutoResize(errorDescription, 100, errorTab);
+  const solutionRef = useAutoResize(solution, 100, solutionTab);
 
   const previousActiveElement = useRef<HTMLElement | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -229,29 +233,115 @@ const ProblemFormInner: React.FC<ProblemFormInnerProps> = ({
           </div>
 
           <div className={styles.field}>
-            <label htmlFor="problem-error-description" className={styles.label}>Error / Stack Trace Logs</label>
-            <textarea
-              id="problem-error-description"
-              ref={errorDescRef}
-              className={styles.textarea}
-              placeholder="Paste stack traces, logs, or error details here..."
-              value={errorDescription}
-              onChange={(e) => setErrorDescription(e.target.value)}
-              disabled={isSubmitting}
-            />
+            <div className={styles.fieldHeader}>
+              <label htmlFor="problem-error-description" className={styles.label}>
+                Error / Stack Trace Logs
+              </label>
+              <div className="flex items-center gap-1 p-0.5 rounded-md bg-secondary/80 border border-border/80">
+                <button
+                  type="button"
+                  onClick={() => setErrorTab("write")}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono transition-colors cursor-pointer ${
+                    errorTab === "write"
+                      ? "bg-card text-foreground font-semibold shadow-sm border border-border/60"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Code2 size={12} />
+                  <span>Write / Raw</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setErrorTab("preview")}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono transition-colors cursor-pointer ${
+                    errorTab === "preview"
+                      ? "bg-card text-foreground font-semibold shadow-sm border border-border/60"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Eye size={12} />
+                  <span>Preview</span>
+                </button>
+              </div>
+            </div>
+
+            {errorTab === "write" ? (
+              <textarea
+                id="problem-error-description"
+                ref={errorDescRef}
+                className={styles.textarea}
+                placeholder="Paste raw stack traces, logs, or markdown with ```mermaid diagrams..."
+                value={errorDescription}
+                onChange={(e) => setErrorDescription(e.target.value)}
+                disabled={isSubmitting}
+              />
+            ) : (
+              <div className={styles.previewContainer}>
+                {errorDescription.trim() ? (
+                  <MarkdownRenderer content={errorDescription} />
+                ) : (
+                  <span className="text-muted-foreground italic text-xs font-mono">
+                    No error details written yet. Switch to "Write / Raw" to add logs or markdown.
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           <div className={styles.field}>
-            <label htmlFor="problem-solution" className={styles.label}>Solution Code / Script</label>
-            <textarea
-              id="problem-solution"
-              ref={solutionRef}
-              className={styles.textarea}
-              placeholder="Paste your fix, resolution script, or notes here..."
-              value={solution}
-              onChange={(e) => setSolution(e.target.value)}
-              disabled={isSubmitting}
-            />
+            <div className={styles.fieldHeader}>
+              <label htmlFor="problem-solution" className={styles.label}>
+                Solution Code / Script
+              </label>
+              <div className="flex items-center gap-1 p-0.5 rounded-md bg-secondary/80 border border-border/80">
+                <button
+                  type="button"
+                  onClick={() => setSolutionTab("write")}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono transition-colors cursor-pointer ${
+                    solutionTab === "write"
+                      ? "bg-card text-foreground font-semibold shadow-sm border border-border/60"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Code2 size={12} />
+                  <span>Write / Raw</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSolutionTab("preview")}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono transition-colors cursor-pointer ${
+                    solutionTab === "preview"
+                      ? "bg-card text-foreground font-semibold shadow-sm border border-border/60"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Eye size={12} />
+                  <span>Preview</span>
+                </button>
+              </div>
+            </div>
+
+            {solutionTab === "write" ? (
+              <textarea
+                id="problem-solution"
+                ref={solutionRef}
+                className={styles.textarea}
+                placeholder="Paste your fix, resolution script, or markdown notes with ```mermaid..."
+                value={solution}
+                onChange={(e) => setSolution(e.target.value)}
+                disabled={isSubmitting}
+              />
+            ) : (
+              <div className={styles.previewContainer}>
+                {solution.trim() ? (
+                  <MarkdownRenderer content={solution} />
+                ) : (
+                  <span className="text-muted-foreground italic text-xs font-mono">
+                    No solution written yet. Switch to "Write / Raw" to add code or markdown.
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           <div className={styles.footer}>

@@ -4,6 +4,8 @@ import * as Icons from "lucide-react";
 import { CodeViewer } from "../../../components/CodeViewer";
 import { ConfirmModal } from "../../../components/ConfirmModal";
 import { TagManagerSection } from "../../../components/TagManagerSection";
+import { MarkdownRenderer } from "../../../components/MarkdownRenderer";
+import { detectMarkdownContent } from "../../../utils/markdownUtils";
 import { formatUpdatedDate } from "../../../utils/dateUtils";
 import { copyToClipboard } from "../../../utils/clipboardUtils";
 import { ProblemForm } from "../components/ProblemForm";
@@ -71,6 +73,8 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [wrapLogs, setWrapLogs] = useState(true);
   const [wrapSolution, setWrapSolution] = useState(true);
+  const [logsViewOverrides, setLogsViewOverrides] = useState<Record<string, "raw" | "markdown">>({});
+  const [solutionViewOverrides, setSolutionViewOverrides] = useState<Record<string, "raw" | "markdown">>({});
 
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -492,111 +496,223 @@ export const ProblemsWorkspace: React.FC<ProblemsWorkspaceProps> = ({
 
               {/* Shell Panel: Error stack trace logs */}
               <div className="px-5">
-                <div className={styles.shellContainer}>
-                  <div className={styles.shellHeader}>
-                    <div className={styles.shellTitleSection}>
-                      <Icons.Terminal size={14} className="text-rose-500" />
-                      <span className={styles.shellTitle}>Stack Trace Log Output</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        className={`${styles.copyButton} ${wrapLogs ? "text-primary border-primary/40 bg-primary/10" : ""}`}
-                        onClick={() => setWrapLogs((prev) => !prev)}
-                        title={wrapLogs ? "Disable line wrapping" : "Enable line wrapping"}
-                        aria-label="Toggle line wrapping"
-                        aria-pressed={wrapLogs}
-                      >
-                        <Icons.WrapText size={12} />
-                      </button>
-                      {problemDetail.errorDescription && (
-                        <button
-                          className={styles.copyButton}
-                          onClick={() =>
-                            handleCopy(
-                              problemDetail.errorDescription || "",
-                              `err-${problemDetail.id}`
-                            )
-                          }
-                          title="Copy Log Output"
-                        >
-                          {copiedId === `err-${problemDetail.id}` ? (
-                            <Icons.Check size={12} className="text-emerald-500" />
-                          ) : (
-                            <Icons.Copy size={12} />
+                {(() => {
+                  const logsMode: "raw" | "markdown" =
+                    logsViewOverrides[problemDetail.id] ??
+                    (detectMarkdownContent(problemDetail.errorDescription) ? "markdown" : "raw");
+                  return (
+                    <div className={styles.shellContainer}>
+                      <div className={styles.shellHeader}>
+                        <div className={styles.shellTitleSection}>
+                          <Icons.Terminal size={14} className="text-rose-500" />
+                          <span className={styles.shellTitle}>Stack Trace Log Output</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {problemDetail.errorDescription && (
+                            <div className="flex items-center gap-0.5 p-0.5 rounded bg-secondary/70 border border-border/70">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setLogsViewOverrides((prev) => ({
+                                    ...prev,
+                                    [problemDetail.id]: "raw",
+                                  }))
+                                }
+                                className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono transition-colors cursor-pointer ${
+                                  logsMode === "raw"
+                                    ? "bg-card text-foreground font-semibold shadow-sm border border-border/60"
+                                    : "text-muted-foreground hover:text-foreground"
+                                }`}
+                                title="View as raw monospace logs"
+                              >
+                                <Icons.Code2 size={11} />
+                                <span>Raw</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setLogsViewOverrides((prev) => ({
+                                    ...prev,
+                                    [problemDetail.id]: "markdown",
+                                  }))
+                                }
+                                className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono transition-colors cursor-pointer ${
+                                  logsMode === "markdown"
+                                    ? "bg-card text-foreground font-semibold shadow-sm border border-border/60"
+                                    : "text-muted-foreground hover:text-foreground"
+                                }`}
+                                title="Render as Markdown & Mermaid"
+                              >
+                                <Icons.Eye size={11} />
+                                <span>Markdown</span>
+                              </button>
+                            </div>
                           )}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div className={styles.shellEditorWrapper}>
-                    {problemDetail.errorDescription ? (
-                      <CodeViewer
-                        height="220px"
-                        language="log"
-                        code={problemDetail.errorDescription}
-                        wrapLines={wrapLogs}
-                      />
-                    ) : (
-                      <div className="text-xs text-muted-foreground p-8 text-center font-mono">
-                        No stack trace logs documented for this error.
+                          {logsMode === "raw" && (
+                            <button
+                              type="button"
+                              className={`${styles.copyButton} ${wrapLogs ? "text-primary border-primary/40 bg-primary/10" : ""}`}
+                              onClick={() => setWrapLogs((prev) => !prev)}
+                              title={wrapLogs ? "Disable line wrapping" : "Enable line wrapping"}
+                              aria-label="Toggle line wrapping"
+                              aria-pressed={wrapLogs}
+                            >
+                              <Icons.WrapText size={12} />
+                            </button>
+                          )}
+                          {problemDetail.errorDescription && (
+                            <button
+                              className={styles.copyButton}
+                              onClick={() =>
+                                handleCopy(
+                                  problemDetail.errorDescription || "",
+                                  `err-${problemDetail.id}`
+                                )
+                              }
+                              title="Copy Log Output"
+                            >
+                              {copiedId === `err-${problemDetail.id}` ? (
+                                <Icons.Check size={12} className="text-emerald-500" />
+                              ) : (
+                                <Icons.Copy size={12} />
+                              )}
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </div>
+                      <div className={styles.shellEditorWrapper}>
+                        {problemDetail.errorDescription ? (
+                          logsMode === "markdown" ? (
+                            <MarkdownRenderer
+                              content={problemDetail.errorDescription}
+                              className={`p-4 text-sm overflow-y-auto max-h-[380px] min-h-[140px] select-text ${styles.markdownContainer}`}
+                            />
+                          ) : (
+                            <CodeViewer
+                              height="220px"
+                              language="log"
+                              code={problemDetail.errorDescription}
+                              wrapLines={wrapLogs}
+                            />
+                          )
+                        ) : (
+                          <div className="text-xs text-muted-foreground p-8 text-center font-mono">
+                            No stack trace logs documented for this error.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Shell Panel: Solution Fix */}
               <div className="px-5 pb-6">
-                <div className={styles.shellContainer}>
-                  <div className={styles.shellHeader}>
-                    <div className={styles.shellTitleSection}>
-                      <Icons.CheckSquare size={14} className="text-emerald-500" />
-                      <span className={styles.shellTitle}>Solution script / Code fix</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        className={`${styles.copyButton} ${wrapSolution ? "text-primary border-primary/40 bg-primary/10" : ""}`}
-                        onClick={() => setWrapSolution((prev) => !prev)}
-                        title={wrapSolution ? "Disable line wrapping" : "Enable line wrapping"}
-                        aria-label="Toggle line wrapping"
-                        aria-pressed={wrapSolution}
-                      >
-                        <Icons.WrapText size={12} />
-                      </button>
-                      {problemDetail.solution && (
-                        <button
-                          className={styles.copyButton}
-                          onClick={() =>
-                            handleCopy(problemDetail.solution || "", `sol-${problemDetail.id}`)
-                          }
-                          title="Copy Solution Code"
-                        >
-                          {copiedId === `sol-${problemDetail.id}` ? (
-                            <Icons.Check size={12} className="text-emerald-500" />
-                          ) : (
-                            <Icons.Copy size={12} />
+                {(() => {
+                  const solutionMode: "raw" | "markdown" =
+                    solutionViewOverrides[problemDetail.id] ??
+                    (detectMarkdownContent(problemDetail.solution) ? "markdown" : "raw");
+                  return (
+                    <div className={styles.shellContainer}>
+                      <div className={styles.shellHeader}>
+                        <div className={styles.shellTitleSection}>
+                          <Icons.CheckSquare size={14} className="text-emerald-500" />
+                          <span className={styles.shellTitle}>Solution script / Code fix</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {problemDetail.solution && (
+                            <div className="flex items-center gap-0.5 p-0.5 rounded bg-secondary/70 border border-border/70">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setSolutionViewOverrides((prev) => ({
+                                    ...prev,
+                                    [problemDetail.id]: "raw",
+                                  }))
+                                }
+                                className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono transition-colors cursor-pointer ${
+                                  solutionMode === "raw"
+                                    ? "bg-card text-foreground font-semibold shadow-sm border border-border/60"
+                                    : "text-muted-foreground hover:text-foreground"
+                                }`}
+                                title="View as raw code / script"
+                              >
+                                <Icons.Code2 size={11} />
+                                <span>Raw</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setSolutionViewOverrides((prev) => ({
+                                    ...prev,
+                                    [problemDetail.id]: "markdown",
+                                  }))
+                                }
+                                className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono transition-colors cursor-pointer ${
+                                  solutionMode === "markdown"
+                                    ? "bg-card text-foreground font-semibold shadow-sm border border-border/60"
+                                    : "text-muted-foreground hover:text-foreground"
+                                }`}
+                                title="Render as Markdown & Mermaid"
+                              >
+                                <Icons.Eye size={11} />
+                                <span>Markdown</span>
+                              </button>
+                            </div>
                           )}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div className={styles.shellEditorWrapper}>
-                    {problemDetail.solution ? (
-                      <CodeViewer
-                        height="220px"
-                        language="plaintext"
-                        code={problemDetail.solution}
-                        wrapLines={wrapSolution}
-                      />
-                    ) : (
-                      <div className="text-xs text-muted-foreground p-8 text-center font-mono">
-                        No resolution script documented. Edit details to attach a code fix.
+                          {solutionMode === "raw" && (
+                            <button
+                              type="button"
+                              className={`${styles.copyButton} ${wrapSolution ? "text-primary border-primary/40 bg-primary/10" : ""}`}
+                              onClick={() => setWrapSolution((prev) => !prev)}
+                              title={wrapSolution ? "Disable line wrapping" : "Enable line wrapping"}
+                              aria-label="Toggle line wrapping"
+                              aria-pressed={wrapSolution}
+                            >
+                              <Icons.WrapText size={12} />
+                            </button>
+                          )}
+                          {problemDetail.solution && (
+                            <button
+                              className={styles.copyButton}
+                              onClick={() =>
+                                handleCopy(problemDetail.solution || "", `sol-${problemDetail.id}`)
+                              }
+                              title="Copy Solution Code"
+                            >
+                              {copiedId === `sol-${problemDetail.id}` ? (
+                                <Icons.Check size={12} className="text-emerald-500" />
+                              ) : (
+                                <Icons.Copy size={12} />
+                              )}
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </div>
+                      <div className={styles.shellEditorWrapper}>
+                        {problemDetail.solution ? (
+                          solutionMode === "markdown" ? (
+                            <MarkdownRenderer
+                              content={problemDetail.solution}
+                              className={`p-4 text-sm overflow-y-auto max-h-[380px] min-h-[140px] select-text ${styles.markdownContainer}`}
+                            />
+                          ) : (
+                            <CodeViewer
+                              height="220px"
+                              language="plaintext"
+                              code={problemDetail.solution}
+                              wrapLines={wrapSolution}
+                            />
+                          )
+                        ) : (
+                          <div className="text-xs text-muted-foreground p-8 text-center font-mono">
+                            No resolution script documented. Edit details to attach a code fix.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>

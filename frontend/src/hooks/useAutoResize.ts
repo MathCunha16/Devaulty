@@ -6,8 +6,9 @@ import { useEffect, useRef } from "react";
  *
  * @param value The current value of the textarea (used to trigger resize on change)
  * @param minHeight Minimum height in pixels (default: 80)
+ * @param trigger Optional extra dependency to re-run resize (e.g. tab switch remount)
  */
-export function useAutoResize(value: string, minHeight = 80) {
+export function useAutoResize(value: string, minHeight = 80, trigger?: unknown) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -16,7 +17,7 @@ export function useAutoResize(value: string, minHeight = 80) {
     el.style.height = `${minHeight}px`;
     const scrollHeight = el.scrollHeight;
     el.style.height = `${Math.max(scrollHeight, minHeight)}px`;
-  }, [value, minHeight]);
+  }, [value, minHeight, trigger]);
 
   return ref;
 }
