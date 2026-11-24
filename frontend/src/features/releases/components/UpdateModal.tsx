@@ -10,8 +10,7 @@ import {
   FolderOpen,
   Info,
 } from "lucide-react";
-import { marked } from "marked";
-import DOMPurify from "dompurify";
+import { MarkdownRenderer } from "../../../components/MarkdownRenderer";
 import type {
   AppUpdateInfoResponse,
   UpdateDownloadProgressResponse,
@@ -193,15 +192,6 @@ const UpdateModalContent: React.FC<UpdateModalContentProps> = ({
     return v.startsWith("v") ? v : `v${v}`;
   };
 
-  const renderReleaseNotes = (notes: string) => {
-    try {
-      const rawHtml = marked.parse(notes, { async: false }) as string;
-      return DOMPurify.sanitize(rawHtml);
-    } catch {
-      return notes;
-    }
-  };
-
   const isInstallingOrCompleted =
     progress?.status === "INSTALLING" ||
     (progress?.status === "COMPLETED" && !savedFilePath);
@@ -312,9 +302,10 @@ const UpdateModalContent: React.FC<UpdateModalContentProps> = ({
               <span className={styles.releaseNotesLabel}>
                 {updateInfo.releaseTitle ? updateInfo.releaseTitle : "RELEASE NOTES"}
               </span>
-              <div
+              <MarkdownRenderer
+                content={updateInfo.releaseNotes}
                 className={styles.releaseNotesContent}
-                dangerouslySetInnerHTML={{ __html: renderReleaseNotes(updateInfo.releaseNotes) }}
+                breaks={false}
               />
             </div>
           )}

@@ -1,8 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import * as Icons from "lucide-react";
-import { marked } from "marked";
-import DOMPurify from "dompurify";
 import { useNavigate } from "@tanstack/react-router";
+import { MarkdownRenderer } from "../../../components/MarkdownRenderer";
 import { useSnippetsQuery } from "~features/snippets/hooks/useSnippets";
 import { useProblemsQuery } from "~features/problems/hooks/useProblems";
 import { useCredentialsQuery } from "~features/credentials/hooks/useCredentials";
@@ -37,6 +36,10 @@ interface HoverState {
 }
 
 type ItemData = Record<string, string | boolean | undefined>;
+
+const MENTION_SANITIZE_CONFIG = {
+  ADD_ATTR: ["data-item-type", "data-item-id", "data-display-name", "style"],
+};
 
 export const MarkdownWithMentions: React.FC<MarkdownWithMentionsProps> = ({
   text,
@@ -127,19 +130,10 @@ export const MarkdownWithMentions: React.FC<MarkdownWithMentionsProps> = ({
     return list;
   }, [linkedItems, itemLookup]);
 
-  // Render markdown with title-based mention pills
-  const renderedHtml = useMemo(() => {
-    if (!text.trim()) return "";
-    try {
-      const rawHtml = marked.parse(text, { breaks: true, gfm: true }) as string;
-      const withMentions = replaceMentionsWithPills(rawHtml, availableMentionItems);
-      return DOMPurify.sanitize(withMentions, {
-        ADD_ATTR: ["data-item-type", "data-item-id", "data-display-name", "style"],
-      });
-    } catch {
-      return DOMPurify.sanitize(text);
-    }
-  }, [text, availableMentionItems]);
+  const transformMentions = useCallback(
+    (rawHtml: string) => replaceMentionsWithPills(rawHtml, availableMentionItems),
+    [availableMentionItems]
+  );
 
   // Navigate to item's tab with itemId
   const navigateToItem = useCallback(
@@ -240,10 +234,12 @@ export const MarkdownWithMentions: React.FC<MarkdownWithMentionsProps> = ({
 
   return (
     <>
-      <div
-        ref={containerRef}
+      <MarkdownRenderer
+        containerRef={containerRef}
+        content={text}
         className={`${styles.markdownBody} overflow-x-auto select-text`}
-        dangerouslySetInnerHTML={{ __html: renderedHtml }}
+        transformHtml={transformMentions}
+        sanitizeConfig={MENTION_SANITIZE_CONFIG}
       />
 
       {/* Hover Card */}

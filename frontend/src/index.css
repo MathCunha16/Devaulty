@@ -142,3 +142,71 @@
   image-rendering: auto !important;
 }
 
+/* Shared Mermaid Diagram Container inside Markdown Renderers */
+.devaulty-mermaid-wrapper {
+  margin: 0.85rem 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background-color: color-mix(in srgb, var(--color-card) 85%, var(--color-background));
+  overflow: hidden;
+}
+
+.devaulty-mermaid-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  background-color: color-mix(in srgb, var(--color-secondary) 70%, transparent);
+}
+
+.devaulty-mermaid-badge {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-muted-foreground);
+}
+
+.devaulty-mermaid-copy-btn {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.68rem;
+  color: var(--color-muted-foreground);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 0.15rem 0.45rem;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.devaulty-mermaid-copy-btn:hover {
+  color: var(--color-foreground);
+  border-color: var(--color-border);
+  background-color: var(--color-secondary);
+}
+
+.devaulty-mermaid-canvas {
+  padding: 1rem;
+  overflow-x: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.devaulty-mermaid-canvas svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.devaulty-mermaid-error {
+  margin-bottom: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background-color: rgba(239, 68, 68, 0.08);
+  color: #f87171;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.72rem;
+}
+

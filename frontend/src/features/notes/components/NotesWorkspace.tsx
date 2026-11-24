@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
 import * as Icons from "lucide-react";
-import { marked } from "marked";
-import DOMPurify from "dompurify";
 import { ConfirmModal } from "../../../components/ConfirmModal";
 import { TagManagerSection } from "../../../components/TagManagerSection";
+import { MarkdownRenderer } from "../../../components/MarkdownRenderer";
 import { formatUpdatedDate } from "../../../utils/dateUtils";
 import { copyToClipboard } from "../../../utils/clipboardUtils";
 
@@ -285,18 +284,9 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
     }
   };
 
-  const renderMarkdown = (content: string | undefined) => {
-    if (!content?.trim()) {
-      return '<span class="text-muted-foreground italic text-xs font-mono cursor-pointer">No content documented. Switch to "Write / Code" to start writing.</span>';
-    }
-    try {
-      const rawHtml = marked.parse(content, { breaks: true, gfm: true }) as string;
-      const sanitized = DOMPurify.sanitize(rawHtml);
-      return sanitized.replace(/<input([^>]*)\sdisabled(=["']?["']?)?/gi, '<input$1');
-    } catch {
-      return DOMPurify.sanitize(content);
-    }
-  };
+  const enableCheckboxes = React.useCallback((sanitized: string) => {
+    return sanitized.replace(/<input([^>]*)\sdisabled(=["']?["']?)?/gi, "<input$1");
+  }, []);
 
 
   const formattedUpdatedDate = noteDetail
@@ -622,18 +612,23 @@ export const NotesWorkspace: React.FC<NotesWorkspaceProps> = ({
                         autoFocus
                       />
                     </div>
-                  ) : (
+                  ) : !inlineContent.trim() ? (
                     <div
                       className={`bg-background/50 border border-border rounded p-6 text-sm leading-relaxed overflow-y-auto min-h-[350px] ${styles.markdownContainer}`}
+                      onClick={() => setContentTab("write")}
+                    >
+                      <span className="text-muted-foreground italic text-xs font-mono cursor-pointer">
+                        No content documented. Switch to "Write / Code" to start writing.
+                      </span>
+                    </div>
+                  ) : (
+                    <MarkdownRenderer
+                      content={inlineContent}
+                      className={`bg-background/50 border border-border rounded p-6 text-sm leading-relaxed overflow-y-auto min-h-[350px] ${styles.markdownContainer}`}
+                      postSanitizeHtml={enableCheckboxes}
                       onClick={(e) => {
-                        const target = e.target as HTMLElement;
-                        if (!inlineContent.trim() && target.tagName !== "INPUT") {
-                          setContentTab("write");
-                        } else {
-                          handleMarkdownClick(e);
-                        }
+                        void handleMarkdownClick(e);
                       }}
-                      dangerouslySetInnerHTML={{ __html: renderMarkdown(inlineContent) }}
                     />
                   )}
                 </div>
