@@ -51,11 +51,12 @@ const ProblemFormInner: React.FC<ProblemFormInnerProps> = ({
   const [solution, setSolution] = useState(initialValues?.solution || "");
   const [status, setStatus] = useState<ProblemStatus>(initialValues?.status || "OPEN");
   const [severity, setSeverity] = useState<ProblemSeverity>(initialValues?.severity || "MEDIUM");
+
   const [errorTab, setErrorTab] = useState<"write" | "preview">("write");
   const [solutionTab, setSolutionTab] = useState<"write" | "preview">("write");
 
-  const errorDescRef = useAutoResize(errorDescription, 100);
-  const solutionRef = useAutoResize(solution, 100);
+  const errorDescRef = useAutoResize(errorDescription, 100, errorTab);
+  const solutionRef = useAutoResize(solution, 100, solutionTab);
 
   const previousActiveElement = useRef<HTMLElement | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);

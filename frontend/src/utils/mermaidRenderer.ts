@@ -13,7 +13,12 @@ let renderCounter = 0;
  */
 async function getMermaid(theme: MermaidTheme) {
   if (!mermaidPromise) {
-    mermaidPromise = import("mermaid").then((mod) => mod.default);
+    mermaidPromise = import("mermaid")
+      .then((mod) => mod.default)
+      .catch((err) => {
+        mermaidPromise = null;
+        throw err;
+      });
   }
   const mermaid = await mermaidPromise;
 
@@ -124,7 +129,12 @@ export async function hydrateMermaidDiagrams(
 
     if (!svg) {
       if (!mermaidInstance) {
-        mermaidInstance = await getMermaid(targetTheme);
+        try {
+          mermaidInstance = await getMermaid(targetTheme);
+        } catch (err) {
+          console.warn("[mermaidRenderer] Failed to load Mermaid module:", err);
+          return;
+        }
         if (signal?.aborted) return;
       }
 
@@ -135,10 +145,10 @@ export async function hydrateMermaidDiagrams(
         svg = rendered.svg;
         setCachedSvg(cacheKey, svg);
       } catch (err) {
-        if (signal?.aborted) return;
-        // Clean up any temporary error node Mermaid may have appended to body
+        // Clean up any temporary error node Mermaid may have appended to body before abort check
         document.getElementById(uniqueId)?.remove();
         document.getElementById(`d${uniqueId}`)?.remove();
+        if (signal?.aborted) return;
 
         if (!preEl.previousElementSibling?.classList.contains("devaulty-mermaid-error")) {
           const errorBanner = document.createElement("div");
